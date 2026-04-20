@@ -7,13 +7,27 @@ const { spawn, execSync } = require('child_process');
 let mainWindow;
 let backendProcess;
 
+const userDataPath = app.getPath('userData');
+if (!fs.existsSync(userDataPath)) {
+  fs.mkdirSync(userDataPath, { recursive: true });
+}
+
 const unpackedAppPath = isDev
   ? process.cwd()
   : path.join(process.resourcesPath, 'app.asar.unpacked');
 
 const dbPath = isDev
   ? path.join(process.cwd(), 'backend/prisma/dev.db')
-  : path.join(app.getPath('userData'), 'database.sqlite');
+  : path.join(userDataPath, 'database.sqlite');
+
+const logFile = path.join(userDataPath, 'backend-log.txt');
+const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+
+function log(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}\n`;
+  console.log(line);
+  logStream.write(line);
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -21,7 +35,7 @@ function createWindow() {
     height: 800,
     frame: false,
     autoHideMenuBar: true,
-    title: '',
+    title: 'Wholesale CRM',
     backgroundColor: '#111927',
     webPreferences: {
       nodeIntegration: false,
@@ -51,38 +65,29 @@ function createWindow() {
 function killProcessOnPort(port) {
   try {
     const stdout = execSync(`netstat -ano | findstr :${port}`).toString();
-    const lines = stdout.split('\n');
     const pids = new Set();
-    
-    lines.forEach(line => {
+    stdout.split('\n').forEach(line => {
       const match = line.match(/LISTENING\s+(\d+)/);
       if (match) pids.add(match[1]);
     });
 
     pids.forEach(pid => {
-      console.log(`Killing process ${pid} on port ${port}`);
-      try {
-        execSync(`taskkill /F /PID ${pid}`);
-      } catch (e) {
-        // Ignore if process already gone
-      }
+      log(`Killing PID ${pid}`);
+      try { execSync(`taskkill /F /PID ${pid}`); } catch (e) {}
     });
-
-    // Small delay to ensure port is released
     execSync('timeout /t 1 /nobreak > nul', { shell: true });
-  } catch (e) {
-    // Port likely not in use
-  }
+  } catch (e) {}
 }
 
 function runMigrations() {
   if (isDev) return;
-
-  console.log('Running migrations...');
+  log('Starting migrations...');
+  
   const prismaPath = path.join(unpackedAppPath, 'node_modules/prisma/build/index.js');
   const schemaPath = path.join(unpackedAppPath, 'backend/prisma/schema.prisma');
 
   try {
+    // Quoting both executable and arguments for Windows paths with spaces
     execSync(`"${process.execPath}" "${prismaPath}" migrate deploy --schema="${schemaPath}"`, {
       env: {
         ...process.env,
@@ -90,9 +95,9 @@ function runMigrations() {
         ELECTRON_RUN_AS_NODE: '1'
       }
     });
-    console.log('Migrations applied successfully');
+    log('Migrations completed successfully');
   } catch (error) {
-    console.error('Migration error:', error);
+    log(`Migration failed: ${error.message}`);
   }
 }
 
@@ -100,7 +105,7 @@ function startBackend() {
   const port = 3001;
   killProcessOnPort(port);
   
-  console.log('Starting backend...');
+  log('Spawning backend process...');
   const serverPath = isDev
     ? path.join(process.cwd(), 'backend/dist/server.js')
     : path.join(unpackedAppPath, 'backend/dist/server.js');
@@ -110,37 +115,41 @@ function startBackend() {
     ? ['run', 'dev:backend'] 
     : [serverPath];
 
-  const logDir = app.getPath('userData');
-  const logFile = path.join(logDir, 'backend-log.txt');
-  const logStream = fs.createWriteStream(logFile, { flags: 'a' });
-  
   const childEnv = {
     ...process.env,
     PORT: port,
     DATABASE_URL: `file:${dbPath}`,
-    APP_UPLOADS_DIR: path.join(logDir, 'uploads'),
-    NODE_ENV: isDev ? 'development' : 'production'
+    NODE_ENV: 'production',
+    APP_UPLOADS_DIR: path.join(userDataPath, 'uploads')
   };
 
   if (!isDev) {
     childEnv.ELECTRON_RUN_AS_NODE = '1';
   }
 
-  backendProcess = spawn(command, args, {
+  // CRITICAL FIX: Wrap command in quotes for shell: true on Windows if path has spaces
+  const finalCommand = command.includes(' ') ? `"${command}"` : command;
+
+  backendProcess = spawn(finalCommand, args, {
     shell: true,
     env: childEnv,
     cwd: unpackedAppPath
   });
 
-  backendProcess.stdout.on('data', (data) => logStream.write(`[STDOUT]: ${data}`));
-  backendProcess.stderr.on('data', (data) => logStream.write(`[STDERR]: ${data}`));
+  backendProcess.stdout.on('data', (data) => log(`[BACKEND]: ${data}`));
+  backendProcess.stderr.on('data', (data) => log(`[BACKEND ERROR]: ${data}`));
   
-  backendProcess.on('close', (code) => logStream.write(`Backend exited with code ${code}\n`));
+  backendProcess.on('close', (code) => log(`Backend exited with code ${code}`));
 }
 
-app.whenReady().then(async () => {
-  runMigrations();
-  startBackend();
+app.whenReady().then(() => {
+  log(`App started. Version: ${app.getVersion()}`);
+  try {
+    runMigrations();
+    startBackend();
+  } catch (e) {
+    log(`Startup error: ${e.message}`);
+  }
   createWindow();
 
   app.on('activate', () => {
