@@ -104,22 +104,23 @@ function runMigrations() {
 function startBackend() {
   const port = 3001;
   killProcessOnPort(port);
-  
+
   log('Spawning backend process...');
+
   const serverPath = isDev
     ? path.join(process.cwd(), 'backend/dist/server.js')
     : path.join(unpackedAppPath, 'backend/dist/server.js');
-  
-  const command = isDev ? 'npm' : process.execPath;
-  const args = isDev 
-    ? ['run', 'dev:backend'] 
+
+  const command = isDev ? 'npm.cmd' : process.execPath;
+  const args = isDev
+    ? ['run', 'dev:backend']
     : [serverPath];
 
   const childEnv = {
     ...process.env,
-    PORT: port,
+    PORT: String(port),
     DATABASE_URL: `file:${dbPath}`,
-    NODE_ENV: 'production',
+    NODE_ENV: isDev ? 'development' : 'production',
     APP_UPLOADS_DIR: path.join(userDataPath, 'uploads')
   };
 
@@ -127,18 +128,16 @@ function startBackend() {
     childEnv.ELECTRON_RUN_AS_NODE = '1';
   }
 
-  // CRITICAL FIX: Wrap command in quotes for shell: true on Windows if path has spaces
-  const finalCommand = command.includes(' ') ? `"${command}"` : command;
-
-  backendProcess = spawn(finalCommand, args, {
-    shell: true,
+  backendProcess = spawn(command, args, {
+    shell: false,
     env: childEnv,
-    cwd: unpackedAppPath
+    cwd: isDev ? process.cwd() : unpackedAppPath,
+    windowsHide: true
   });
 
   backendProcess.stdout.on('data', (data) => log(`[BACKEND]: ${data}`));
   backendProcess.stderr.on('data', (data) => log(`[BACKEND ERROR]: ${data}`));
-  
+  backendProcess.on('error', (err) => log(`Backend spawn error: ${err.message}`));
   backendProcess.on('close', (code) => log(`Backend exited with code ${code}`));
 }
 
