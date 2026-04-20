@@ -28,37 +28,142 @@ function log(msg) {
 }
 
 /**
- * Ensures the database exists in the userData directory for the packaged app.
- * Instead of running migrations at runtime, we copy a pre-migrated template database.
+ * Checks if the existing SQLite database is valid and contains the necessary tables.
+ * Since we don't have a sqlite3 library in the main process, we use a heuristic:
+ * 1. Check file size (it should be comparable to our template).
+ * 2. Scan the file for the 'users' table definition.
+ */
+function isDatabaseValid(pathToCheck) {
+  try {
+    if (!fs.existsSync(pathToCheck)) return false;
+
+    const stats = fs.statSync(pathToCheck);
+    // If the file is extremely small (e.g. < 20KB), it's likely empty or corrupted
+    if (stats.size < 20000) {
+      log(`Database file is too small (${stats.size} bytes). Marking as invalid.`);
+      return false;
+    }
+
+    // Heuristic: Search for the 'User' or 'users' schema definition in the SQLite binary
+    // SQLite stores its schema in plain text within the database file.
+    const buffer = fs.readFileSync(pathToCheck, { encoding: null, flag: 'r' });
+    const content = buffer.toString('binary');
+    
+    // Prisma model 'User' usually results in a table named 'User' or 'users'
+    if (!content.includes('CREATE TABLE "User"') && !content.includes('CREATE TABLE "users"')) {
+      log('Database integrity check failed: "User" table definition not found.');
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    log(`Error checking database integrity: ${err.message}`);
+    return false;
+  }
+}
+
+/**
+ * Ensures the database exists and is valid in the userData directory.
  */
 function ensureDatabase() {
   if (isDev) return;
 
-  log('Checking database...');
+  log('Initializing database check...');
   if (!fs.existsSync(userDataPath)) {
     fs.mkdirSync(userDataPath, { recursive: true });
   }
 
-  if (!fs.existsSync(dbPath)) {
-    log('Database file not found in userData. Initializing from template...');
-    
-    // The template is the dev.db we bundled in backend/prisma/
-    const templateDbPath = path.join(unpackedAppPath, 'backend/prisma/dev.db');
-    
+  const templateDbPath = path.join(unpackedAppPath, 'backend/prisma/dev.db');
+  
+  const copyTemplate = (reason) => {
+    log(`Action: Copying template database. Reason: ${reason}`);
     if (fs.existsSync(templateDbPath)) {
       try {
         fs.copyFileSync(templateDbPath, dbPath);
-        log(`Database initialized successfully at: ${dbPath}`);
+        log(`Database successfully initialized at: ${dbPath}`);
       } catch (err) {
-        log(`CRITICAL: Failed to copy template database: ${err.message}`);
+        log(`CRITICAL ERROR: Failed to copy database template: ${err.message}`);
       }
     } else {
-      log(`CRITICAL: Template database not found at ${templateDbPath}. Backend will likely fail.`);
+      log(`CRITICAL ERROR: Template database missing at ${templateDbPath}`);
     }
+  };
+
+  if (!fs.existsSync(dbPath)) {
+    copyTemplate('New installation (file missing)');
   } else {
-    log('Database already exists in userData.');
+    log('Database file exists. Verifying integrity...');
+    if (!isDatabaseValid(dbPath)) {
+      const backupPath = `${dbPath}.bak_${Date.now()}`;
+      try {
+        fs.renameSync(dbPath, backupPath);
+        log(`Invalid database backed up to: ${path.basename(backupPath)}`);
+      } catch (e) {
+        log(`Warning: Failed to backup invalid database: ${e.message}`);
+      }
+      copyTemplate('Existing database was invalid or empty');
+    } else {
+      log('Existing database passed the integrity check.');
+    }
   }
 }
+
+function startBackend() {
+  const port = 3001;
+  
+  log('Starting backend process...');
+  const serverPath = isDev
+    ? path.join(process.cwd(), 'backend/dist/server.js')
+    : path.join(unpackedAppPath, 'backend/dist/server.js');
+  
+  const command = isDev ? 'npm.cmd' : process.execPath;
+  const args = isDev 
+    ? ['run', 'dev:backend'] 
+    : [serverPath];
+
+  const childEnv = {
+    ...process.env,
+    PORT: String(port),
+    DATABASE_URL: `file:${dbPath}`,
+    NODE_ENV: isDev ? 'development' : 'production',
+    APP_UPLOADS_DIR: path.join(userDataPath, 'uploads')
+  };
+
+  if (!isDev) {
+    childEnv.ELECTRON_RUN_AS_NODE = '1';
+  }
+
+  backendProcess = spawn(command, args, {
+    shell: false, 
+    env: childEnv,
+    cwd: isDev ? process.cwd() : unpackedAppPath,
+    windowsHide: true
+  });
+
+  backendProcess.stdout.on('data', (data) => log(`[BACKEND]: ${data}`));
+  backendProcess.stderr.on('data', (data) => log(`[BACKEND ERROR]: ${data}`));
+  
+  backendProcess.on('error', (err) => log(`Backend spawn error: ${err.message}`));
+  backendProcess.on('close', (code) => log(`Backend exited with code ${code}`));
+}
+
+app.whenReady().then(() => {
+  log(`App started. Version: ${app.getVersion()}`);
+  log(`UserData path: ${userDataPath}`);
+
+  try {
+    ensureDatabase();
+    startBackend();
+  } catch (e) {
+    log(`Critical startup error: ${e.message}`);
+  }
+
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -93,86 +198,6 @@ function createWindow() {
   });
 }
 
-function killProcessOnPort(port) {
-  try {
-    const stdout = execSync(`netstat -ano | findstr :${port}`).toString();
-    const pids = new Set();
-    stdout.split('\n').forEach(line => {
-      const match = line.match(/LISTENING\s+(\d+)/);
-      if (match) pids.add(match[1]);
-    });
-
-    pids.forEach(pid => {
-      log(`Killing PID ${pid} on port ${port}`);
-      try { execSync(`taskkill /F /PID ${pid}`); } catch (e) {}
-    });
-  } catch (e) {
-    // Port likely free
-  }
-}
-
-function startBackend() {
-  const port = 3001;
-  killProcessOnPort(port);
-  
-  log('Spawning backend process...');
-
-  const serverPath = isDev
-    ? path.join(process.cwd(), 'backend/dist/server.js')
-    : path.join(unpackedAppPath, 'backend/dist/server.js');
-  
-  const command = isDev ? 'npm.cmd' : process.execPath;
-  const args = isDev 
-    ? ['run', 'dev:backend'] 
-    : [serverPath];
-
-  // Important: Use strings for port and pass DATABASE_URL to override .env
-  const childEnv = {
-    ...process.env,
-    PORT: String(port),
-    DATABASE_URL: `file:${dbPath}`,
-    NODE_ENV: isDev ? 'development' : 'production',
-    APP_UPLOADS_DIR: path.join(userDataPath, 'uploads')
-  };
-
-  if (!isDev) {
-    childEnv.ELECTRON_RUN_AS_NODE = '1';
-  }
-
-  // Windows: spawn with shell: false and no manual quoting is the safest way 
-  // when using node/electron binaries directly.
-  backendProcess = spawn(command, args, {
-    shell: false, 
-    env: childEnv,
-    cwd: isDev ? process.cwd() : unpackedAppPath,
-    windowsHide: true
-  });
-
-  backendProcess.stdout.on('data', (data) => log(`[BACKEND]: ${data}`));
-  backendProcess.stderr.on('data', (data) => log(`[BACKEND ERROR]: ${data}`));
-  
-  backendProcess.on('error', (err) => log(`Backend spawn error: ${err.message}`));
-  backendProcess.on('close', (code) => log(`Backend exited with code ${code}`));
-}
-
-app.whenReady().then(() => {
-  log(`App started. Version: ${app.getVersion()}`);
-  log(`UserData: ${userDataPath}`);
-
-  try {
-    ensureDatabase();
-    startBackend();
-  } catch (e) {
-    log(`Startup error: ${e.message}`);
-  }
-
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     if (backendProcess) backendProcess.kill();
@@ -184,7 +209,6 @@ app.on('quit', () => {
   if (backendProcess) backendProcess.kill();
 });
 
-// IPC handlers for window controls
 ipcMain.handle('window:minimize', (e) => {
   BrowserWindow.fromWebContents(e.sender)?.minimize();
 });
