@@ -70,6 +70,7 @@
       "backend/node_modules/@prisma/client/**",
       "backend/node_modules/.prisma/**",
       "backend/package.json",
+      "backend/prisma/**",
       "node_modules/**",
       "node_modules/.prisma/**"
     ],
