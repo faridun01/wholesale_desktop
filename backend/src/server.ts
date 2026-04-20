@@ -32,36 +32,10 @@ try {
   const { initRateLimitStorage } = await import('./middlewares/rate-limit.middleware.js');
   await initRateLimitStorage();
 
-  const { default: prisma } = await import('./db/prisma.js');
-  const { default: bcrypt } = await import('bcryptjs');
-
-  // Ищем именно админа, чтобы гарантировать вход
-  const adminUser = await prisma.user.findUnique({
-    where: { username: 'admin' }
-  });
-
-  if (!adminUser) {
-    console.log('Admin user not found. Creating default administrator...');
-    const hashedPassword = await bcrypt.hash('admin123', 10);
-    await prisma.user.create({
-      data: {
-        username: 'admin',
-        passwordHash: hashedPassword,
-        role: 'ADMIN',
-        active: true
-      },
-    });
-    console.log('Default admin created: admin / admin123');
-  } else if (!adminUser.active) {
-    // Если админ есть, но деактивирован - активируем его
-    await prisma.user.update({
-      where: { username: 'admin' },
-      data: { active: true }
-    });
-    console.log('Existing admin user reactivated.');
-  }
+  // We no longer auto-create admin here to allow first-time UI setup
+  console.log('Database connected. Waiting for setup if necessary.');
 } catch (error) {
-  console.error('Failed to initialize database connection or admin user.');
+  console.error('Failed to initialize backend services.');
   console.error(error);
   process.exit(1);
 }

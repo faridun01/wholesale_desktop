@@ -59,7 +59,7 @@ const toPublicUser = (user: any): PublicUser => ({
     : null,
 });
 
-const INVALID_CREDENTIALS_ERROR = 'Invalid credentials';
+const INVALID_CREDENTIALS_ERROR = 'Invalid credentials 0';
 const BACKUP_CODE_PEPPER = process.env.TWO_FACTOR_BACKUP_PEPPER || JWT_SECRET;
 const TWO_FACTOR_TOKEN_AUDIENCE = `${securityConfig.auth.tokenAudience}:2fa`;
 
@@ -179,7 +179,7 @@ export class AuthService {
     });
 
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-      throw createHttpError(INVALID_CREDENTIALS_ERROR, 401);
+      throw createHttpError('Invalid credentials 1', 401);
     }
 
     if (user.twoFactorEnabled && user.twoFactorSecret) {
@@ -207,6 +207,7 @@ export class AuthService {
   static async register(data: {
     username: string;
     password: string;
+    active?: boolean;
     phone?: string;
     role?: string;
     warehouseId?: number;
@@ -224,6 +225,7 @@ export class AuthService {
         passwordHash: hashedPassword,
         phone: data.phone,
         role: data.role || 'SELLER',
+        active: data.active !== undefined ? data.active : true,
         warehouseId: data.warehouseId,
         canCancelInvoices: data.canCancelInvoices || false,
         canDeleteData: data.canDeleteData || false,
@@ -237,12 +239,12 @@ export class AuthService {
   static async changePassword(userId: number, currentPassword: string, newPassword: string) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user || !user.active) {
-      throw createHttpError(INVALID_CREDENTIALS_ERROR, 401);
+      throw createHttpError('Invalid credentials 2', 401);
     }
 
     const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!isPasswordValid) {
-      throw createHttpError(INVALID_CREDENTIALS_ERROR, 401);
+      throw createHttpError('Invalid credentials 3', 401);
     }
 
     validatePasswordStrength(newPassword);
@@ -296,6 +298,7 @@ export class AuthService {
     });
 
     if (!user || !user.active) {
+      console.error(`Auth: User ${userId} not found or inactive`);
       throw createHttpError('User not found', 404);
     }
 
@@ -385,7 +388,7 @@ export class AuthService {
     });
 
     if (!user || !user.active || !user.twoFactorEnabled || !user.twoFactorSecret) {
-      throw createHttpError(INVALID_CREDENTIALS_ERROR, 401);
+      throw createHttpError('Invalid credentials 4', 401);
     }
 
     const verification = verifyTwoFactorInput({
@@ -422,7 +425,7 @@ export class AuthService {
     }
 
     if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
-      throw createHttpError(INVALID_CREDENTIALS_ERROR, 401);
+      throw createHttpError('Invalid credentials 5', 401);
     }
 
     if (!user.twoFactorEnabled || !user.twoFactorSecret) {

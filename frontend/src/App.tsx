@@ -5,7 +5,7 @@ import { Loader2, Menu, Minus, Square, Warehouse, X } from 'lucide-react';
 import LoginView from './views/LoginView';
 import Sidebar from './components/layout/Sidebar';
 import { getCurrentUser, isAdminUser } from './utils/userAccess';
-import { clearAuthSession, getStoredUser, hasStoredSession, setAuthSession } from './utils/authStorage';
+import { clearAuthSession, getStoredUser, hasStoredSession, setAuthSession, getAuthToken } from './utils/authStorage';
 import { getSessionUser } from './api/auth.api';
 
 const DashboardView = React.lazy(() => import('./views/DashboardView'));
@@ -146,11 +146,8 @@ const Layout = () => {
 export default function App() {
   const [isBootstrappingSession, setIsBootstrappingSession] = React.useState(() => Boolean(getStoredUser()));
 
-  React.useEffect(() => {
-    if (localStorage.getItem('token')) {
-      localStorage.removeItem('token');
-    }
-  }, []);
+  // Removed token clearing on mount as it breaks session persistence
+
 
   React.useEffect(() => {
     let isMounted = true;
@@ -166,7 +163,8 @@ export default function App() {
       try {
         const user = await getSessionUser();
         if (isMounted) {
-          setAuthSession(null, user);
+          // Preserve current token while updating user data
+          setAuthSession(getAuthToken(), user);
         }
       } catch {
         if (isMounted) {

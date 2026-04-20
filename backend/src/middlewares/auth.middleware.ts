@@ -109,7 +109,8 @@ const resolveUserFromToken = async (token: string) => {
   });
 
   if (!user || !user.active) {
-    throw new Error('Unauthorized');
+    console.error(`Auth: User ${userId} not found or inactive in DB`);
+    throw new Error('Unauthorized 1');
   }
 
   return buildAuthUser(user);
@@ -118,14 +119,15 @@ const resolveUserFromToken = async (token: string) => {
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = getRequestToken(req);
   if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: 'Unauthorized 2' });
   }
 
   try {
     req.user = await resolveUserFromToken(token);
     next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
+  } catch (error: any) {
+    console.error(`Auth: Token validation failed: ${error.message}`);
+    return res.status(401).json({ error: 'Unauthorized 3' });
   }
 };
 
@@ -138,14 +140,15 @@ export const authenticateUploadAccess = async (req: AuthRequest, res: Response, 
   const token = getRequestToken(req) || queryToken;
 
   if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: 'Unauthorized 4' });
   }
 
   try {
     req.user = await resolveUserFromToken(token);
     next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid token' });
+  } catch (error: any) {
+    console.error(`Auth (Upload): Token validation failed: ${error.message}`);
+    return res.status(401).json({ error: 'Unauthorized 5' });
   }
 };
 

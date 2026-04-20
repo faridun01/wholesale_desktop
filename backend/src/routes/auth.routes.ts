@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import prisma from '../db/prisma.js';
 import type { Response } from 'express';
 import { AuthService } from '../services/auth.service.js';
 import { authenticate, authorize } from '../middlewares/auth.middleware.js';
@@ -19,25 +20,31 @@ import {
 
 const router = Router();
 
-const isSecureCookie = () =>
-  process.env.NODE_ENV === 'production' &&
-  String(process.env.COOKIE_SECURE || 'true').toLowerCase() !== 'false';
+const isSecureCookie = (req: any) => {
+  const host = req.get('host') || '';
+  if (host.includes('127.0.0.1') || host.includes('localhost')) {
+    return false;
+  }
+  return process.env.NODE_ENV === 'production' &&
+    String(process.env.COOKIE_SECURE || 'true').toLowerCase() !== 'false';
+};
 
-const setAuthCookie = (res: Response, token: string) => {
+const setAuthCookie = (res: Response, token: string, req: any) => {
   res.cookie('auth_token', token, {
     httpOnly: true,
-    secure: isSecureCookie(),
+    secure: isSecureCookie(req),
     sameSite: 'lax',
     maxAge: 8 * 60 * 60 * 1000,
     path: '/',
   });
 };
 
-const clearAuthCookie = (res: Response) => {
+const clearAuthCookie = (res: Response, req: any) => {
   res.clearCookie('auth_token', {
     httpOnly: true,
-    secure: isSecureCookie(),
+    secure: isSecureCookie(req),
     sameSite: 'lax',
+    maxAge: 0,
     path: '/',
   });
 };
@@ -50,6 +57,36 @@ const passwordChangeRateLimitKey = (req: AuthRequest) =>
 
 const twoFactorRateLimitKey = (req: any) =>
   `${req.ip}:${String(req.body?.twoFactorToken || req.body?.setupToken || req.user?.id || 'anonymous')}`;
+
+router.get('/setup-status', async (req, res, next) => {
+  try {
+    const userCount = await prisma.user.count();
+    res.json({ isConfigured: userCount > 0 });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/setup', validateRequest({ body: registerBodySchema }), async (req, res, next) => {
+  try {
+    const userCount = await prisma.user.count();
+    if (userCount > 0) {
+      return res.status(403).json({ error: 'System is already configured' });
+    }
+
+    const user = await AuthService.register({
+      ...req.body,
+      role: 'ADMIN',
+      active: true,
+    });
+    
+    const token = await AuthService.login(user.username, req.body.password);
+    setAuthCookie(res, (token as any).token, req);
+    res.json({ user, token: (token as any).token });
+  } catch (error) {
+    next(error);
+  }
+});
 
 const loginRateLimit = createRateLimit({
   windowMs: securityConfig.rateLimit.loginWindowMs,
@@ -84,7 +121,7 @@ router.post('/login', loginRateLimit, validateRequest({ body: loginBodySchema })
     }
 
     await resetRateLimit(loginRateLimitKey(req));
-    setAuthCookie(res, result.token);
+    setAuthCookie(res, result.token, req);
     res.json({ user: result.user, token: result.token, requiresTwoFactor: false });
   } catch (error) {
     next(error);
@@ -109,8 +146,8 @@ router.get('/me', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
-router.post('/logout', (_req, res) => {
-  clearAuthCookie(res);
+router.post('/logout', (req, res) => {
+  clearAuthCookie(res, req);
   res.json({ success: true });
 });
 
@@ -208,7 +245,7 @@ router.post('/2fa/login', twoFactorRateLimit, validateRequest({ body: twoFactorL
 
     const result = await AuthService.completeTwoFactorLogin(twoFactorToken, code);
     await resetRateLimit(twoFactorRateLimitKey(req));
-    setAuthCookie(res, result.token);
+    setAuthCookie(res, result.token, req);
     res.json({ user: result.user, token: result.token });
   } catch (error) {
     next(error);

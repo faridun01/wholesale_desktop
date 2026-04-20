@@ -125,6 +125,7 @@ function startBackend() {
     ...process.env,
     PORT: String(port),
     DATABASE_URL: `file:${dbPath}`,
+    JWT_SECRET: process.env.JWT_SECRET || '9e8b6a0c8b4f43o6b2b1a4c7d9e4f6a7c8d2e1f5b6a9c0d4e7f8a1b2c3d4e5f6',
     NODE_ENV: isDev ? 'development' : 'production',
     APP_UPLOADS_DIR: path.join(userDataPath, 'uploads')
   };

@@ -64,3 +64,13 @@ export const disableUserTwoFactor = async (userId: number) => {
   const response = await client.post(`/auth/users/${userId}/2fa/disable`);
   return response.data;
 };
+
+export const getSetupStatus = async () => {
+  const response = await client.get('/auth/setup-status');
+  return response.data;
+};
+
+export const performSetup = async (data: { username: string; password: string }) => {
+  const response = await client.post('/auth/setup', data);
+  return response.data;
+};
