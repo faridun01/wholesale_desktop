@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Q1_invoices_core_scan",
+    "execution_ms": 0.08,
+    "planning_ms": 1.038,
+    "root_node": "Sort",
+    "relation": null
+  },
+  {
+    "name": "Q2_invoice_items_with_allocations",
+    "execution_ms": 0.572,
+    "planning_ms": 3.147,
+    "root_node": "Hash Join",
+    "relation": null
+  },
+  {
+    "name": "Q3_writeoffs_main",
+    "execution_ms": 2.738,
+    "planning_ms": 1.387,
+    "root_node": "Sort",
+    "relation": null
+  },
+  {
+    "name": "Q4_writeoffs_returns_by_reference",
+    "execution_ms": 0.081,
+    "planning_ms": 0.164,
+    "root_node": "Hash Join",
+    "relation": null
+  },
+  {
+    "name": "Q5_dashboard_month_windows",
+    "execution_ms": 0.043,
+    "planning_ms": 0.086,
+    "root_node": "Aggregate",
+    "relation": null
+  }
+]

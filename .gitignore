@@ -1,0 +1,28 @@
+# Node modules
+node_modules/
+
+# Build folders
+build/
+dist/
+
+# Test coverage
+coverage/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.*
+!.env.example
+backend/.env
+
+# Uploads (local files)
+backend/uploads/
+
+# Snapshots / backups
+snapshots/
+
+# OS files
+release/
+out/

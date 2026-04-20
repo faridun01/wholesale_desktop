@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-shopify-green: #008060;
+  --color-shopify-green-dark: #006e52;
+  --color-shopify-bg: #f6f6f7;
+  --color-shopify-border: #e1e3e5;
+  --color-shopify-text: #202223;
+  --color-shopify-muted: #6d7175;
+}
+
+@layer base {
+  html {
+    height: 100%;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background: var(--color-shopify-bg);
+    color: var(--color-shopify-text);
+    selection-background-color: #b9f0dc;
+    min-width: 320px;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100%;
+  }
+
+  .app-titlebar {
+    -webkit-app-region: drag;
+  }
+
+  .app-titlebar-controls,
+  .app-titlebar-controls button {
+    -webkit-app-region: no-drag;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-white/20;
+  }
+}
+
+@layer components {
+  .app-page-shell {
+    @apply w-full min-w-0 overflow-hidden rounded-[22px] border border-white/70 bg-[#f4f5fb] shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:rounded-[28px] lg:rounded-l-none lg:border-l-0;
+  }
+
+  .app-page-pad {
+    @apply p-3 sm:p-4 lg:p-5;
+  }
+
+  .app-page-inner {
+    @apply w-full min-w-0;
+  }
+
+  .app-surface {
+    @apply overflow-hidden rounded-[28px] border border-white bg-white shadow-sm;
+  }
+
+  .app-surface-header {
+    @apply px-4 py-4 sm:px-5 sm:py-5;
+  }
+
+  .app-control {
+    @apply min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition-all;
+  }
+
+  .btn-primary {
+    @apply px-6 py-2.5 rounded-xl text-white transition-all active:scale-95;
+    background: var(--color-shopify-green);
+    box-shadow: 0 8px 24px rgba(0, 128, 96, 0.18);
+  }
+
+  .btn-primary:hover {
+    background: var(--color-shopify-green-dark);
+  }
+  
+  .card {
+    @apply bg-white overflow-hidden;
+    border-radius: 24px;
+    border: 1px solid var(--color-shopify-border);
+    box-shadow: 0 1px 0 rgba(22, 29, 37, 0.04), 0 8px 24px rgba(22, 29, 37, 0.04);
+  }
+}
