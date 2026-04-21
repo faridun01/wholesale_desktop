@@ -183,7 +183,12 @@ router.get('/', async (req, res, next) => {
 
     if (warehouseId) {
       const productsWithWarehouseStock = productsWithResolvedPhoto.map((p: any) => {
-        const warehouseStock = p.batches.reduce((sum: number, b: any) => sum + b.remainingQuantity, 0);
+        // Fallback to p.stock if no batches found to ensure products are visible even if batch data is missing
+        const hasBatches = Array.isArray(p.batches) && p.batches.length > 0;
+        const warehouseStock = hasBatches 
+          ? p.batches.reduce((sum: number, b: any) => sum + b.remainingQuantity, 0)
+          : Number(p.stock || 0);
+
         return {
           ...p,
           stock: warehouseStock,

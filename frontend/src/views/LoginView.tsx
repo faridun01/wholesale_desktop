@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSessionUser, login, loginWithTwoFactor, getSetupStatus, performSetup } from '../api/auth.api';
-import { ArrowLeft, ArrowRight, KeyRound, Loader2, Lock, User, Warehouse, ShieldAlert } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, ArrowRight, KeyRound, Loader2, Lock, User, Warehouse } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { setAuthSession } from '../utils/authStorage';
 
 export default function LoginView() {
@@ -47,10 +47,7 @@ export default function LoginView() {
         return;
       }
 
-      // 1. SAVE TOKEN FIRST
       setAuthSession(result.token, result.user);
-
-      // 2. NOW GET SESSION USER (will include token in header)
       const sessionUser = await getSessionUser();
       setAuthSession(result.token, sessionUser || result.user);
       navigate('/');
@@ -99,200 +96,110 @@ export default function LoginView() {
     }
   };
 
-  const resetTwoFactorStep = () => {
-    setTwoFactorToken('');
-    setTwoFactorCode('');
-    setTwoFactorUsername('');
-    setError('');
-  };
-
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
-      <motion.div
+    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
+      <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="grid w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-xl lg:grid-cols-2"
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-5xl overflow-hidden rounded-[32px] bg-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] grid lg:grid-cols-2"
       >
-        <section className="hidden flex-col justify-center bg-slate-900 p-10 text-white lg:flex">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-700">
-              <Warehouse size={26} />
+        <section className="hidden lg:flex flex-col justify-center bg-[linear-gradient(135deg,#3b82f6_0%,#2563eb_100%)] p-16 text-white relative overflow-hidden">
+           {/* Decorative elements */}
+           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+           <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-400/20 rounded-full -ml-32 -mb-32 blur-3xl"></div>
+           
+          <div className="relative z-10">
+            <div className="mb-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-xl">
+              <Warehouse size={32} className="text-blue-600" />
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold">Wholesale CRM</h1>
-              <p className="text-sm text-slate-300">Рабочая зона администратора</p>
-            </div>
+            <h1 className="text-4xl font-bold tracking-tight mb-4">IT FORCE</h1>
+            <p className="text-blue-100 text-lg leading-relaxed max-w-md">
+               Современная платформа для управления оптовым бизнесом. Просто. Эффективно. Надежно.
+            </p>
           </div>
-
-          <h2 className="mb-4 text-3xl font-semibold leading-tight">
-            {isSetupMode ? 'Начальная конфигурация системы' : 'Безопасный доступ к складу'}
-          </h2>
-
-          <p className="text-sm leading-7 text-slate-300">
-            {isSetupMode 
-              ? 'Это ваш первый запуск. Пожалуйста, создайте учетную запись главного администратора. Эти данные будут использоваться для управления всей системой.' 
-              : 'Войдите в систему под своей учётной записью для работы со складом, продажами и отчетами.'}
-          </p>
         </section>
 
-        <section className="flex items-center justify-center p-6 sm:p-8 lg:p-10">
-          <div className="w-full max-w-md">
-            <div className="mb-8 text-center lg:text-left">
-              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl lg:mx-0 ${isSetupMode ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}`}>
-                {isSetupMode ? <ShieldAlert size={26} /> : <Warehouse size={26} />}
-              </div>
-              <h2 className="text-3xl font-semibold text-slate-900">
-                {isSetupMode ? 'Первый вход' : (twoFactorToken ? 'Защита 2FA' : 'Вход в систему')}
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                {isSetupMode 
-                  ? 'Придумайте логин и надежный пароль для администратора.' 
-                  : (twoFactorToken ? 'Введите код подтверждения.' : 'Введите ваши данные для входа.')}
-              </p>
-            </div>
+        <section className="p-10 sm:p-16 flex flex-col justify-center">
+          <div className="w-full max-w-md mx-auto">
+            <header className="mb-10">
+               <h2 className="text-3xl font-bold text-slate-900 mb-3">
+                  {isSetupMode ? 'Добро пожаловать' : (twoFactorToken ? 'Защита аккаунта' : 'С возвращением')}
+               </h2>
+               <p className="text-slate-500">
+                  {isSetupMode ? 'Создайте свой первый аккаунт администратора.' : (twoFactorToken ? 'Введите код подтверждения.' : 'Войдите в свою учетную запись.')}
+               </p>
+            </header>
 
             {error && (
-              <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="mb-8 rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-semibold"
+              >
                 {error}
-              </div>
+              </motion.div>
             )}
 
-            <AnimatePresence mode="wait">
-              {isSetupMode ? (
-                <motion.form
-                  key="setup"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  onSubmit={handleSetup} 
-                  className="space-y-5"
-                >
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-                    <strong>Внимание:</strong> Вы создаете первую учетную запись. Она получит полные права Администратора.
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-600">Логин администратора</label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <form onSubmit={isSetupMode ? handleSetup : (twoFactorToken ? handleTwoFactorSubmit : handleLogin)} className="space-y-6">
+              {!twoFactorToken ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700 ml-1">Логин</label>
+                    <div className="relative group">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                       <input
                         type="text"
                         required
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Например: admin"
-                        className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-12 pr-4 text-sm text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-12 pr-4 text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                        placeholder="Введите имя пользователя"
                       />
                     </div>
                   </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-600">Надежный пароль</label>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700 ml-1">Пароль</label>
+                    <div className="relative group">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                       <input
                         type="password"
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Например: Admin!2024"
-                        className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-12 pr-4 text-sm text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-12 pr-4 text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                        placeholder="••••••••"
                       />
                     </div>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-amber-700 disabled:opacity-70"
-                  >
-                    {isLoading ? <Loader2 className="animate-spin" size={18} /> : <span>Создать и войти</span>}
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => setIsSetupMode(false)}
-                    className="w-full text-center text-xs text-slate-400 hover:text-slate-600"
-                  >
-                    Вернуться к обычному входу
-                  </button>
-                </motion.form>
+                </>
               ) : (
-                <motion.div
-                  key="login"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                >
-                  {!twoFactorToken ? (
-                    <form onSubmit={handleLogin} className="space-y-5">
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-600">Логин</label>
-                        <div className="relative">
-                          <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                          <input
-                            type="text"
-                            required
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Ваш логин"
-                            className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-12 pr-4 text-sm text-slate-800 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-600">Пароль</label>
-                        <div className="relative">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                          <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Ваш пароль"
-                            className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-12 pr-4 text-sm text-slate-800 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-70"
-                      >
-                        {isLoading ? <Loader2 className="animate-spin" size={18} /> : <><span>Войти</span><ArrowRight size={16} /></>}
-                      </button>
-                      {!isConfigured && (
-                        <button 
-                          type="button" 
-                          onClick={() => setIsSetupMode(true)}
-                          className="w-full rounded-xl border border-amber-200 bg-amber-50 py-2 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
-                        >
-                          Первый запуск? Создать администратора
-                        </button>
-                      )}
-                    </form>
-                  ) : (
-                    <form onSubmit={handleTwoFactorSubmit} className="space-y-5">
-                      <div className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">
-                        Подтвердите вход для <b>{twoFactorUsername}</b>
-                      </div>
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-600">Код 2FA</label>
-                        <div className="relative">
-                          <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                          <input
-                            type="text"
-                            required
-                            value={twoFactorCode}
-                            onChange={(e) => setTwoFactorCode(e.target.value)}
-                            className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-12 pr-4 text-sm text-slate-800 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <button onClick={resetTwoFactorStep} type="button" className="rounded-xl border border-slate-200 px-4 py-3 text-sm"><ArrowLeft size={16}/></button>
-                        <button type="submit" disabled={isLoading} className="flex-1 rounded-xl bg-slate-900 text-white font-medium">Проверить</button>
-                      </div>
-                    </form>
-                  )}
-                </motion.div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 ml-1">Код 2FA</label>
+                  <div className="relative group">
+                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                    <input
+                      type="text"
+                      required
+                      autoFocus
+                      value={twoFactorCode}
+                      onChange={(e) => setTwoFactorCode(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3.5 pl-12 pr-4 text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                      placeholder="000 000"
+                    />
+                  </div>
+                </div>
               )}
-            </AnimatePresence>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-14 bg-blue-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/20 hover:bg-blue-700 hover:shadow-blue-500/30 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
+              >
+                {isLoading ? <Loader2 className="animate-spin" size={24} /> : (isSetupMode ? 'Завершить настройку' : 'Войти в аккаунт')}
+                {!isLoading && <ArrowRight size={20} />}
+              </button>
+            </form>
           </div>
         </section>
       </motion.div>

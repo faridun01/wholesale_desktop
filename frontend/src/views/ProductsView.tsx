@@ -41,6 +41,7 @@ import {
   Image as ImageIcon,
   RotateCcw,
   AlertTriangle,
+  Store,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx } from 'clsx';
@@ -61,8 +62,6 @@ import { formatProductName } from '../utils/productName';
 import { getDefaultWarehouseId } from '../utils/warehouse';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import PaginationControls from '../components/common/PaginationControls';
-
-
 
 const normalizeVolumeSpacing = (value: string) =>
   value
@@ -129,8 +128,6 @@ const normalizePackageName = (value: string) => {
   if (['пачка', 'пачки', 'пачек'].includes(normalized)) return 'пачка';
   return normalized;
 };
-
-
 
 const normalizeDisplayBaseUnit = (value: string) => {
   const normalized = String(value || '').trim().toLowerCase();
@@ -401,10 +398,6 @@ const compareProductsBySort = (a: any, b: any, sortConfig: { key: string; direct
   return compareValues(aValue, bValue, sortConfig.direction);
 };
 
-
-
-
-
 export default function ProductsView() {
   const pageSize = 12;
   const writeOffReasonPresets = ['Брак', 'Потеря', 'Внутреннее использование', 'Корректировка'];
@@ -560,8 +553,6 @@ export default function ProductsView() {
     setSelectedProduct(null);
   };
 
-
-
   const availableTransferStock = selectedProduct && transferData.fromWarehouseId
     ? String(selectedProduct.warehouseId || '') === transferData.fromWarehouseId || selectedWarehouseId === transferData.fromWarehouseId
       ? Number(selectedProduct.stock || 0)
@@ -601,9 +592,6 @@ export default function ProductsView() {
     selectedRestockPackaging && selectedRestockPackaging.unitsPerPackage > 0
       ? restockPackageQuantity * selectedRestockPackaging.unitsPerPackage
       : Number(restockData.quantity || 0);
-
-
-
 
   useEffect(() => {
     if (!isReferenceDataReady) {
@@ -900,9 +888,10 @@ export default function ProductsView() {
     }
   };
 
-
-
-
+  const visibleCategories = React.useMemo(
+    () => categories.filter((category) => String(category?.name || '').trim().toLowerCase() !== 'прочее'),
+    [categories],
+  );
 
   const resolveCategoryIdForSubmit = async () => {
     const typedCategoryName = String(categoryInput || '').trim();
@@ -1124,13 +1113,13 @@ export default function ProductsView() {
   const handleSubmitWriteOff = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedWriteOffProduct?.id) {
+    if (!selectedProduct?.id) {
       return;
     }
 
     const quantity = Number(String(writeOffData.quantity || '').trim());
     const reason = String(writeOffData.reason || '').trim();
-    const availableStock = Number(selectedWriteOffProduct.stock || 0);
+    const availableStock = Number(selectedProduct.stock || 0);
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
       toast.error('Введите целое количество для списания');
@@ -1148,31 +1137,23 @@ export default function ProductsView() {
     }
 
     try {
-      await writeOffProduct(selectedWriteOffProduct.id, { quantity, reason });
-      const history = await getProductHistory(selectedWriteOffProduct.id);
-      if (selectedProduct?.id === selectedWriteOffProduct.id) {
-        setProductHistory(history);
-      }
-      await Promise.all([fetchInitialData(), refreshSelectedProduct(selectedWriteOffProduct.id)]);
-      setSelectedProduct((prev: any) => (
-        prev && prev.id === selectedWriteOffProduct.id
-          ? { ...prev, stock: Math.max(0, Number(prev.stock || 0) - quantity) }
-          : prev
-      ));
+      await writeOffProduct(selectedProduct.id, { quantity, reason });
+      const history = await getProductHistory(selectedProduct.id);
+      setProductHistory(history);
+      await Promise.all([fetchInitialData(), refreshSelectedProduct(selectedProduct.id)]);
       closeWriteOffModal();
       toast.success('Списание успешно проведено');
     } catch (err: any) {
-      console.error(err);
       toast.error(err.response?.data?.error || err.message || 'Не удалось выполнить списание');
     }
   };
 
   const handleSetWriteOffQuantity = (value: number) => {
-    if (!selectedWriteOffProduct) {
+    if (!selectedProduct) {
       return;
     }
 
-    const availableStock = Number(selectedWriteOffProduct.stock || 0);
+    const availableStock = Number(selectedProduct.stock || 0);
     const nextValue = Math.max(0, Math.min(value, availableStock));
     setWriteOffData((prev) => ({ ...prev, quantity: String(nextValue) }));
   };
@@ -1323,24 +1304,18 @@ export default function ProductsView() {
   const filteredProducts = baseProducts.filter(p => {
     const productSearchValue = normalizeCatalogName(String(p.name || ''));
     const matchesSearch = !normalizedSearch || productSearchValue.includes(normalizedSearch);
-
-    // If a warehouse is selected, we only show products that have stock in that warehouse
-    // OR are assigned to that warehouse as their default warehouse.
     const matchesWarehouse = !selectedWarehouseId || p.stock > 0 || p.warehouseId === Number(selectedWarehouseId);
-
     return matchesSearch && matchesWarehouse;
   });
 
   const groupedProducts = React.useMemo(() => {
     const groups = new Map<string, any[]>();
-
     filteredProducts.forEach((product) => {
       const key = getRobustDuplicateKey(product);
       const current = groups.get(key) || [];
       current.push(product);
       groups.set(key, current);
     });
-
     return Array.from(groups.values())
       .map((group) =>
         [...group].sort(
@@ -1356,10 +1331,7 @@ export default function ProductsView() {
     () =>
       groupedProducts.map((group) => {
         const [primary, ...rest] = group;
-        if (!rest.length) {
-          return primary;
-        }
-
+        if (!rest.length) return primary;
         return {
           ...primary,
           stock: group.reduce((sum, product) => sum + Number(product?.stock || 0), 0),
@@ -1371,39 +1343,6 @@ export default function ProductsView() {
     [groupedProducts],
   );
 
-  const duplicateGroups = React.useMemo(
-    () => groupedProducts.filter((group) => group.length > 1),
-    [groupedProducts],
-  );
-
-  const duplicateProductsCount = React.useMemo(
-    () => duplicateGroups.reduce((sum, group) => sum + group.length - 1, 0),
-    [duplicateGroups],
-  );
-  const writeOffProducts = React.useMemo(
-    () =>
-      filteredProducts
-        .filter((product) => Number(product?.stock || 0) > 0)
-        .sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'ru')),
-    [filteredProducts],
-  );
-  const selectedWriteOffProduct = React.useMemo(
-    () => writeOffProducts.find((product) => String(product.id) === String(writeOffData.productId || '')) || null,
-    [writeOffData.productId, writeOffProducts],
-  );
-  const selectedWriteOffPackaging = React.useMemo(
-    () => getDefaultPackaging(normalizePackagings(selectedWriteOffProduct)),
-    [selectedWriteOffProduct],
-  );
-  const normalizedWriteOffReason = String(writeOffData.reason || '').trim().toLowerCase();
-  const isCustomWriteOffReason = Boolean(
-    normalizedWriteOffReason &&
-    !writeOffReasonPresets.some((reason) => reason.toLowerCase() === normalizedWriteOffReason)
-  );
-  const visibleCategories = React.useMemo(
-    () => categories.filter((category) => String(category?.name || '').trim().toLowerCase() !== 'прочее'),
-    [categories],
-  );
   const totalPages = Math.max(1, Math.ceil(displayProducts.length / pageSize));
   const paginatedProducts = React.useMemo(
     () => displayProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize),
@@ -1423,16 +1362,10 @@ export default function ProductsView() {
     if (forceWarehouseLowStockView !== shouldForceWarehouseLowStockView) {
       setForceWarehouseLowStockView(shouldForceWarehouseLowStockView);
     }
-
-    if (sortMode !== 'low-stock' || initialSortAppliedRef.current) {
-      if (!requestedView) {
-        return;
-      }
-    } else {
+    if (sortMode === 'low-stock' && !initialSortAppliedRef.current) {
       initialSortAppliedRef.current = true;
       setSortConfig({ key: 'stock', direction: 'asc' });
     }
-
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('sort');
     nextParams.delete('view');
@@ -1440,1807 +1373,262 @@ export default function ProductsView() {
   }, [forceWarehouseLowStockView, searchParams, setSearchParams]);
 
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
-  const handleMergeExactDuplicates = async () => {
-    if (!duplicateGroups.length || isMergingDuplicates) {
-      return;
-    }
+  return (
+    <div className="flex flex-col gap-6">
+      {/* 1C Style Toolbar */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-[#dcdcdc] pb-6">
+        <div>
+          <div className="flex items-center gap-2 text-[#ff9900] mb-2">
+            <Package size={18} />
+            <span className="text-[11px] font-black uppercase tracking-[0.2em]">Номенклатура и склад</span>
+          </div>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Список товаров <span className="font-light text-slate-400">| Реестр</span></h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {isAdmin && (
+            <button onClick={() => { resetForm(); setShowAddModal(true); }} className="btn-1c-plus btn-1c-plus-primary">
+              <Plus size={16} /> Создать (Ins)
+            </button>
+          )}
+          <button 
+            onClick={() => selectedProduct && setShowEditModal(true)} 
+            disabled={!selectedProduct} 
+            className="btn-1c-plus disabled:opacity-50"
+          >
+            <Edit size={16} /> Изменить (F2)
+          </button>
+          <button 
+            onClick={() => selectedProduct && setShowDeleteConfirm(true)} 
+            disabled={!selectedProduct} 
+            className="btn-1c-plus text-red-600 border-red-100 hover:bg-red-50 disabled:opacity-50"
+          >
+            <Trash2 size={16} /> Удалить (Del)
+          </button>
+          <div className="h-6 w-[1px] bg-slate-200 mx-1"></div>
+          <button onClick={() => selectedProduct && setShowRestockModal(true)} disabled={!selectedProduct} className="btn-1c-plus">
+            <PlusCircle size={16} /> Поступление
+          </button>
+        </div>
+      </div>
 
-    setIsMergingDuplicates(true);
-    try {
-      let mergedCount = 0;
-
-      for (const group of duplicateGroups) {
-        const [target, ...sources] = group;
-        for (const source of sources) {
-          await mergeProduct(Number(source.id), Number(target.id));
-          mergedCount += 1;
-        }
-      }
-
-      await fetchInitialData();
-      toast.success(`Объединено дублей: ${mergedCount}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Не удалось объединить дубликаты');
-    } finally {
-      setIsMergingDuplicates(false);
-    }
-  };
-
-  const exportStockReport = async () => {
-    if (!filteredProducts.length) {
-      toast.error('Нет товаров для выгрузки');
-      return;
-    }
-
-    const warehouseName = warehouses.find((warehouse) => String(warehouse.id) === selectedWarehouseId)?.name || 'Все склады';
-    const downloadedAt = new Date();
-
-    const { downloadStockReportPdf } = await import('../utils/print/stockReportPdf');
-
-    await downloadStockReportPdf({
-      warehouseName,
-      generatedAt: downloadedAt,
-      rows: filteredProducts.map((product, index) => {
-        const stockBreakdown = getStockBreakdown(product);
-
-        return {
-          index: index + 1,
-          name: formatProductName(product.name),
-          stock: String(stockBreakdown.primary || '')
-            .replace(/\n/g, ' + ')
-            .replace(/\s+/g, ' ')
-            .trim(),
-        };
-      }),
-    });
-
-    toast.success('Остатки товаров скачаны в PDF');
-  };
-
-  const exportPriceList = async () => {
-    if (!filteredProducts.length) {
-      toast.error('Нет товаров для выгрузки');
-      return;
-    }
-
-    const warehouseName = warehouses.find((warehouse) => String(warehouse.id) === selectedWarehouseId)?.name || 'Все склады';
-    const downloadedAt = new Date();
-
-    const { downloadPriceListPdf } = await import('../utils/print/priceListPdf');
-
-    await downloadPriceListPdf({
-      warehouseName,
-      generatedAt: downloadedAt,
-      rows: filteredProducts.map((product, index) => {
-        const preferredPackaging = getPreferredPackaging(product);
-        const unitsPerPackage = Number(preferredPackaging?.unitsPerPackage || 1);
-        const sellingPrice = Number(product.sellingPrice || 0);
-        const packagePrice = preferredPackaging?.packageSellingPrice
-          ? Number(preferredPackaging.packageSellingPrice)
-          : sellingPrice * unitsPerPackage;
-
-        return {
-          index: index + 1,
-          name: formatProductName(product.name),
-          pricePerUnit: formatMoney(sellingPrice),
-          unitsPerPackage: unitsPerPackage > 1 ? `${unitsPerPackage} шт` : '—',
-          pricePerPackage: unitsPerPackage > 1 ? formatMoney(packagePrice) : '—'
-        };
-      }),
-    });
-
-    toast.success('Прайс-лист скачан в PDF');
-  };
-
-  return <div className="app-page-shell">
-      <div className="space-y-6">
-        <div className="app-surface px-4 py-4 sm:px-6 sm:py-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-3xl font-medium tracking-tight text-slate-900 sm:text-4xl">Товары</h1>
-              <p className="mt-1 max-w-xl text-sm font-medium text-slate-500">Управление ассортиментом, ценами и остатками.</p>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
-              {isAdmin && <button
-                onClick={() => {
-                  if (!selectedWarehouseId) {
-                    toast.error('Пожалуйста, выберите склад перед добавлением товара');
-                    return;
-                  }
-                  resetForm();
-                  setFormData(prev => ({ ...prev, warehouseId: selectedWarehouseId }));
-                  setShowAddModal(true);
-                }}
-                className={clsx(
-                  "flex w-full items-center justify-center space-x-2 rounded-2xl px-4 py-3 text-sm font-medium transition-all active:scale-95 sm:w-auto",
-                  selectedWarehouseId
-                    ? "bg-violet-500 text-white shadow-sm hover:bg-violet-600"
-                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                )}
-              >
-                <Plus size={18} />
-                <span>Добавить</span>
-              </button>}
-            </div>
+      <div className="bg-white border border-[#dcdcdc] rounded-[4px] shadow-sm overflow-hidden">
+        {/* Filters and Search Bar */}
+        <div className="bg-[#f9fafb] border-b border-[#dcdcdc] p-4 flex flex-wrap items-center gap-4">
+          <div className="relative flex-1 min-w-[300px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск по наименованию, артикулу..."
+              className="w-full pl-10 pr-4 py-2 border border-[#dcdcdc] rounded-md text-sm outline-none focus:border-[#ff9900] focus:ring-1 focus:ring-[#ff9900]"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Store size={16} className="text-slate-400" />
+            <select
+              value={selectedWarehouseId}
+              onChange={(e) => setSelectedWarehouseId(e.target.value)}
+              className="text-sm font-bold text-slate-700 bg-white border border-[#dcdcdc] rounded-md px-3 py-2 outline-none focus:border-[#ff9900]"
+            >
+              {isAdmin && <option value="">Все склады</option>}
+              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
           </div>
         </div>
 
-
-
-        <AnimatePresence>
-          {(showAddModal || showEditModal) && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeProductFormModal}
-              className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                onClick={(e) => e.stopPropagation()}
-                className="flex max-h-[92vh] w-full max-w-[720px] flex-col overflow-hidden rounded-t-[2rem] bg-white shadow-2xl sm:rounded-2xl"
-              >
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 p-3.5 sm:p-4">
-                  <h3 className="text-lg font-black text-slate-900 flex items-center space-x-3">
-                    <div className="p-2 bg-violet-500 text-white rounded-xl">
-                      <Package size={20} />
-                    </div>
-                    <span>{showEditModal ? 'Редактировать товар' : 'Новый товар'}</span>
-                  </h3>
-                  <button onClick={closeProductFormModal} className="text-slate-400 hover:text-slate-600 transition-colors">
-                    <X size={20} />
-                  </button>
-                </div>
-                <form onSubmit={showEditModal ? handleEditProduct : handleAddProduct} className="flex-1 space-y-3 overflow-y-auto p-3.5 sm:p-4">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="md:col-span-2">
-                      <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Название товара</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={e => {
-                          setIsCategoryManual(false);
-                          setFormData({ ...formData, name: e.target.value });
-                        }}
-                        className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                        placeholder="Напр: iPhone 15 Pro Max"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-700">Базовая единица</label>
-                      <select
-                        required
-                        value={formData.baseUnitName}
-                        onChange={(e) => {
-                          const nextBaseUnit = normalizeBaseUnit(e.target.value);
-                          setFormData({
-                            ...formData,
-                            baseUnitName: nextBaseUnit,
-                            unit: nextBaseUnit,
-                          });
-                        }}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                      >
-                        <option value="шт">Шт</option>
-                        <option value="кг">Кг</option>
-                        <option value="литр">Литр</option>
-                        <option value="бутылка">Бутылка</option>
-                        <option value="флакон">Флакон</option>
-                      </select>
-                      <p className="mt-1 text-[11px] font-medium text-slate-400">
-                        Это основная единица учёта товара на складе.
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-700">Упаковка</label>
-                          <p className="text-xs font-medium text-slate-500">Новые товары по умолчанию создаются в коробках или мешках. Штуки считаются автоматически.</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              packagingEnabled: !prev.packagingEnabled,
-                              packageName: prev.packageName || 'коробка',
-                              unitsPerPackage: prev.packagingEnabled ? '' : prev.unitsPerPackage,
-                            }))
-                          }
-                          className={clsx(
-                            'rounded-full border px-3 py-1.5 text-xs font-bold transition-all',
-                            formData.packagingEnabled
-                              ? 'border-amber-300 bg-amber-100 text-amber-800'
-                              : 'border-slate-200 bg-white text-slate-600'
-                          )}
-                        >
-                          {formData.packagingEnabled ? 'Коробки / мешки' : 'Только шт'}
-                        </button>
-                      </div>
-
-                      {formData.packagingEnabled && (
-                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <div>
-                            <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-700">Тип упаковки</label>
-                            <select
-                              value={formData.packageName}
-                              onChange={(e) => setFormData({ ...formData, packageName: normalizePackageName(e.target.value) || 'коробка' })}
-                              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                            >
-                              <option value="коробка">Коробка</option>
-                              <option value="мешок">Мешок</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-700">
-                              Сколько шт в {formData.packageName === 'мешок' ? 'мешке' : 'коробке'}
-                            </label>
-                            <input
-                              type="number"
-                              min="2"
-                              step="1"
-                              required={formData.packagingEnabled}
-                              value={formData.unitsPerPackage}
-                              onChange={(e) => setFormData({ ...formData, unitsPerPackage: e.target.value })}
-                              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                              placeholder="Напр: 24"
-                            />
-                          </div>
-                          <div className="sm:col-span-2 rounded-xl border border-amber-200 bg-white/80 px-3 py-2 text-sm font-semibold text-slate-700">
-                            1 {formData.packageName || 'коробка'} = {Number(formData.unitsPerPackage || 0) || '...'} {normalizeDisplayBaseUnit(formData.baseUnitName || 'шт')}
-                          </div>
-                          <div className="sm:col-span-2 text-[11px] font-medium text-slate-500">
-                            При пополнении этот товар будет удобно добавляться в {formData.packageName === 'мешок' ? 'мешках' : 'коробках'}, а ниже система сама покажет итог в штуках.
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Категория</label>
-                      <input
-                        list="product-categories"
-                        required
-                        value={categoryInput}
-                        onChange={(e) => {
-                          const nextValue = e.target.value;
-                          const matchedCategory = visibleCategories.find(
-                            (category) => String(category?.name || '').trim().toLowerCase() === nextValue.trim().toLowerCase()
-                          );
-
-                          setIsCategoryManual(Boolean(nextValue.trim()));
-                          setCategoryInput(nextValue);
-                          setFormData({
-                            ...formData,
-                            categoryId: matchedCategory?.id ? String(matchedCategory.id) : '',
-                          });
-                        }}
-                        className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                        placeholder="Выберите или введите категорию"
-                      />
-                      <datalist id="product-categories">
-                        {visibleCategories.map((category) => (
-                          <option key={category.id} value={category.name} />
-                        ))}
-                      </datalist>
-                      <p className="mt-1 text-[11px] font-medium text-slate-400">
-                        Можно выбрать из списка или сразу ввести новую категорию здесь же.
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Склад по умолчанию</label>
-                      <select
-                        required
-                        value={formData.warehouseId}
-                        onChange={e => setFormData({ ...formData, warehouseId: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                      >
-                        <option value="">Выберите склад</option>
-                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                      </select>
-                    </div>
-                    {isAdmin && (
-                      <div>
-                        <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Себестоимость</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          required
-                          value={formData.costPrice}
-                          onChange={e => setFormData({ ...formData, costPrice: e.target.value })}
-                          onBlur={e => setFormData({ ...formData, costPrice: formatPriceInput(e.target.value) })}
-                          className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                        />
-                        {!showEditModal && (
-                          <p className="mt-2 text-xs font-medium text-slate-400">
-                            Введите себестоимость вручную.
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {isAdmin && (showAddModal || showEditModal) && (
-                      <div>
-                        <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Расходы %</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={formData.expensePercent}
-                          onChange={e => setFormData({ ...formData, expensePercent: e.target.value })}
-                          className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Цена продажи</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={formData.sellingPrice}
-                        onChange={e => setFormData({ ...formData, sellingPrice: e.target.value })}
-                        onBlur={e => setFormData({ ...formData, sellingPrice: formatPriceInput(e.target.value) })}
-                        className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                      />
-                    </div>
-                    {!showEditModal && (
-                      <>
-                        <div>
-                          <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Начальный остаток</label>
-                          <input
-                            type="number"
-                            required
-                            value={formData.initialStock}
-                            onChange={e => setFormData({ ...formData, initialStock: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-bold outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Мин. остаток</label>
-                          <input
-                            type="number"
-                            required
-                            value={formData.minStock}
-                            onChange={e => setFormData({ ...formData, minStock: e.target.value })}
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all font-bold text-sm"
-                          />
-                        </div>
-                      </>
-                    )}
-                    <div className="md:col-span-2">
-                      <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Фото товара</label>
-                      <div className="flex flex-col gap-3 rounded-2xl border border-sky-100 bg-sky-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-                        <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-sky-600">
-                          {isPhotoUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-                          <span>{isPhotoUploading ? 'Загрузка...' : 'Выбрать фото'}</span>
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            className="hidden"
-                            onChange={handlePhotoUpload}
-                            disabled={isPhotoUploading}
-                          />
-                        </label>
-                        {formData.photoUrl && (
-                          <div className="flex items-center gap-3">
-                            <div className="h-14 w-14 overflow-hidden rounded-xl border border-slate-200 bg-white">
-                              <img
-                                src={resolveMediaUrl(formData.photoUrl, formData.name || 'preview')}
-                                alt="Фото товара"
-                                className="h-full w-full object-cover"
-                                referrerPolicy="no-referrer"
-                                onError={(event) => handleBrokenImage(event, formData.name || 'preview')}
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setFormData((prev) => ({ ...prev, photoUrl: '' }))}
-                              className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 transition-all hover:bg-white"
-                            >
-                              Убрать фото
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end sm:space-x-2 sm:gap-0">
-                    <button type="button" onClick={closeProductFormModal} className="px-6 py-2 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all text-sm">Отмена</button>
-                    <button type="submit" className="px-8 py-2 bg-violet-500 text-white rounded-xl font-bold shadow-xl shadow-violet-500/20 hover:bg-violet-600 transition-all active:scale-95 text-sm">
-                      {showEditModal ? 'Сохранить' : 'Создать'}
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showTransferModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeTransferModal}
-              className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-md overflow-hidden rounded-t-[2rem] bg-white shadow-2xl sm:rounded-[2.5rem]"
-              >
-                <div className="border-b border-slate-100 bg-amber-50/50 p-4 sm:p-5">
-                  <h3 className="text-lg font-black text-slate-900 flex items-center space-x-3">
-                    <div className="p-2 bg-amber-600 text-white rounded-xl">
-                      <ArrowRightLeft size={20} />
-                    </div>
-                    <span>Перенос товара</span>
-                  </h3>
-                  <p className="text-slate-500 mt-1 font-bold text-sm">{selectedProduct?.name}</p>
-                </div>
-                <form onSubmit={handleTransfer} className="space-y-4 p-4 sm:p-5">
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Из склада</label>
-                      <select
-                        required
-                        value={transferData.fromWarehouseId}
-                        onChange={e => setTransferData({ ...transferData, fromWarehouseId: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all font-bold text-sm appearance-none bg-white"
-                      >
-                        <option value="">Выберите склад</option>
-                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">В склад</label>
-                      <select
-                        required
-                        value={transferData.toWarehouseId}
-                        onChange={e => setTransferData({ ...transferData, toWarehouseId: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all font-bold text-sm appearance-none bg-white"
-                      >
-                        <option value="">Выберите склад</option>
-                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-700 mb-1 uppercase tracking-widest">Количество</label>
-                      {selectedTransferPackaging && transferUnitsPerPackage > 0 ? (
-                        <div className="space-y-3">
-                          {availableTransferStock !== null && (
-                            <div className="rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2.5">
-                              <p className="text-xs font-bold text-amber-900">
-                                Доступно: {formatCountWithUnit(transferAvailableFullPackages, selectedTransferPackaging.packageName)}
-                              </p>
-                              {transferRemainderUnits > 0 && (
-                                <p className="mt-1 text-xs font-medium text-amber-700">
-                                  Остаток: {formatCountWithUnit(transferRemainderUnits, normalizeDisplayBaseUnit(selectedProduct?.unit || 'шт'))}
-                                </p>
-                              )}
-                              <p className="mt-1 text-[11px] font-medium text-amber-700">
-                                По умолчанию: {formatCountWithUnit(1, selectedTransferPackaging.packageName)} = {transferUnitsPerPackage} {normalizeDisplayBaseUnit(selectedProduct?.unit || 'шт')}
-                              </p>
-                            </div>
-                          )}
-                          {transferAvailableFullPackages > 0 ? (
-                            <>
-                              <input
-                                type="number"
-                                required
-                                min="1"
-                                max={transferAvailableFullPackages || undefined}
-                                placeholder={`Введите количество (${selectedTransferPackaging.packageName})`}
-                                value={transferData.packageQuantityInput}
-                                onChange={e =>
-                                  setTransferData((prev) => ({
-                                    ...prev,
-                                    packageQuantityInput: e.target.value,
-                                    quantity: String(
-                                      Math.max(0, Math.floor(Number(e.target.value || 0) || 0)) * transferUnitsPerPackage
-                                    ),
-                                  }))
-                                }
-                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all font-bold text-sm"
-                              />
-                              <p className="text-xs font-medium text-slate-500">
-                                Перенос: {formatCountWithUnit(transferPackageQuantity, selectedTransferPackaging.packageName)}
-                                {transferPackageQuantity > 0 && ` = ${totalTransferUnits} ${normalizeDisplayBaseUnit(selectedProduct?.unit || 'шт')}`}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-500">
-                              Для оптового переноса нужна хотя бы одна полная {selectedTransferPackaging.packageName}.
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <>
-                          {availableTransferStock !== null && (
-                            <p className="mb-2 text-xs font-bold text-slate-500">
-                              Доступно: {formatCountWithUnit(Number(availableTransferStock || 0), normalizeDisplayBaseUnit(selectedProduct?.unit || 'шт'))}
-                            </p>
-                          )}
-                          <input
-                            type="number"
-                            required
-                            min="1"
-                            placeholder="Введите количество"
-                            value={transferData.quantity}
-                            onChange={e => setTransferData({ ...transferData, quantity: e.target.value })}
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all font-bold text-sm"
-                          />
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end sm:space-x-2 sm:gap-0">
-                    <button type="button" onClick={closeTransferModal} className="px-6 py-2 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all text-sm">Отмена</button>
-                    <button
-                      type="submit"
-                      disabled={
-                        (selectedTransferPackaging && transferUnitsPerPackage > 0 && transferAvailableFullPackages <= 0) ||
-                        totalTransferUnits <= 0
-                      }
-                      className="px-8 py-2 bg-amber-600 text-white rounded-xl font-bold shadow-xl shadow-amber-600/20 hover:bg-amber-700 transition-all active:scale-95 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Перенести
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showRestockModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeRestockModal}
-              className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                onClick={(e) => e.stopPropagation()}
-                className="flex max-h-[92vh] w-full max-w-[28rem] flex-col overflow-hidden rounded-t-[2rem] bg-white shadow-2xl sm:max-h-[85vh] sm:rounded-[2rem]"
-              >
-                <div className="flex-shrink-0 border-b border-slate-100 bg-emerald-50/50 p-4 sm:p-6">
-                  <h3 className="flex items-center space-x-3 text-xl font-black text-slate-900">
-                    <div className="rounded-2xl bg-emerald-600 p-2.5 text-white">
-                      <PlusCircle size={20} />
-                    </div>
-                    <span>Пополнение товара</span>
-                  </h3>
-                  <p className="mt-2 text-sm font-bold text-slate-500">{selectedProduct?.name}</p>
-                </div>
-                <form onSubmit={handleRestock} className="flex min-h-0 flex-col overflow-y-auto p-4 sm:p-6">
-                  <div className="flex-1 space-y-5">
-                    <div>
-                      <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-700">Склад</label>
-                      <select
-                        required
-                        value={restockData.warehouseId}
-                        onChange={e => setRestockData({ ...restockData, warehouseId: e.target.value })}
-                        className="w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 py-3.5 font-bold outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                      >
-                        <option value="">Выберите склад</option>
-                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      {selectedRestockPackaging ? (
-                        <>
-                          <div>
-                            <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-700">Упаковка</label>
-                            <select
-                              value={restockData.selectedPackagingId}
-                              onChange={e =>
-                                setRestockData((prev) => ({
-                                  ...prev,
-                                  selectedPackagingId: e.target.value,
-                                  packageQuantityInput: '',
-                                  quantity: '',
-                                }))
-                              }
-                              className="w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 py-3.5 font-bold outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                            >
-                              {restockPackagings.map((packaging) => (
-                                <option key={packaging.id} value={packaging.id}>
-                                  {packaging.packageName} • {packaging.unitsPerPackage} {normalizeDisplayBaseUnit(selectedProduct?.unit || 'шт')}
-                                </option>
-                              ))}
-                            </select>
-                            <p className="mt-2 text-xs font-medium text-slate-400">
-                              Пополнение идёт упаковками. Штуки считаются автоматически ниже.
-                            </p>
-                          </div>
-                          <div>
-                            <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-700">
-                              Сколько {selectedRestockPackaging.packageName === 'мешок' ? 'мешков' : 'коробок'}
-                            </label>
-                            <input
-                              type="number"
-                              min="1"
-                              required
-                              value={restockData.packageQuantityInput}
-                              placeholder={selectedRestockPackaging.packageName === 'мешок' ? 'Введите количество мешков' : 'Введите количество коробок'}
-                              onChange={e =>
-                                setRestockData((prev) => ({
-                                  ...prev,
-                                  packageQuantityInput: e.target.value,
-                                  quantity: String(
-                                    (Number(e.target.value || 0) || 0) *
-                                    (selectedRestockPackaging.unitsPerPackage || 0)
-                                  ),
-                                }))
-                              }
-                              className="w-full rounded-2xl border border-slate-200 px-4 py-3.5 font-bold outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                            />
-                            <p className="mt-2 text-xs font-medium text-slate-400">
-                              1 {formatCountWithUnit(1, selectedRestockPackaging.packageName).replace(/^1\s+/, '')} = {selectedRestockPackaging.unitsPerPackage} {normalizeDisplayBaseUnit(selectedProduct?.unit || 'шт')}
-                            </p>
-                            <p className="mt-1 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-                              Итого в штуках: {totalRestockUnits} {normalizeDisplayBaseUnit(selectedProduct?.unit || 'шт')}
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <div>
-                          <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-700">Количество</label>
-                          <input
-                            type="number"
-                            required
-                            step="0.01"
-                            value={restockData.quantity}
-                            onChange={e => setRestockData({ ...restockData, quantity: e.target.value })}
-                            className="w-full rounded-2xl border border-slate-200 px-4 py-3.5 font-bold outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                          />
-                        </div>
-                      )}
-                      {isAdmin && (
-                        <div>
-                          <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-700">Цена закупки</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            required
-                            value={restockData.costPrice}
-                            onChange={e => setRestockData((prev) => ({ ...prev, costPrice: e.target.value }))}
-                            className="w-full rounded-2xl border border-slate-200 px-4 py-3.5 font-bold outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                          />
-                          <p className="mt-2 text-xs font-medium text-slate-400">
-                            Закупка за 1 шт без расходов.
-                          </p>
-                        </div>
-                      )}
-                      {isAdmin && (
-                        <div>
-                          <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-700">Расходы %</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={restockData.expensePercent}
-                            onChange={(e) => setRestockData((prev) => ({ ...prev, expensePercent: e.target.value }))}
-                            className="w-full rounded-2xl border border-slate-200 px-4 py-3.5 font-bold outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-700">Цена продажи</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          required
-                          value={restockData.sellingPrice}
-                          onChange={e => setRestockData({ ...restockData, sellingPrice: e.target.value })}
-                          onBlur={e => setRestockData({ ...restockData, sellingPrice: formatPriceInput(e.target.value) })}
-                          className="w-full rounded-2xl border border-slate-200 px-4 py-3.5 font-bold outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                        />
-                        <p className="mt-2 text-xs font-medium text-slate-400">
-                          Новая цена продажи для этой поставки.
-                        </p>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-700">Причина / Комментарий</label>
-                      <input
-                        type="text"
-                        value={restockData.reason}
-                        onChange={e => setRestockData({ ...restockData, reason: e.target.value })}
-                        className="w-full rounded-2xl border border-slate-200 px-4 py-3.5 font-bold outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                        placeholder="Напр: Новая поставка"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end sm:space-x-3 sm:gap-0">
-                    <button type="button" onClick={closeRestockModal} className="rounded-2xl px-6 py-3 text-sm font-bold text-slate-500 transition-all hover:bg-slate-50">Отмена</button>
-                    <button type="submit" className="rounded-2xl bg-emerald-600 px-8 py-3 text-sm font-bold text-white shadow-xl shadow-emerald-600/20 transition-all hover:bg-emerald-700 active:scale-95">Пополнить</button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showWriteOffModal && selectedWriteOffProduct && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeWriteOffModal}
-              className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-2 backdrop-blur-md sm:items-center sm:p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.96, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.96, opacity: 0 }}
-                onClick={(event) => event.stopPropagation()}
-                className="w-full max-w-3xl overflow-hidden rounded-t-[2rem] bg-white shadow-[0_30px_80px_rgba(15,23,42,0.24)] sm:max-h-[88vh] sm:rounded-[2rem]"
-              >
-                <div className="border-b border-amber-100 bg-[linear-gradient(135deg,#fff8eb_0%,#ffffff_58%,#fff4db_100%)] px-4 py-4 sm:px-6 sm:py-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">
-                        <Scissors size={12} />
-                        <span>Списание</span>
-                      </div>
-                      <h3 className="mt-3 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">Списание товара</h3>
-                      <p className="mt-1 text-sm font-medium text-slate-500">
-                        Быстрая складская операция по выбранному товару.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={closeWriteOffModal}
-                      className="rounded-2xl border border-white/70 bg-white/80 p-2 text-slate-400 transition-all hover:border-slate-200 hover:text-slate-600"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                </div>
-
-                <form onSubmit={handleSubmitWriteOff} className="space-y-4 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Товар</p>
-                      <p className="mt-2 text-[14px] font-bold leading-tight text-slate-900">
-                        {selectedWriteOffProduct ? formatProductName(selectedWriteOffProduct.name) : 'Не выбран'}
-                      </p>
-                    </div>
-                    <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Склад</p>
-                      <p className="mt-2 text-[14px] font-bold text-slate-900">
-                        {selectedWriteOffProduct?.warehouse?.name || warehouses.find((warehouse) => warehouse.id === selectedWriteOffProduct?.warehouseId)?.name || '---'}
-                      </p>
-                    </div>
-                    <div className="rounded-[22px] border border-amber-200 bg-[linear-gradient(135deg,#fff8e8_0%,#fffdf8_100%)] px-4 py-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">Остаток</p>
-                      <p className="mt-2 whitespace-pre-line text-[15px] font-black text-amber-900">
-                        {selectedWriteOffProduct ? getStockBreakdown(selectedWriteOffProduct).primary : '0'}
-                      </p>
-                      {selectedWriteOffProduct && getStockBreakdown(selectedWriteOffProduct).secondary && (
-                        <p className="mt-1 text-[11px] font-medium text-amber-700">
-                          {getStockBreakdown(selectedWriteOffProduct).secondary}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]">
-                    <section className="rounded-[24px] border border-slate-200 bg-slate-50/70 p-4">
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <label className="block text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Количество</label>
-                        <span className="text-[11px] font-semibold text-slate-400">Только целое число</span>
-                      </div>
-                      <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-3">
-                        <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-3">
-                          <input
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            required
-                            value={writeOffData.quantity}
-                            onChange={(event) => {
-                              setWriteOffData((prev) => ({ ...prev, quantity: event.target.value }));
-                            }}
-                            className="w-full bg-transparent text-[34px] font-black tracking-tight text-slate-900 outline-none"
-                          />
-                          <p className="mt-1 text-[11px] font-medium text-slate-400">Количество к списанию</p>
-                        </div>
-                        <div className="rounded-[22px] border border-slate-200 bg-white px-3 py-3 text-center">
-                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Доступно</p>
-                          <div className="mt-2 text-[34px] leading-none font-black text-slate-900">
-                            {Number(selectedWriteOffProduct.stock || 0)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {[1, 5, 10].map((value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => handleSetWriteOffQuantity(value)}
-                            className={clsx(
-                              'rounded-full border px-3.5 py-2 text-[12px] font-bold transition-all duration-150',
-                              Number(writeOffData.quantity || 0) === value
-                                ? 'border-amber-400 bg-[linear-gradient(135deg,#fff3c8_0%,#ffe8b2_100%)] text-amber-800 shadow-[0_8px_20px_rgba(245,158,11,0.18)]'
-                                : 'border-slate-200 bg-white text-slate-600 hover:-translate-y-px hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700'
-                            )}
-                          >
-                            {value}
-                          </button>
-                        ))}
-                        {selectedWriteOffPackaging && Number(selectedWriteOffPackaging.unitsPerPackage || 0) > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleSetWriteOffQuantity(Number(selectedWriteOffPackaging.unitsPerPackage || 0))}
-                            className={clsx(
-                              'rounded-full border px-3.5 py-2 text-[12px] font-bold transition-all duration-150',
-                              Number(writeOffData.quantity || 0) === Number(selectedWriteOffPackaging.unitsPerPackage || 0)
-                                ? 'border-amber-400 bg-[linear-gradient(135deg,#fff3c8_0%,#ffe8b2_100%)] text-amber-800 shadow-[0_8px_20px_rgba(245,158,11,0.18)]'
-                                : 'border-slate-200 bg-white text-slate-600 hover:-translate-y-px hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700'
-                            )}
-                          >
-                            1 {selectedWriteOffPackaging.packageName}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleSetWriteOffQuantity(Number(selectedWriteOffProduct?.stock || 0))}
-                          className={clsx(
-                            'rounded-full border px-3.5 py-2 text-[12px] font-bold transition-all duration-150',
-                            Number(writeOffData.quantity || 0) === Number(selectedWriteOffProduct?.stock || 0)
-                              ? 'border-amber-400 bg-[linear-gradient(135deg,#fff3c8_0%,#ffe8b2_100%)] text-amber-800 shadow-[0_8px_20px_rgba(245,158,11,0.18)]'
-                              : 'border-slate-200 bg-white text-slate-600 hover:-translate-y-px hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700'
-                          )}
-                        >
-                          Всё
-                        </button>
-                      </div>
-                    </section>
-
-                    <section className="rounded-[24px] border border-slate-200 bg-white p-4">
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <label className="block text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Причина списания</label>
-                        <span className="text-[11px] font-semibold text-slate-400">Выбери готовый вариант или введи свой</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {writeOffReasonPresets.map((reason) => {
-                          const isSelected = normalizedWriteOffReason === reason.toLowerCase();
-                          return (
-                            <button
-                              key={reason}
-                              type="button"
-                              onClick={() => setWriteOffData((prev) => ({ ...prev, reason: reason.toLowerCase() }))}
-                              className={clsx(
-                                'rounded-[18px] border px-3 py-3 text-left text-[13px] font-bold transition-all duration-150',
-                                isSelected
-                                  ? 'border-amber-400 bg-[linear-gradient(135deg,#fff6d9_0%,#ffe6b3_100%)] text-amber-800 shadow-[0_10px_24px_rgba(245,158,11,0.18)]'
-                                  : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:-translate-y-px hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700'
-                              )}
-                            >
-                              {reason}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="mt-3 rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 transition-all focus-within:border-amber-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-amber-500/10">
-                        <input
-                          type="text"
-                          required
-                          value={writeOffData.reason}
-                          onChange={(event) => setWriteOffData((prev) => ({ ...prev, reason: event.target.value }))}
-                          className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none"
-                          placeholder="Своя причина"
-                        />
-                        {isCustomWriteOffReason && (
-                          <p className="mt-1 text-[11px] font-medium text-amber-700">Используется пользовательская причина</p>
-                        )}
-                      </div>
-                    </section>
-                  </div>
-
-                  <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-end">
-                    <button
-                      type="button"
-                      onClick={closeWriteOffModal}
-                      className="rounded-2xl px-5 py-3 text-sm font-bold text-slate-500 transition-all hover:bg-slate-50"
-                    >
-                      Отмена
-                    </button>
-                    <button
-                      type="submit"
-                      className="rounded-2xl bg-[linear-gradient(135deg,#f59e0b_0%,#ea580c_100%)] px-6 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(234,88,12,0.28)] transition-all hover:-translate-y-px hover:brightness-105 active:scale-[0.98]"
-                    >
-                      Подтвердить списание
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-
-
-        <React.Suspense fallback={null}>
-          <ProductHistoryModal
-            key={showHistoryModal ? `history-${selectedProduct?.id || 'empty'}` : 'history-closed'}
-            isOpen={showHistoryModal}
-            onClose={closeHistoryModal}
-            productName={selectedProduct?.name}
-            product={selectedProduct}
-            productHistory={productHistory}
-            onReverseIncoming={handleReverseIncoming}
-            onReverseCorrectionWriteOff={handleReverseCorrectionWriteOff}
-            onReturnWriteOff={handleOpenReturnWriteOffModal}
-            onDeleteWriteOffPermanently={handleOpenDeleteWriteOffConfirm}
-            onWriteOff={isAdmin ? handleOpenWriteOffModal : undefined}
-          />
-          <ProductBatchesModal
-            key={showBatchesModal ? `batches-${selectedProduct?.id || 'empty'}` : 'batches-closed'}
-            isOpen={showBatchesModal}
-            onClose={closeBatchesModal}
-            selectedProduct={selectedProduct}
-            productBatches={productBatches}
-            canManage={isAdmin}
-            onDeleteBatch={handleDeleteBatch}
-          />
-        </React.Suspense>
-
-        <AnimatePresence>
-          {showMergeModal && selectedProduct && (
-            <motion.div
-              onClick={closeMergeModal}
-              className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-2xl overflow-hidden rounded-t-[2rem] bg-white shadow-2xl sm:rounded-[2rem]"
-              >
-                <div className="flex items-center justify-between border-b border-slate-100 bg-fuchsia-50/50 p-4 sm:p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-2xl bg-fuchsia-600 p-3 text-white">
-                      <GitMerge size={20} />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-black text-slate-900">Объединить дубликаты</h3>
-                      <p className="text-sm text-slate-500">Выберите основной товар, в который нужно перенести остатки и историю.</p>
-                    </div>
-                  </div>
-                  <button onClick={closeMergeModal} className="text-slate-400 transition-colors hover:text-slate-600">
-                    <X size={22} />
-                  </button>
-                </div>
-
-                <div className="space-y-5 p-4 sm:p-6">
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Объединяемый товар</p>
-                    <p className="mt-2 text-base font-semibold text-slate-900">{formatProductName(selectedProduct.name)}</p>
-                    <p className="mt-1 text-sm text-slate-500">Остаток: {selectedProduct.stock} {selectedProduct.unit}</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Основной товар</label>
-                    <select
-                      value={mergeTargetId}
-                      onChange={(e) => setMergeTargetId(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-all focus:border-fuchsia-300 focus:bg-white"
-                    >
-                      {getMergeCandidates(selectedProduct).map((candidate) => (
-                        <option key={candidate.id} value={candidate.id}>
-                          {formatProductName(candidate.name)} • {candidate.stock} {candidate.unit}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <p className="text-sm text-slate-500">
-                    Партии, остатки, история движения, цены и позиции продаж будут перенесены в выбранный основной товар.
-                  </p>
-                </div>
-
-                <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50 p-4 sm:flex-row sm:justify-end sm:p-6">
-                  <button
-                    onClick={closeMergeModal}
-                    className="rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50"
-                  >
-                    Отмена
-                  </button>
-                  <button
-                    onClick={handleMergeProduct}
-                    className="rounded-2xl bg-fuchsia-600 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-fuchsia-700"
-                  >
-                    Объединить
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <React.Suspense fallback={null}>
-          <ConfirmationModal
-            isOpen={showDeleteConfirm}
-            onClose={closeDeleteConfirm}
-            onConfirm={handleConfirmDeleteProduct}
-            title="Удалить товар навсегда?"
-            message={`Товар "${formatProductName(selectedProduct?.name)}" будет удалён навсегда. Если он уже участвовал в продажах, система не даст удалить его полностью.`}
-          />
-        </React.Suspense>
-
-        <React.Suspense fallback={null}>
-          <ConfirmationModal
-            isOpen={showDeleteWriteOffConfirm}
-            onClose={closeDeleteWriteOffConfirm}
-            onConfirm={handleDeleteWriteOffPermanently}
-            title="Удалить списание навсегда?"
-            message="Операция полностью удалит запись списания из истории. Складской остаток и приход будут восстановлены, но восстановить саму удалённую запись потом уже нельзя."
-            confirmText="Удалить навсегда"
-            cancelText="Отмена"
-            type="danger"
-          />
-        </React.Suspense>
-
-        <AnimatePresence>
-          {showReturnWriteOffModal && selectedHistoryTransaction && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeReturnWriteOffModal}
-              className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.96, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.96, opacity: 0 }}
-                onClick={(event) => event.stopPropagation()}
-                className="w-full max-w-xl overflow-hidden rounded-t-[2rem] bg-white shadow-[0_30px_80px_rgba(15,23,42,0.24)] sm:rounded-[2rem]"
-              >
-                <div className="border-b border-emerald-100 bg-[linear-gradient(135deg,#eefcf6_0%,#ffffff_58%,#f3fbff_100%)] px-4 py-4 sm:px-6 sm:py-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700">
-                        <RotateCcw size={12} />
-                        <span>Возврат списания</span>
-                      </div>
-                      <h3 className="mt-3 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">Вернуть товар на склад</h3>
-                      <p className="mt-1 text-sm font-medium text-slate-500">Используйте это, если списание было введено ошибочно.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={closeReturnWriteOffModal}
-                      className="rounded-2xl border border-white/70 bg-white/80 p-2 text-slate-400 transition-all hover:border-slate-200 hover:text-slate-600"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                </div>
-
-                <form onSubmit={handleSubmitReturnWriteOff} className="space-y-4 px-4 py-4 sm:px-6 sm:py-5">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Списание</p>
-                      <p className="mt-2 text-sm font-bold text-slate-900">{new Date(selectedHistoryTransaction.createdAt).toLocaleString('ru-RU')}</p>
-                    </div>
-                    <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">Доступно вернуть</p>
-                      <p className="mt-2 text-sm font-black text-emerald-900">{Math.abs(Number(selectedHistoryTransaction.qtyChange || 0))}</p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 p-4">
-                    <label className="block text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Количество возврата</label>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      required
-                      value={returnWriteOffData.quantity}
-                      onChange={(event) => setReturnWriteOffData((prev) => ({ ...prev, quantity: event.target.value.replace(/[^\d]/g, '') }))}
-                      className="mt-3 w-full rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-2xl font-black text-slate-900 outline-none"
-                    />
-                  </div>
-
-                  <div className="rounded-[24px] border border-slate-200 bg-white p-4">
-                    <label className="block text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Причина возврата</label>
-                    <input
-                      type="text"
-                      value={returnWriteOffData.reason}
-                      onChange={(event) => setReturnWriteOffData((prev) => ({ ...prev, reason: event.target.value }))}
-                      className="mt-3 w-full rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none"
-                      placeholder="Ошибка ввода"
-                    />
-                  </div>
-
-                  <div className="rounded-[22px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                    Возврат восстановит остаток на складе и приход по этому списанию.
-                  </div>
-
-                  <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-end">
-                    <button
-                      type="button"
-                      onClick={closeReturnWriteOffModal}
-                      className="rounded-2xl px-5 py-3 text-sm font-bold text-slate-500 transition-all hover:bg-slate-50"
-                    >
-                      Отмена
-                    </button>
-                    <button
-                      type="submit"
-                      className="rounded-2xl bg-[linear-gradient(135deg,#10b981_0%,#0f766e_100%)] px-6 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(16,185,129,0.24)] transition-all hover:-translate-y-px hover:brightness-105"
-                    >
-                      Вернуть на склад
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="overflow-hidden rounded-[28px] border border-white bg-white shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-slate-100 bg-white p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex w-full flex-col gap-3 lg:max-w-4xl lg:flex-1">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-sky-500" size={16} />
-                <input
-                  type="text"
-                  placeholder="Поиск по названию..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-2xl border border-sky-100 bg-sky-50 py-3 pl-11 pr-4 text-sm font-medium text-slate-700 outline-none transition-all focus:border-sky-300 focus:bg-white"
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-                <div className="relative w-full">
-                  <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-violet-500" size={16} />
-                  <select
-                    value={selectedWarehouseId}
-                    onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                    disabled={!isAdmin}
-                    className="w-full appearance-none rounded-2xl border border-violet-100 bg-violet-50 py-3 pl-11 pr-4 text-sm font-medium text-slate-700 outline-none transition-all focus:border-violet-300 focus:bg-white"
-                  >
-                    <option value="">Все склады</option>
-                    {warehouses.map(w => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  type="button"
-                  onClick={exportStockReport}
-                  disabled={!filteredProducts.length}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 transition-all hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                >
-                  <FileText size={16} />
-                  <span>Скачать остаток</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={exportPriceList}
-                  disabled={!filteredProducts.length}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-700 transition-all hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                >
-                  <Tag size={16} />
-                  <span>Скачать прайс</span>
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <div className="rounded-full border border-emerald-100 bg-emerald-50 px-3.5 py-2 text-[11px] font-semibold text-emerald-700">
-                Товаров: {filteredProducts.length}
-              </div>
-              {duplicateProductsCount > 0 ? (
-                <>
-                  <div className="rounded-full border border-amber-100 bg-amber-50 px-3.5 py-2 text-[11px] font-semibold text-amber-700">
-                    Дублей: {duplicateProductsCount}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleMergeExactDuplicates}
-                    disabled={isMergingDuplicates}
-                    className="rounded-full bg-fuchsia-600 px-3.5 py-2 text-[11px] font-semibold text-white transition-all hover:bg-fuchsia-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isMergingDuplicates ? 'Объединение...' : 'Объединить дубликаты'}
-                  </button>
-                </>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="space-y-3 p-3 md:hidden">
-            {paginatedProducts.map((product, index) => (
-              <div key={`mobile-${product.id ?? product.name}-${index}`} className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-                <div className="border-b border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                      {product.photoUrl ? (
-                        <img
-                          src={resolveMediaUrl(product.photoUrl, product.id)}
-                          alt={product.name}
-                          className="h-full w-full object-cover"
-                          referrerPolicy="no-referrer"
-                          onError={(event) => handleBrokenImage(event, product.id)}
-                        />
-                      ) : (
-                        <ImageIcon className="text-slate-300" size={18} />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="min-w-0 break-words text-[16px] font-semibold leading-5 text-slate-900">
-                          {formatProductName(product.name)}
-                        </p>
-                        <span className="shrink-0 rounded-xl bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-500">
-                          #{(currentPage - 1) * pageSize + index + 1}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="rounded-xl border border-violet-100 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700">
-                          {product.category?.name || 'Без категории'}
-                        </span>
-                        <span className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-500">
-                          {selectedWarehouseId ? product.warehouse?.name || 'Склад' : 'Все склады'}
-                        </span>
-                        {getDuplicateHintCount(product) > 0 && (
-                          <button
-                            onClick={() => handleOpenMergeModal(product)}
-                            className="rounded-xl border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700"
-                          >
-                            Дубликат
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3 p-4">
-                  <div className={clsx(
-                    "rounded-[22px] border px-4 py-3.5",
-                    product.stock <= product.minStock ? "border-rose-200 bg-rose-50/70" : "border-emerald-100 bg-emerald-50/60"
-                  )}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className={clsx(
-                            "text-[10px] font-semibold uppercase tracking-[0.18em]",
-                            product.stock <= product.minStock ? "text-rose-500" : "text-emerald-600"
-                          )}>
-                            Остаток
-                          </p>
-                          <span className={clsx(
-                            "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                            product.stock <= product.minStock ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
-                          )}>
-                            {product.stock <= product.minStock ? 'Низкий' : 'В норме'}
-                          </span>
-                        </div>
-                        <p className={clsx(
-                          "mt-1 whitespace-pre-line break-words text-[17px] font-semibold leading-5",
-                          product.stock <= product.minStock ? "text-rose-700" : "text-slate-900"
-                        )}>
-                          {getStockBreakdown(product).primary}
-                        </p>
-                        {getStockBreakdown(product).secondary && (
-                          <p className={clsx(
-                            "mt-1 break-words text-[11px] font-medium",
-                            product.stock <= product.minStock ? "text-rose-500" : "text-slate-500"
-                          )}>
-                            {getStockBreakdown(product).secondary}
-                          </p>
-                        )}
-                      </div>
-                      <div className={clsx(
-                        "mt-1 h-2.5 w-2.5 shrink-0 rounded-full",
-                        product.stock <= product.minStock ? "bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]" : "bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]"
-                      )} />
-                    </div>
-                  </div>
-
-                  <div className={clsx(
-                    "grid gap-3",
-                    isAdmin ? "grid-cols-4" : "grid-cols-2"
-                  )}>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Продажа</p>
-                      <p className="mt-1 break-words text-sm font-semibold text-slate-900">
-                        {isAggregateMode ? '-' : formatMoney(product.sellingPrice)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Приход</p>
-                      <p className="mt-1 break-words text-sm font-semibold text-slate-900">
-                        {product.totalIncoming} <span className="text-[10px] uppercase text-slate-400">{normalizeDisplayBaseUnit(product.unit || 'шт')}</span>
-                      </p>
-                    </div>
-                    {isAdmin && (
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Закупка</p>
-                        <div className="mt-1 flex flex-col">
-                          {isAggregateMode ? (
-                            <p className="text-sm font-semibold text-slate-900">-</p>
-                          ) : (
-                            <>
-                              <p className="text-sm font-semibold text-slate-900">
-                                {(() => {
-                                  const activeBatches = (product.batches || [])
-                                    .filter((b: any) => Number(b.remainingQuantity) > 0)
-                                    .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-                                  const currentBatch = activeBatches[0];
-                                  if (currentBatch) {
-                                    return formatMoney(currentBatch.costPrice);
-                                  }
-                                  return formatMoney(product.costPrice);
-                                })()}
-                              </p>
-                              <p className="text-[10px] font-medium text-slate-400">
-                                Посл: {formatMoney(product.costPrice)}
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {isAdmin && (
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Рентабельность</p>
-                        <p className="mt-1 break-words text-sm font-semibold text-slate-900">
-                          {isAggregateMode ? '-' : formatPercent(getProductEfficiencyMetrics(product).marginPercent, 1)}
-                        </p>
-                        {!isAggregateMode && (
-                          <span className={clsx('mt-2 inline-flex rounded-full border px-2 py-1 text-[10px] font-bold', getProductEfficiencyMetrics(product).className)}>
-                            {getProductEfficiencyMetrics(product).label}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {isAdmin && !isAggregateMode && (
-                  <div className="border-t border-slate-100 p-4">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedMobileActionsId((current) =>
-                          current === Number(product.id) ? null : Number(product.id)
-                        )
-                      }
-                      className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-white"
-                    >
-                      <span>Действия</span>
-                      {expandedMobileActionsId === Number(product.id) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </button>
-
-                    {expandedMobileActionsId === Number(product.id) && (
-                      <div className="mt-3 max-h-[320px] overflow-y-auto rounded-[22px] border border-slate-200 bg-slate-50/80">
-                        <button
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setFormData(buildProductFormData(product));
-                            setCategoryInput(product.category?.name || '');
-                            setShowEditModal(true);
-                            setExpandedMobileActionsId(null);
-                          }}
-                          className="flex w-full items-center justify-between border-b border-slate-200/80 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-all hover:bg-violet-50 hover:text-violet-700"
-                        >
-                          <span>Изменить товар</span>
-                          <ChevronDown size={14} className="-rotate-90 text-slate-300" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            const defaultPackaging = getDefaultPackaging(normalizePackagings(product));
-                            setSelectedProduct(product);
-                            setRestockData({
-                              ...restockData,
-                              warehouseId: product.warehouseId?.toString() || '',
-                              quantity: '',
-                              selectedPackagingId: defaultPackaging ? String(defaultPackaging.id) : '',
-                              packageQuantityInput: '',
-                              costPrice: formatPriceInput(product.purchaseCostPrice ?? product.costPrice),
-                              sellingPrice: formatPriceInput(product.sellingPrice),
-                              expensePercent: String(product.expensePercent ?? 0),
-                              reason: '',
-                            });
-                            setShowRestockModal(true);
-                            setExpandedMobileActionsId(null);
-                          }}
-                          className="flex w-full items-center justify-between border-b border-slate-200/80 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-all hover:bg-emerald-50 hover:text-emerald-700"
-                        >
-                          <span>Оформить приход</span>
-                          <ChevronDown size={14} className="-rotate-90 text-slate-300" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleShowHistory(product);
-                            setExpandedMobileActionsId(null);
-                          }}
-                          className="flex w-full items-center justify-between border-b border-slate-200/80 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-all hover:bg-sky-50 hover:text-sky-700"
-                        >
-                          <span>Открыть историю</span>
-                          <ChevronDown size={14} className="-rotate-90 text-slate-300" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleOpenWriteOffModal(product);
-                            setExpandedMobileActionsId(null);
-                          }}
-                          disabled={Number(product.stock || 0) <= 0}
-                          className="flex w-full items-center justify-between border-b border-slate-200/80 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-all hover:bg-amber-50 hover:text-amber-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                        >
-                          <span>Списать товар</span>
-                          <ChevronDown size={14} className="-rotate-90 text-slate-300" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleShowBatches(product);
-                            setExpandedMobileActionsId(null);
-                          }}
-                          className="flex w-full items-center justify-between border-b border-slate-200/80 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-all hover:bg-violet-50 hover:text-violet-700"
-                        >
-                          <span>Посмотреть партии</span>
-                          <ChevronDown size={14} className="-rotate-90 text-slate-300" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            const defaultPackaging = getDefaultPackaging(normalizePackagings(product));
-                            setSelectedProduct(product);
-                            setTransferData({
-                              ...emptyTransferData,
-                              fromWarehouseId: product.warehouseId?.toString() || '',
-                              selectedPackagingId: defaultPackaging ? String(defaultPackaging.id) : '',
-                            });
-                            setShowTransferModal(true);
-                            setExpandedMobileActionsId(null);
-                          }}
-                          className="flex w-full items-center justify-between border-b border-slate-200/80 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-all hover:bg-amber-50 hover:text-amber-700"
-                        >
-                          <span>Перенести товар</span>
-                          <ChevronDown size={14} className="-rotate-90 text-slate-300" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setShowDeleteConfirm(true);
-                            setExpandedMobileActionsId(null);
-                          }}
-                          className="flex w-full items-center justify-between bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-all hover:bg-rose-50 hover:text-rose-700"
-                        >
-                          <span>Удалить товар</span>
-                          <ChevronDown size={14} className="-rotate-90 text-slate-300" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-            {displayProducts.length === 0 && !isLoading && (
-              <div className="rounded-[22px] border border-slate-200 bg-white px-5 py-12 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f4f5fb] text-slate-300">
-                  <Package size={28} />
-                </div>
-                <p className="mt-4 text-lg font-black text-slate-900">Товары не найдены</p>
-                <p className="mt-1 text-sm text-slate-500">Измените поиск или выберите другой склад.</p>
-              </div>
-            )}
-          </div>
-
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={displayProducts.length}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            className="border-t-0 pt-0 md:hidden"
-          />
-
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[#f4f5fb] text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  <th className="px-5 py-3">№</th>
-                  <th className="px-5 py-3 cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => handleSort('name')}>
-                    <div className="flex items-center space-x-1.5">
-                      <span>Товар</span>
-                      {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
-                    </div>
-                  </th>
-                  {isAdmin && (
-                    <th className="px-5 py-3 cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => handleSort('costPrice')}>
-                      <div className="flex items-center space-x-1.5">
-                        <span>Закупка</span>
-                        {sortConfig.key === 'costPrice' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
-                      </div>
-                    </th>
-                  )}
-                  <th className="px-5 py-3 cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => handleSort('sellingPrice')}>
-                    <div className="flex items-center space-x-1.5">
-                      <span>Продажа</span>
-                      {sortConfig.key === 'sellingPrice' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
-                    </div>
-                  </th>
-                  <th className="px-5 py-3 cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => handleSort('stock')}>
-                    <div className="flex items-center space-x-1.5">
-                      <span>Остаток</span>
-                      {sortConfig.key === 'stock' && (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
-                    </div>
-                  </th>
-                  <th className="px-5 py-3">Приход</th>
-                  {isAdmin && <th className="px-5 py-3">Рентабельность</th>}
-                  {isAdmin && <th className="sticky right-0 z-10 bg-[#f4f5fb] px-5 py-3 text-right">Действия</th>}
+        {/* Table Content */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[#f2f3f5] text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                <th className="px-5 py-4 border-b border-[#dcdcdc]">Наименование</th>
+                <th className="px-5 py-4 border-b border-[#dcdcdc]">Артикул</th>
+                <th className="px-5 py-4 border-b border-[#dcdcdc]">Остаток</th>
+                {isAdmin && <th className="px-5 py-4 border-b border-[#dcdcdc]">Цена закупа</th>}
+                <th className="px-5 py-4 border-b border-[#dcdcdc]">Цена продажи</th>
+                <th className="px-5 py-4 border-b border-[#dcdcdc] text-right">Эффективность</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#f0f0f0]">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={isAdmin ? 6 : 5} className="px-6 py-24 text-center">
+                    <Loader2 size={32} className="animate-spin text-[#ff9900] mx-auto" />
+                    <p className="mt-4 text-sm text-slate-400 font-bold uppercase tracking-widest">ЗАГРУЗКА ДАННЫХ...</p>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {paginatedProducts.map((product, index) => (
-                  <tr key={product.id} className="group transition-all duration-300 hover:bg-slate-50/70">
-                    <td className="px-5 py-4 text-xs font-medium text-slate-400">{(currentPage - 1) * pageSize + index + 1}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-100 transition-transform duration-500 group-hover:scale-105">
-                          {product.photoUrl ? (
-                            <img
-                              src={resolveMediaUrl(product.photoUrl, product.id)}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                              onError={(event) => handleBrokenImage(event, product.id)}
-                            />
-                          ) : (
-                            <ImageIcon className="text-slate-300" size={16} />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium leading-tight text-slate-900">{formatProductName(product.name)}</p>
-                          <div className="mt-1 flex items-center gap-2">
-                            <p className="text-xs font-medium text-slate-400">
-                              {product.category?.name || 'Без категории'}
-                            </p>
-                            {getDuplicateHintCount(product) > 0 && (
-                              <button
-                                onClick={() => handleOpenMergeModal(product)}
-                                className="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700"
-                              >
-                                Дубликат
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    {isAdmin && (
-                      <td className="px-5 py-3">
-                        {selectedWarehouseId ? (
-                          <div className="flex flex-col">
-                            <p className="text-xs font-semibold text-slate-900">
-                              {(() => {
-                                const activeBatches = (product.batches || [])
-                                  .filter((b: any) => Number(b.remainingQuantity) > 0)
-                                  .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-                                const currentBatch = activeBatches[0];
-                                if (currentBatch) {
-                                  return formatMoney(currentBatch.costPrice);
-                                }
-                                return formatMoney(product.costPrice);
-                              })()}
-                            </p>
-                            <p className="text-[10px] font-medium text-slate-400">
-                              Посл: {formatMoney(product.costPrice)}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-300">-</span>
-                        )}
-                      </td>
-                    )}
-                    <td className="px-5 py-3">
-                      {selectedWarehouseId ? (
-                        <p className="text-sm font-semibold text-slate-900">{formatMoney(product.sellingPrice)}</p>
-                      ) : (
-                        <span className="text-xs text-slate-300">-</span>
+              ) : (
+                paginatedProducts.map((product) => {
+                  const efficiency = getProductEfficiencyMetrics(product);
+                  const isLow = product.stock <= product.minStock;
+                  return (
+                    <tr 
+                      key={product.id} 
+                      onClick={() => setSelectedProduct(product)}
+                      className={clsx(
+                        "hover:bg-[#fff9e6] cursor-pointer transition-colors group",
+                        selectedProduct?.id === product.id ? "bg-[#fff2cc]" : ""
                       )}
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center space-x-2">
-                        <div className={clsx(
-                          "w-1.5 h-1.5 rounded-full",
-                          product.stock <= product.minStock ? "bg-rose-600 animate-pulse" : "bg-emerald-500"
-                        )} />
-                        <div className={clsx(
-                          "min-w-0",
-                          product.stock <= product.minStock ? "text-rose-600" : "text-slate-900"
-                        )}>
-                          <p className="whitespace-pre-line text-sm font-semibold">
-                            {getStockBreakdown(product).primary}
-                          </p>
-                          {getStockBreakdown(product).secondary && (
-                            <p className="text-[11px] font-medium text-slate-400">
-                              {getStockBreakdown(product).secondary}
-                            </p>
+                    >
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className={clsx(
+                            "h-9 w-9 rounded flex items-center justify-center border transition-colors",
+                            selectedProduct?.id === product.id ? "bg-white border-[#ffcc33]" : "bg-slate-50 border-[#f0f0f0]"
+                          )}>
+                             <Package size={18} className={selectedProduct?.id === product.id ? "text-[#ff9900]" : "text-slate-300"} />
+                          </div>
+                          <div>
+                            <p className="text-[14px] font-bold text-slate-800 leading-tight mb-0.5">{formatProductName(product.name)}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{product.category?.name || 'Без категории'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-slate-400 font-mono">#{product.id}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex flex-col">
+                          <span className={clsx(
+                            "text-[14px] font-black",
+                            isLow ? "text-red-500" : "text-slate-700"
+                          )}>
+                             {getStockBreakdown(product).primary}
+                          </span>
+                          {isLow && product.stock > 0 && (
+                            <span className="text-[9px] font-black text-red-400 uppercase tracking-tighter">Крит. остаток</span>
+                          )}
+                          {product.stock <= 0 && (
+                             <span className="text-[9px] font-black text-rose-600 uppercase tracking-tighter">Нет в наличии</span>
                           )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <p className="text-xs font-medium text-slate-500">{product.totalIncoming} <span className="text-[10px] font-medium text-slate-400 uppercase">{normalizeDisplayBaseUnit(product.unit || 'шт')}</span></p>
-                    </td>
-                    {isAdmin && (
-                      <td className="px-5 py-3">
-                        {selectedWarehouseId ? (
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold text-slate-900">{formatPercent(getProductEfficiencyMetrics(product).marginPercent, 1)}</p>
-                            <span className={clsx('inline-flex rounded-full border px-2 py-1 text-[10px] font-bold', getProductEfficiencyMetrics(product).className)}>
-                              {getProductEfficiencyMetrics(product).label}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-300">-</span>
-                        )}
                       </td>
-                    )}
-                    {isAdmin && (
-                      <td className="sticky right-0 bg-white px-5 py-3 text-right group-hover:bg-slate-50/70">
-                        <div className="flex flex-col items-end space-y-1.5">
-                          <div className="flex items-center space-x-1.5">
-                            {isAdmin && (
-                              <button
-                                onClick={() => {
-                                  setSelectedProduct(product);
-                                  setFormData(buildProductFormData(product));
-                                  setCategoryInput(product.category?.name || '');
-                                  setShowEditModal(true);
-                                }}
-                                className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-all hover:border-violet-200 hover:bg-violet-50 hover:text-violet-600"
-                                title="Редактировать"
-                              >
-                                <Edit size={14} />
-                              </button>
-                            )}
-                            {isAdmin && (
-                              <button
-                                onClick={() => {
-                                  const defaultPackaging = getDefaultPackaging(normalizePackagings(product));
-                                  setSelectedProduct(product);
-                                  setRestockData({
-                                    ...restockData,
-                                    warehouseId: product.warehouseId?.toString() || '',
-                                    quantity: '',
-                                    selectedPackagingId: defaultPackaging ? String(defaultPackaging.id) : '',
-                                    packageQuantityInput: '',
-                                    costPrice: formatPriceInput(product.purchaseCostPrice ?? product.costPrice),
-                                    sellingPrice: formatPriceInput(product.sellingPrice),
-                                    expensePercent: String(product.expensePercent ?? 0),
-                                    reason: '',
-                                  });
-                                  setShowRestockModal(true);
-                                }}
-                                className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-all hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600"
-                                title="Пополнить"
-                              >
-                                <PlusCircle size={14} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleShowBatches(product)}
-                              className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-all hover:border-violet-200 hover:bg-violet-50 hover:text-violet-600"
-                              title="Партии (FIFO)"
-                            >
-                              <Layers size={14} />
-                            </button>
-                          </div>
-                          <div className="flex items-center space-x-1.5">
-                            <button
-                              onClick={() => handleShowHistory(product)}
-                              className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-all hover:border-sky-200 hover:bg-sky-50 hover:text-sky-600"
-                              title="История"
-                            >
-                              <History size={14} />
-                            </button>
-                            {isAdmin && (
-                              <button
-                                onClick={() => handleOpenWriteOffModal(product)}
-                                disabled={Number(product.stock || 0) <= 0}
-                                className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-all hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300"
-                                title="Списать"
-                              >
-                                <Scissors size={14} />
-                              </button>
-                            )}
-                            {isAdmin && (
-                              <button
-                                onClick={() => {
-                                  const defaultPackaging = getDefaultPackaging(normalizePackagings(product));
-                                  setSelectedProduct(product);
-                                  setTransferData({
-                                    ...emptyTransferData,
-                                    fromWarehouseId: product.warehouseId?.toString() || '',
-                                    selectedPackagingId: defaultPackaging ? String(defaultPackaging.id) : '',
-                                  });
-                                  setShowTransferModal(true);
-                                }}
-                                className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-all hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600"
-                                title="Перенос"
-                              >
-                                <ArrowRightLeft size={14} />
-                              </button>
-                            )}
-                            {isAdmin && (
-                              <button
-                                onClick={() => {
-                                  setSelectedProduct(product);
-                                  setShowDeleteConfirm(true);
-                                }}
-                                className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                                title="Удалить"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                      {isAdmin && <td className="px-5 py-3.5 text-[13px] font-medium text-slate-500 italic">{formatMoney(product.purchaseCostPrice || product.costPrice)}</td>}
+                      <td className="px-5 py-3.5 text-[14px] font-black text-slate-900">{formatMoney(product.sellingPrice)}</td>
+                      <td className="px-5 py-3.5 text-right">
+                         <span className={clsx("px-2.5 py-1 rounded-[3px] text-[9px] font-black uppercase border shadow-sm", efficiency.className)}>
+                            {efficiency.label}
+                         </span>
                       </td>
-                    )}
-                  </tr>
-                ))}
-                {displayProducts.length === 0 && !isLoading && (
-                  <tr>
-                    <td colSpan={isAdmin ? 7 : 5} className="px-5 py-20 text-center">
-                      <div className="flex flex-col items-center justify-center space-y-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f4f5fb] text-slate-300">
-                          <Package size={32} />
-                        </div>
-                        <div>
-                          <p className="text-xl font-black text-slate-900">Товары не найдены</p>
-                          <p className="text-slate-500 font-medium text-sm">Измените параметры поиска или выберите другой склад.</p>
-                        </div>
-                        <button
-                          onClick={() => { resetForm(); setShowAddModal(true); }}
-                          className="rounded-2xl bg-violet-500 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-violet-600"
-                        >
-                          Добавить товар
-                        </button>
-                      </div>
+                    </tr>
+                  );
+                })
+              )}
+              {!isLoading && paginatedProducts.length === 0 && (
+                 <tr>
+                    <td colSpan={isAdmin ? 6 : 5} className="px-6 py-32 text-center">
+                       <Package size={48} className="mx-auto text-slate-200 mb-4" />
+                       <p className="text-sm font-bold text-slate-400 uppercase">Товары не найдены</p>
                     </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                 </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-          <div className="hidden md:block">
-            <PaginationControls
+        {/* Pagination bar */}
+        <div className="bg-[#fcfcfc] border-t border-[#dcdcdc] px-5 py-4 flex items-center justify-between">
+           <div className="flex items-center gap-4">
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                 Всего позиций: {displayProducts.length}
+              </p>
+           </div>
+           <PaginationControls
               currentPage={currentPage}
               totalPages={totalPages}
               totalItems={displayProducts.length}
               pageSize={pageSize}
               onPageChange={setCurrentPage}
-              className="border-t-0"
-            />
-          </div>
+           />
         </div>
       </div>
+
+      <AnimatePresence>
+         {(showAddModal || showEditModal) && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeProductFormModal} className="fixed inset-0 z-[11000] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+               <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={e => e.stopPropagation()} className="bg-white rounded-[4px] border border-[#dcdcdc] shadow-2xl w-full max-w-[800px] overflow-hidden">
+                  <div className="bg-[#ffcc33] px-6 py-4 flex items-center justify-between border-b border-black/10">
+                     <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">
+                        {showEditModal ? 'РЕДАКТИРОВАНИЕ НОМЕНКЛАТУРЫ' : 'СОЗДАНИЕ НОМЕНКЛАТУРЫ'}
+                     </h3>
+                     <button onClick={closeProductFormModal} className="text-slate-900/50 hover:text-slate-900 transition-colors"><X size={20} /></button>
+                  </div>
+                  <form onSubmit={showEditModal ? (e) => { e.preventDefault(); handleEditProduct(e); } : (e) => { e.preventDefault(); handleAddProduct(e); }} className="p-6 space-y-6 max-h-[85vh] overflow-y-auto">
+                     <div className="grid grid-cols-2 gap-6">
+                        <div className="col-span-2">
+                           <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Наименование</label>
+                           <input type="text" required value={formData.name} onChange={e => { setIsCategoryManual(false); setFormData({ ...formData, name: e.target.value }); }} className="w-full bg-slate-50 border border-[#dcdcdc] rounded-[3px] px-4 py-2.5 text-sm font-bold outline-none focus:border-[#ff9900]" />
+                        </div>
+                        <div>
+                           <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Категория</label>
+                           <input list="product-categories" required value={categoryInput} onChange={e => { setCategoryInput(e.target.value); const matched = visibleCategories.find(c => c.name === e.target.value); setIsCategoryManual(true); setFormData({ ...formData, categoryId: matched ? String(matched.id) : '' }); }} className="w-full bg-slate-50 border border-[#dcdcdc] rounded-[3px] px-4 py-2.5 text-sm font-bold outline-none focus:border-[#ff9900]" />
+                           <datalist id="product-categories">
+                              {visibleCategories.map(c => <option key={c.id} value={c.name} />)}
+                           </datalist>
+                        </div>
+                        <div>
+                           <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Единица измерения</label>
+                           <select value={formData.baseUnitName} onChange={e => setFormData({ ...formData, baseUnitName: e.target.value, unit: e.target.value })} className="w-full bg-slate-50 border border-[#dcdcdc] rounded-[3px] px-4 py-2.5 text-sm font-bold outline-none focus:border-[#ff9900]">
+                              <option value="шт">Шт</option>
+                              <option value="кг">Кг</option>
+                              <option value="литр">Литр</option>
+                           </select>
+                        </div>
+                        {isAdmin && (
+                           <>
+                              <div>
+                                 <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Себестоимость</label>
+                                 <input type="number" step="0.01" value={formData.costPrice} onChange={e => setFormData({ ...formData, costPrice: e.target.value })} className="w-full bg-slate-50 border border-[#dcdcdc] rounded-[3px] px-4 py-2.5 text-sm font-bold outline-none" />
+                              </div>
+                              <div>
+                                 <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Цена продажи</label>
+                                 <input type="number" step="0.01" value={formData.sellingPrice} onChange={e => setFormData({ ...formData, sellingPrice: e.target.value })} className="w-full bg-slate-50 border border-[#dcdcdc] rounded-[3px] px-4 py-2.5 text-sm font-bold outline-none border-b-2 border-b-[#ffcc33]" />
+                              </div>
+                           </>
+                        )}
+                     </div>
+                     <div className="pt-6 border-t border-[#f0f0f0] flex justify-end gap-3">
+                        <button type="button" onClick={closeProductFormModal} className="px-6 py-2 text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">Отмена</button>
+                        <button type="submit" className="bg-[#ffcc33] text-slate-900 px-8 py-2 rounded-[3px] text-xs font-black uppercase shadow-lg shadow-yellow-500/10 hover:bg-[#ffd659] transition-all">
+                           {showEditModal ? 'СОХРАНИТЬ ИЗМЕНЕНИЯ' : 'ЗАПИСАТЬ И ЗАКРЫТЬ'}
+                        </button>
+                     </div>
+                  </form>
+               </motion.div>
+            </motion.div>
+         )}
+
+         {showRestockModal && selectedProduct && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeRestockModal} className="fixed inset-0 z-[11000] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+               <motion.div initial={{ scale: 0.95 }} onClick={e => e.stopPropagation()} className="bg-white rounded-[4px] border border-[#dcdcdc] shadow-2xl w-full max-w-md overflow-hidden">
+                  <div className="bg-[#1e293b] text-white px-6 py-4 flex items-center justify-between">
+                     <h3 className="text-xs font-black uppercase tracking-widest">Поступление товара</h3>
+                     <button onClick={closeRestockModal} className="text-white/50 hover:text-white"><X size={20} /></button>
+                  </div>
+                  <form onSubmit={handleRestock} className="p-6 space-y-4">
+                     <p className="text-xs font-bold text-slate-500 uppercase tracking-tight">Товар: {selectedProduct.name}</p>
+                     <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Количество ({selectedProduct.unit})</label>
+                        <input type="number" required value={restockData.quantity} onChange={e => setRestockData({ ...restockData, quantity: e.target.value })} className="w-full bg-slate-50 border border-[#dcdcdc] rounded-[3px] px-4 py-2.5 text-sm font-bold outline-none focus:border-[#ff9900]" />
+                     </div>
+                     <button type="submit" className="w-full bg-[#ffcc33] text-slate-900 py-3 rounded-[3px] text-xs font-black uppercase hover:bg-[#ffd659] transition-all">Оформить поступление</button>
+                  </form>
+               </motion.div>
+            </motion.div>
+         )}
+      </AnimatePresence>
+
+      <ConfirmationModal 
+        isOpen={showDeleteConfirm} 
+        title="УДАЛЕНИЕ НОМЕНКЛАТУРЫ" 
+        message={`Вы уверены, что хотите удалить товар "${selectedProduct?.name}"? Это действие необратимо.`} 
+        onConfirm={() => handleConfirmDeleteProduct()} 
+        onClose={closeDeleteConfirm} 
+        confirmText="УДАЛИТЬ НАВСЕГДА" 
+        cancelText="ОТМЕНА" 
+      />
     </div>
-    
-  ;
+  );
 }

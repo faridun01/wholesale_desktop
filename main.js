@@ -135,7 +135,7 @@ function startBackend() {
   }
 
   backendProcess = spawn(command, args, {
-    shell: false, 
+    shell: true, 
     env: childEnv,
     cwd: isDev ? process.cwd() : unpackedAppPath,
     windowsHide: true

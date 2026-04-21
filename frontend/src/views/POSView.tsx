@@ -1044,9 +1044,12 @@ export default function POSView() {
       return false;
     }
 
+    // Allow showing products even if stock is 0
+    /*
     if (Math.max(0, Number(product.stock || 0)) <= 0) {
       return false;
     }
+    */
 
     if (cart.some((item) => Number(item.id) === Number(product.id))) {
       return false;
