@@ -1,32 +1,43 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
-  AlertTriangle,
   BarChart3,
   Boxes,
-  Briefcase,
-  Building2,
   CalendarRange,
   DollarSign,
   Package,
   TrendingUp,
-  Users,
   Warehouse,
   Banknote,
+  Search,
+  ChevronRight,
+  Filter,
+  BarChart as BarChartIcon,
+  LineChart as LineChartIcon,
+  ArrowRight,
+  PieChart as PieChartIcon
 } from 'lucide-react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  XAxis,
-  YAxis,
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  LineChart, 
+  Line, 
+  AreaChart, 
+  Area,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
 import { getAnalytics } from '../api/reports.api';
 import { getWarehouses } from '../api/warehouses.api';
 import { formatCount, formatMoney, formatPercent } from '../utils/format';
 import { filterWarehousesForUser, getCurrentUser } from '../utils/userAccess';
+import { clsx } from 'clsx';
 
 type AnalyticsSummary = {
   totalRevenue: number;
@@ -64,13 +75,10 @@ type AnalyticsPayload = {
   customerPerformance: NamedMetric[];
   customerDebts: NamedMetric[];
   writeoffReasons: NamedMetric[];
-  writeoffByStaff: NamedMetric[];
-  writeoffByProduct: NamedMetric[];
-  writeoffByWarehouse: NamedMetric[];
 };
 
 type PeriodMode = 'month' | 'quarter' | 'year';
-type SectionKey = 'overview' | 'products' | 'staff';
+type SectionKey = 'overview' | 'charts' | 'products' | 'staff' | 'customers' | 'warehouses';
 
 function formatDateInputValue(date: Date) {
   const year = date.getFullYear();
@@ -79,252 +87,51 @@ function formatDateInputValue(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function getMonthAnchor(date: Date) {
-  return formatDateInputValue(date).slice(0, 7);
-}
-
-function getMonthRange(year: number, monthIndex: number) {
-  const start = new Date(year, monthIndex, 1);
-  const end = new Date(year, monthIndex + 1, 0);
-  return { start: formatDateInputValue(start), end: formatDateInputValue(end) };
-}
-
-function getQuarterRange(year: number, monthIndex: number) {
-  const quarterStartMonth = Math.floor(monthIndex / 3) * 3;
-  const start = new Date(year, quarterStartMonth, 1);
-  const end = new Date(year, quarterStartMonth + 3, 0);
-  return { start: formatDateInputValue(start), end: formatDateInputValue(end) };
-}
-
-function getYearRange(year: number) {
-  const start = new Date(year, 0, 1);
-  const end = new Date(year, 12, 0);
-  return { start: formatDateInputValue(start), end: formatDateInputValue(end) };
-}
-
 function getRangeFromAnchor(anchor: string, mode: PeriodMode) {
   const [yearRaw, monthRaw] = anchor.split('-');
   const year = Number(yearRaw);
   const monthIndex = Math.max(0, Number(monthRaw || '1') - 1);
 
-  if (mode === 'quarter') return getQuarterRange(year, monthIndex);
-  if (mode === 'year') return getYearRange(year);
-  return getMonthRange(year, monthIndex);
+  if (mode === 'quarter') {
+    const qs = Math.floor(monthIndex / 3) * 3;
+    return { start: formatDateInputValue(new Date(year, qs, 1)), end: formatDateInputValue(new Date(year, qs + 3, 0)) };
+  }
+  if (mode === 'year') {
+    return { start: formatDateInputValue(new Date(year, 0, 1)), end: formatDateInputValue(new Date(year, 12, 0)) };
+  }
+  return { start: formatDateInputValue(new Date(year, monthIndex, 1)), end: formatDateInputValue(new Date(year, monthIndex + 1, 0)) };
 }
 
 function getPeriodLabel(anchor: string, mode: PeriodMode) {
   const [yearRaw, monthRaw] = anchor.split('-');
   const year = Number(yearRaw);
   const monthIndex = Math.max(0, Number(monthRaw || '1') - 1);
-
   if (mode === 'year') return 'Год ' + year;
-  if (mode === 'quarter') return String(Math.floor(monthIndex / 3) + 1) + ' квартал ' + year;
-
-  const labelDate = new Date(year, monthIndex, 1);
-  return new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(labelDate);
+  if (mode === 'quarter') return Math.floor(monthIndex / 3) + 1 + ' квартал ' + year;
+  return new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(new Date(year, monthIndex, 1));
 }
 
-function getQuickRangeLabel(mode: PeriodMode) {
-  if (mode === 'quarter') return 'Этот квартал';
-  if (mode === 'year') return 'Этот год';
-  return 'Этот месяц';
-}
-
-function Panel({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-[28px] border border-slate-200/90 bg-white shadow-[0_14px_36px_-24px_rgba(15,23,42,0.35)]">
-      <div className="border-b border-slate-200/90 px-5 py-4">
-        <h2 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
-      </div>
-      <div className="p-5">{children}</div>
-    </section>
-  );
-}
-
-function MetricCard({
-  icon,
-  label,
-  value,
-  help,
-  tone = 'slate',
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  help: string;
-  tone?: 'slate' | 'emerald' | 'amber' | 'sky';
-}) {
-  const toneMap = {
-    slate: 'border-slate-200 bg-white',
-    emerald: 'border-emerald-100 bg-gradient-to-br from-emerald-50 to-white',
-    amber: 'border-amber-100 bg-gradient-to-br from-amber-50 to-white',
-    sky: 'border-sky-100 bg-gradient-to-br from-sky-50 to-white',
-  } as const;
-
-  return (
-    <article className={`rounded-[26px] border p-4 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.35)] ${toneMap[tone]}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="rounded-2xl bg-white/90 p-2.5 shadow-sm">{icon}</div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      </div>
-      <p className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
-      <p className="mt-2 text-sm text-slate-500">{help}</p>
-    </article>
-  );
-}
-
-function RankTable({
-  title,
-  hint,
-  rows,
-  primaryLabel,
-  primaryValue,
-  secondaryValue,
-}: {
-  title: string;
-  hint: string;
-  rows: NamedMetric[];
-  primaryLabel: string;
-  primaryValue: (row: NamedMetric) => string;
-  secondaryValue?: (row: NamedMetric) => string;
-}) {
-  return (
-    <section className="overflow-hidden rounded-[26px] border border-slate-200 bg-slate-50/70">
-      <div className="border-b border-slate-200 px-5 py-4">
-        <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-        <p className="mt-1 text-sm text-slate-500">{hint}</p>
-      </div>
-      <div className="space-y-2 p-4">
-        {rows.length ? (
-          rows.slice(0, 8).map((row, index) => (
-            <article
-              key={`${title}-${row.name}-${index}`}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-white bg-white px-3 py-3 shadow-sm"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
-                {index + 1}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">{row.name}</p>
-                {secondaryValue ? <p className="mt-1 text-xs text-slate-500">{secondaryValue(row)}</p> : null}
-              </div>
-              <div className="text-right">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{primaryLabel}</p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">{primaryValue(row)}</p>
-              </div>
-            </article>
-          ))
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400">
-            Нет данных
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function AnalyticsDataTable({
-  title,
-  hint,
-  rows,
-  columns,
-}: {
-  title: string;
-  hint: string;
-  rows: NamedMetric[];
-  columns: Array<{ key: string; label: string; align?: 'left' | 'right'; className?: string; render: (row: NamedMetric, index: number) => React.ReactNode }>;
-}) {
-  return (
-    <section className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_12px_30px_-24px_rgba(15,23,42,0.32)]">
-      <div className="border-b border-slate-200 bg-slate-50/80 px-5 py-4">
-        <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-        <p className="mt-1 text-sm text-slate-500">{hint}</p>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50/70">
-            <tr className="text-slate-500">
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className={`px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] ${column.align === 'right' ? 'text-right' : 'text-left'} ${column.className || ''}`}
-                >
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {rows.length ? (
-              rows.slice(0, 10).map((row, index) => (
-                <tr key={`${title}-${row.name}-${index}`} className="transition-colors hover:bg-slate-50/70">
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className={`px-4 py-3 align-top ${column.align === 'right' ? 'text-right' : 'text-left'} ${column.className || ''}`}
-                    >
-                      {column.render(row, index)}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-slate-400">
-                  Нет данных
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-function LeaderInsight({
-  icon,
-  title,
-  value,
-  meta,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: string;
-  meta: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-      <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-        {icon}
-        <span>{title}</span>
-      </div>
-      <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
-      <p className="mt-1 text-xs text-slate-500">{meta}</p>
+// 1C Style Components
+const ReportCard = ({ label, value, help, icon: Icon, color }: any) => (
+  <div className="bg-white border border-border-base p-4 rounded-[4px] shadow-sm flex flex-col relative overflow-hidden group hover:border-brand-orange/30 transition-colors">
+    <div className={clsx("absolute top-0 left-0 w-1 h-full", color || "bg-brand-yellow")}></div>
+    <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{label}</span>
+        <Icon size={16} className="text-slate-300 group-hover:text-brand-orange transition-colors" />
     </div>
-  );
-}
+    <div className="text-xl font-black text-slate-900 mb-1">{value}</div>
+    <div className="text-[10px] font-bold text-slate-400 italic">{help}</div>
+  </div>
+);
 
 export default function AnalyticsView() {
   const today = new Date();
   const user = useMemo(() => getCurrentUser(), []);
-  const defaultAnchor = getMonthAnchor(today);
-
   const [activeSection, setActiveSection] = useState<SectionKey>('overview');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month');
-  const [periodAnchor, setPeriodAnchor] = useState(defaultAnchor);
+  const [periodAnchor, setPeriodAnchor] = useState(formatDateInputValue(today).slice(0, 7));
   const [data, setData] = useState<AnalyticsPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -332,388 +139,332 @@ export default function AnalyticsView() {
   const periodLabel = useMemo(() => getPeriodLabel(periodAnchor, periodMode), [periodAnchor, periodMode]);
 
   useEffect(() => {
-    getWarehouses()
-      .then((items) => setWarehouses(filterWarehousesForUser(Array.isArray(items) ? items : [], user)))
-      .catch(() => setWarehouses([]));
+    getWarehouses().then(items => setWarehouses(filterWarehousesForUser(Array.isArray(items) ? items : [], user)));
   }, [user]);
 
   useEffect(() => {
-    let cancelled = false;
     setIsLoading(true);
+    getAnalytics({ warehouseId: selectedWarehouseId ? Number(selectedWarehouseId) : null, start: dateRange.start, end: dateRange.end })
+      .then(setData)
+      .catch(() => toast.error('Ошибка загрузки данных'))
+      .finally(() => setIsLoading(false));
+  }, [dateRange, selectedWarehouseId]);
 
-    getAnalytics({
-      warehouseId: selectedWarehouseId ? Number(selectedWarehouseId) : null,
-      start: dateRange.start,
-      end: dateRange.end,
-    })
-      .then((response) => {
-        if (!cancelled) {
-          setData(response);
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        if (!cancelled) {
-          toast.error('Не удалось загрузить аналитику');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [dateRange.end, dateRange.start, selectedWarehouseId]);
-
-  const summary = data?.summary;
-  const topProduct = data?.productPerformance?.[0] || null;
-  const topStaff = data?.staffPerformance?.[0] || null;
-  const topWarehouse = data?.warehousePerformance?.[0] || null;
-  const topWriteoffReason = data?.writeoffReasons?.[0] || null;
-  const topCustomer = data?.customerPerformance?.[0] || null;
-  const topDebtor = data?.customerDebts?.[0] || null;
-  const topSellingProducts = useMemo(
-    () =>
-      [...(data?.productPerformance || [])]
-        .sort((a, b) => Number(b.quantity || 0) - Number(a.quantity || 0) || Number(b.revenue || 0) - Number(a.revenue || 0)),
-    [data?.productPerformance]
-  );
-  const productEfficiencyRows = useMemo(
-    () =>
-      (data?.productPerformance || [])
-        .map((row) => {
-          const quantity = Number(row.quantity || 0);
-          const revenue = Number(row.revenue || 0);
-          const profit = Number(row.profit || 0);
-          const profitPerUnit = quantity > 0 ? profit / quantity : 0;
-          const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
-
-          return {
-            ...row,
-            quantity,
-            revenue,
-            profit,
-            profitPerUnit,
-            profitMargin,
-          };
-        })
-        .filter((row) => row.profit > 0 && row.quantity > 0)
-        .sort((a, b) => {
-          if (b.profitPerUnit !== a.profitPerUnit) {
-            return b.profitPerUnit - a.profitPerUnit;
-          }
-          return b.profit - a.profit;
-        }),
-    [data?.productPerformance]
-  );
-  const staffSalesLeaders = useMemo(
-    () =>
-      [...(data?.staffPerformance || [])]
-        .sort((a, b) => Number(b.revenue || 0) - Number(a.revenue || 0) || Number(b.profit || 0) - Number(a.profit || 0)),
-    [data?.staffPerformance]
-  );
-
-  const actionItems = useMemo(() => {
-    const items: Array<{ title: string; detail: string; tone: 'rose' | 'amber' | 'sky' | 'emerald' }> = [];
-
-    const margin = Number(summary?.margin || 0);
-    const debts = Number(summary?.totalDebts || 0);
-    const revenue = Number(summary?.totalRevenue || 0);
-    const debtShare = revenue > 0 ? (debts / revenue) * 100 : 0;
-    const topLoss = Number(topWriteoffReason?.value || 0);
-    const topLossShare = revenue > 0 ? (topLoss / revenue) * 100 : 0;
-
-    if (margin > 0 && margin < 12) {
-      items.push({
-        title: 'Маржа низкая',
-        detail: 'Средняя маржа ' + formatPercent(margin, 1) + '. Проверьте цену и себестоимость.',
-        tone: 'amber',
-      });
-    }
-
-    if (debtShare >= 20) {
-      items.push({
-        title: 'Долги высокие',
-        detail: 'Доля долгов ' + formatPercent(debtShare, 1) + ' от выручки. Нужен контроль оплат.',
-        tone: 'rose',
-      });
-    }
-
-    if (topLossShare >= 3) {
-      items.push({
-        title: 'Списания заметные',
-        detail: 'Потери по главной причине уже ' + formatPercent(topLossShare, 1) + ' от выручки.',
-        tone: 'rose',
-      });
-    }
-
-    if (topProduct && Number(topProduct.profit || 0) > 0) {
-      items.push({
-        title: 'Лидер по товару',
-        detail: topProduct.name + ' приносит максимум прибыли. Держите в наличии.',
-        tone: 'emerald',
-      });
-    }
-
-    if (topCustomer && topDebtor && topCustomer.name === topDebtor.name) {
-      items.push({
-        title: 'Крупный клиент в долге',
-        detail: topDebtor.name + ' даёт оборот и одновременно держит самый большой долг.',
-        tone: 'sky',
-      });
-    }
-
-    if (!items.length) {
-      items.push({
-        title: 'Ситуация стабильна',
-        detail: 'Критичных отклонений по прибыли, долгам и списаниям не видно.',
-        tone: 'emerald',
-      });
-    }
-
-    return items;
-  }, [summary, topCustomer, topDebtor, topProduct, topWriteoffReason]);
-
-  const sections: Array<{ key: SectionKey; label: string }> = [
-    { key: 'overview', label: 'Главное' },
+  const sections: { key: SectionKey; label: string }[] = [
+    { key: 'overview', label: 'Сводные данные' },
+    { key: 'charts', label: 'Графики сбыта' },
     { key: 'products', label: 'Товары' },
-    { key: 'staff', label: 'Сотрудники' },
+    { key: 'customers', label: 'Покупатели' },
+    { key: 'staff', label: 'Сотрудники' }
   ];
 
   return (
-    <div className="app-page-shell bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.08),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(15,118,110,0.08),_transparent_24%)]">
-      <div className="w-full space-y-6">
-        <section className="overflow-hidden rounded-[32px] border border-slate-200/90 bg-white shadow-[0_24px_70px_-36px_rgba(15,23,42,0.4)]">
-          <div className="grid gap-0 xl:grid-cols-[minmax(0,1.35fr)_420px]">
-            <div className="border-b border-slate-200/80 px-6 py-6 xl:border-b-0 xl:border-r">
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
-                <BarChart3 size={14} />
-                Админ аналитика
-              </div>
-              <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">Аналитика CRM</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-                Главные показатели бизнеса в аккуратном формате: самые продаваемые товары, товары по эффективности прибыли и результат сотрудников.
-              </p>
-
-              <div className="mt-6 grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Период</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{periodLabel}</p>
-                  <p className="mt-1 text-xs text-slate-500">{dateRange.start} - {dateRange.end}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Продажи</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{formatCount(summary?.totalSalesCount || 0)}</p>
-                  <p className="mt-1 text-xs text-slate-500">Всего накладных за период</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Ассортимент</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{formatCount(summary?.totalProducts || 0)}</p>
-                  <p className="mt-1 text-xs text-slate-500">Товаров в движении</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 py-6">
-              <div className="rounded-[28px] border border-slate-200 bg-slate-50/70 p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                  <CalendarRange size={16} className="text-slate-500" />
-                  {'Управление периодом'}
-                </div>
-
-                <div className="mt-4 inline-flex w-full rounded-2xl border border-slate-200 bg-white p-1">
-                  {[
-                    { key: 'month', label: 'Месяц' },
-                    { key: 'quarter', label: 'Квартал' },
-                    { key: 'year', label: 'Год' },
-                  ].map((option) => (
-                    <button
-                      key={option.key}
-                      type="button"
-                      onClick={() => setPeriodMode(option.key as PeriodMode)}
-                      className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                        periodMode === option.key ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-3 flex flex-col gap-3">
-                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5">
-                    <Warehouse size={15} className="text-slate-400" />
-                    <select
-                      value={selectedWarehouseId}
-                      onChange={(event) => setSelectedWarehouseId(event.target.value)}
-                      className="w-full appearance-none bg-transparent text-[13px] text-slate-700 outline-none"
-                    >
-                      <option value="">{'\u0412\u0441\u0435 \u0441\u043a\u043b\u0430\u0434\u044b'}</option>
-                      {warehouses.map((warehouse) => (
-                        <option key={warehouse.id} value={warehouse.id}>
-                          {warehouse.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5">
-                    <span className="text-[13px] text-slate-400">{'\u0411\u0430\u0437\u0430'}</span>
-                    <input
-                      type="month"
-                      value={periodAnchor}
-                      onChange={(event) => setPeriodAnchor(event.target.value)}
-                      className="w-full bg-transparent text-[13px] text-slate-700 outline-none"
-                    />
-                  </div>
-
-                  <div className="rounded-2xl bg-slate-900 px-4 py-3 text-white">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">{'\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0439 \u0434\u0438\u0430\u043f\u0430\u0437\u043e\u043d'}</p>
-                    <p className="mt-2 text-sm font-semibold">{getQuickRangeLabel(periodMode)}</p>
-                    <p className="mt-1 text-xs text-slate-300">{dateRange.start} - {dateRange.end}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+    <div className="flex flex-col h-full bg-[#f0f1f4] text-[#1e1e1e]">
+      {/* HEADER 1C */}
+      <div className="bg-white border-b border-border-base p-4 shrink-0 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+             <div className="bg-brand-yellow p-2 rounded">
+                <BarChart3 size={20} className="text-slate-800" />
+             </div>
+             <div>
+                <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Аналитика и Сбыт</h1>
+                <p className="text-[10px] font-black uppercase text-slate-400">Мониторинг эффективности торговых операций</p>
+             </div>
           </div>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <MetricCard icon={<DollarSign size={18} className="text-emerald-700" />} label={'\u0412\u044b\u0440\u0443\u0447\u043a\u0430'} value={formatMoney(summary?.totalRevenue || 0)} help={'\u041e\u0431\u0449\u0438\u0439 \u043e\u0431\u043e\u0440\u043e\u0442.'} tone="emerald" />
-          <MetricCard icon={<TrendingUp size={18} className="text-sky-700" />} label={'\u0427\u0438\u0441\u0442\u0430\u044f \u043f\u0440\u0438\u0431\u044b\u043b\u044c'} value={formatMoney(summary?.netProfit || 0)} help={'\u0414\u043e\u0445\u043e\u0434 \u0437\u0430 \u0432\u044b\u0447\u0435\u0442\u043e\u043c \u0440\u0430\u0441\u0445\u043e\u0434\u043e\u0432.'} tone="sky" />
-          <MetricCard icon={<Banknote size={18} className="text-rose-700" />} label={'\u0420\u0430\u0441\u0445\u043e\u0434\u044b'} value={formatMoney(summary?.totalExpenses || 0)} help={'\u0410\u0440\u0435\u043d\u0434\u0430, \u0437/\u043f \u0438 \u0434\u0440.'} tone="amber" />
-          <MetricCard icon={<Boxes size={18} className="text-amber-700" />} label={'\u041c\u0430\u0440\u0436\u0430 (\u0447\u0438\u0441\u0442.)'} value={formatPercent(summary?.margin || 0, 1)} help={'\u0420\u0435\u043d\u0442\u0430\u0431\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c \u0431\u0438\u0437\u043d\u0435\u0441\u0430.'} tone="amber" />
-          <MetricCard icon={<Package size={18} className="text-slate-700" />} label={'\u0414\u043e\u043b\u0433\u0438'} value={formatMoney(summary?.totalDebts || 0)} help={'\u041d\u0435\u043e\u043f\u043b\u0430\u0447\u0435\u043d\u043d\u044b\u0435 \u0441\u0443\u043c\u043c\u044b.'} tone="slate" />
-        </section>
-
-        <section className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-[0_14px_36px_-24px_rgba(15,23,42,0.35)]">
-          <div className="grid gap-2 md:grid-cols-3">
-            {sections.map((section) => (
-              <button
-                key={section.key}
-                type="button"
-                onClick={() => setActiveSection(section.key)}
-                className={`rounded-2xl px-3 py-3 text-sm font-medium transition ${
-                  activeSection === section.key ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {section.label}
-              </button>
-            ))}
+          
+          <div className="flex items-center gap-2 bg-[#f8f9fb] border border-border-base rounded p-1">
+             {sections.map(s => (
+               <button 
+                 key={s.key}
+                 onClick={() => setActiveSection(s.key)}
+                 className={clsx(
+                   "px-4 py-1.5 text-[10px] font-black uppercase rounded transition-all",
+                   activeSection === s.key ? "bg-brand-yellow text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                 )}
+               >
+                 {s.label}
+               </button>
+             ))}
           </div>
-        </section>
+        </div>
+      </div>
 
-        {activeSection === 'overview' ? (
-          <Panel title={'\u0413\u043b\u0430\u0432\u043d\u0430\u044f \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430'} description={'\u0422\u0440\u0438 \u0433\u043b\u0430\u0432\u043d\u044b\u0445 \u043f\u043e\u0434\u0440\u0430\u0437\u0434\u0435\u043b\u0430 \u0434\u043b\u044f \u0430\u0434\u043c\u0438\u043d\u0430 \u0432 \u043e\u0434\u043d\u043e\u043c \u043c\u0435\u0441\u0442\u0435.'}>
-            {isLoading ? (
-              <div className="py-16 text-center text-sm text-slate-400">{'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0438...'}</div>
-            ) : (
-              <div className="space-y-4">
-                <AnalyticsDataTable
-                  title={'\u0421\u0430\u043c\u044b\u0435 \u043f\u0440\u043e\u0434\u0430\u0432\u0430\u0435\u043c\u044b\u0435 \u0442\u043e\u0432\u0430\u0440\u044b'}
-                  hint={'\u0421\u043f\u0438\u0441\u043e\u043a \u043e\u0442\u0441\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u043d \u043f\u043e \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u0443 \u043f\u0440\u043e\u0434\u0430\u0436.'}
-                  rows={topSellingProducts}
-                  columns={[
-                    { key: 'rank', label: '\u2116', render: (_, index) => index + 1, className: 'w-14' },
-                    { key: 'name', label: '\u0422\u043e\u0432\u0430\u0440', render: (row) => row.name || '-' },
-                    { key: 'quantity', label: '\u041f\u0440\u043e\u0434\u0430\u043d\u043e', render: (row) => formatCount(row.quantity || 0), align: 'right' },
-                    { key: 'revenue', label: '\u0412\u044b\u0440\u0443\u0447\u043a\u0430', render: (row) => formatMoney(row.revenue || 0), align: 'right' },
-                    { key: 'profit', label: '\u041f\u0440\u0438\u0431\u044b\u043b\u044c', render: (row) => formatMoney(row.profit || 0), align: 'right' },
-                  ]}
-                />
-                <AnalyticsDataTable
-                  title={'\u0422\u043e\u0432\u0430\u0440\u044b \u043f\u043e \u0440\u0435\u043d\u0442\u0430\u0431\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u0438'}
-                  hint={'\u041f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442, \u043a\u0430\u043a\u0438\u0435 \u0442\u043e\u0432\u0430\u0440\u044b \u0434\u0430\u044e\u0442 \u043b\u0443\u0447\u0448\u0443\u044e \u043e\u0442\u0434\u0430\u0447\u0443 \u043f\u043e \u043f\u0440\u0438\u0431\u044b\u043b\u0438.'}
-                  rows={productEfficiencyRows}
-                  columns={[
-                    { key: 'rank', label: '\u2116', render: (_, index) => index + 1, className: 'w-14' },
-                    { key: 'name', label: '\u0422\u043e\u0432\u0430\u0440', render: (row) => row.name || '-' },
-                    { key: 'profitMargin', label: '\u0420\u0435\u043d\u0442\u0430\u0431\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c', render: (row) => formatPercent((row as NamedMetric & { profitMargin?: number }).profitMargin || 0, 1), align: 'right' },
-                    { key: 'profitPerUnit', label: '\u041f\u0440\u0438\u0431\u044b\u043b\u044c \u0437\u0430 1 \u0448\u0442', render: (row) => formatMoney((row as NamedMetric & { profitPerUnit?: number }).profitPerUnit || 0), align: 'right' },
-                    { key: 'profit', label: '\u041e\u0431\u0449\u0430\u044f \u043f\u0440\u0438\u0431\u044b\u043b\u044c', render: (row) => formatMoney(row.profit || 0), align: 'right' },
-                  ]}
-                />
-                <AnalyticsDataTable
-                  title={'\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u043e\u0432'}
-                  hint={'\u041a\u0442\u043e \u0434\u0435\u043b\u0430\u0435\u0442 \u0431\u043e\u043b\u044c\u0448\u0435 \u043f\u0440\u043e\u0434\u0430\u0436 \u0438 \u043a\u0442\u043e \u043f\u0440\u0438\u043d\u043e\u0441\u0438\u0442 \u0431\u043e\u043b\u044c\u0448\u0435 \u043f\u0440\u0438\u0431\u044b\u043b\u0438.'}
-                  rows={staffSalesLeaders}
-                  columns={[
-                    { key: 'rank', label: '\u2116', render: (_, index) => index + 1, className: 'w-14' },
-                    { key: 'name', label: '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a', render: (row) => row.name || '-' },
-                    { key: 'invoices', label: '\u041d\u0430\u043a\u043b\u0430\u0434\u043d\u044b\u0435', render: (row) => formatCount(row.invoices || 0), align: 'right' },
-                    { key: 'revenue', label: '\u0412\u044b\u0440\u0443\u0447\u043a\u0430', render: (row) => formatMoney(row.revenue || 0), align: 'right' },
-                    { key: 'profit', label: '\u041f\u0440\u0438\u0431\u044b\u043b\u044c', render: (row) => formatMoney(row.profit || 0), align: 'right' },
-                  ]}
-                />
-              </div>
-            )}
-          </Panel>
-        ) : null}
-
-        {activeSection === 'products' ? (
-          <Panel title={'\u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u043f\u043e \u0442\u043e\u0432\u0430\u0440\u0430\u043c'} description={'\u041e\u0442\u0434\u0435\u043b\u044c\u043d\u044b\u0435 \u043f\u043e\u0434\u0440\u0430\u0437\u0434\u0435\u043b\u044b \u043f\u043e \u043f\u0440\u043e\u0434\u0430\u0436\u0430\u043c \u0438 \u043f\u043e \u044d\u0444\u0444\u0435\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u0438 \u043f\u0440\u0438\u0431\u044b\u043b\u0438.'}>
-            <div className="space-y-4">
-              <AnalyticsDataTable
-                title={'\u041f\u043e\u0434\u0440\u0430\u0437\u0434\u0435\u043b: \u0441\u0430\u043c\u044b\u0435 \u043f\u0440\u043e\u0434\u0430\u0432\u0430\u0435\u043c\u044b\u0435 \u0442\u043e\u0432\u0430\u0440\u044b'}
-                hint={'\u0422\u043e\u0432\u0430\u0440\u044b \u043e\u0442\u0441\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u044b \u043f\u043e \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u0443 \u043f\u0440\u043e\u0434\u0430\u043d\u043d\u044b\u0445 \u0435\u0434\u0438\u043d\u0438\u0446.'}
-                rows={topSellingProducts}
-                columns={[
-                  { key: 'rank', label: '\u2116', render: (_, index) => index + 1, className: 'w-14' },
-                  { key: 'name', label: '\u0422\u043e\u0432\u0430\u0440', render: (row) => row.name || '-' },
-                  { key: 'quantity', label: '\u041f\u0440\u043e\u0434\u0430\u043d\u043e', render: (row) => formatCount(row.quantity || 0), align: 'right' },
-                  { key: 'revenue', label: '\u0412\u044b\u0440\u0443\u0447\u043a\u0430', render: (row) => formatMoney(row.revenue || 0), align: 'right' },
-                  { key: 'profit', label: '\u041f\u0440\u0438\u0431\u044b\u043b\u044c', render: (row) => formatMoney(row.profit || 0), align: 'right' },
-                ]}
-              />
-              <AnalyticsDataTable
-                title={'\u041f\u043e\u0434\u0440\u0430\u0437\u0434\u0435\u043b: \u0442\u043e\u0432\u0430\u0440\u044b \u043f\u043e \u0440\u0435\u043d\u0442\u0430\u0431\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u0438'}
-                hint={'\u0414\u0430\u0436\u0435 \u0435\u0441\u043b\u0438 \u0442\u043e\u0432\u0430\u0440 \u043f\u0440\u043e\u0434\u0430\u0451\u0442\u0441\u044f \u0440\u0435\u0436\u0435, \u0437\u0434\u0435\u0441\u044c \u0432\u0438\u0434\u043d\u043e, \u043d\u0430\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043e\u043d \u0432\u044b\u0433\u043e\u0434\u0435\u043d.'}
-                rows={productEfficiencyRows}
-                columns={[
-                  { key: 'rank', label: '\u2116', render: (_, index) => index + 1, className: 'w-14' },
-                  { key: 'name', label: '\u0422\u043e\u0432\u0430\u0440', render: (row) => row.name || '-' },
-                  { key: 'profitMargin', label: '\u0420\u0435\u043d\u0442\u0430\u0431\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c', render: (row) => formatPercent((row as NamedMetric & { profitMargin?: number }).profitMargin || 0, 1), align: 'right' },
-                  { key: 'profitPerUnit', label: '\u041f\u0440\u0438\u0431\u044b\u043b\u044c \u0437\u0430 1 \u0448\u0442', render: (row) => formatMoney((row as NamedMetric & { profitPerUnit?: number }).profitPerUnit || 0), align: 'right' },
-                  { key: 'quantity', label: '\u041f\u0440\u043e\u0434\u0430\u043d\u043e', render: (row) => formatCount(row.quantity || 0), align: 'right' },
-                ]}
-              />
+      {/* FILTER BAR 1C */}
+      <div className="bg-white border-b border-border-base px-5 py-3 shrink-0 flex flex-wrap items-center gap-6">
+         <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Период:</span>
+            <div className="flex bg-slate-100 rounded p-1">
+               {(['month', 'quarter', 'year'] as PeriodMode[]).map(m => (
+                 <button 
+                   key={m} 
+                   onClick={() => setPeriodMode(m)}
+                   className={clsx("px-3 py-1 text-[9px] font-black uppercase rounded", periodMode === m ? "bg-white text-slate-800 shadow-sm" : "text-slate-500")}
+                 >
+                   {m === 'month' ? 'Месяц' : m === 'quarter' ? 'Квартал' : 'Год'}
+                 </button>
+               ))}
             </div>
-          </Panel>
-        ) : null}
+            <input 
+              type="month" 
+              value={periodAnchor} 
+              onChange={e => setPeriodAnchor(e.target.value)}
+              className="field-1c !py-1 font-bold"
+            />
+            <span className="text-[11px] font-black text-slate-700 italic underline decoration-brand-yellow decoration-2 underline-offset-4">{periodLabel}</span>
+         </div>
 
-        {activeSection === 'staff' ? (
-          <Panel title={'\u0410\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0430 \u043f\u043e \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0430\u043c'} description={'\u041e\u0442\u0434\u0435\u043b\u044c\u043d\u043e \u0432\u0438\u0434\u043d\u043e, \u043a\u0442\u043e \u043f\u0440\u043e\u0434\u0430\u0451\u0442 \u0431\u043e\u043b\u044c\u0448\u0435 \u0438 \u043a\u0442\u043e \u043f\u0440\u0438\u043d\u043e\u0441\u0438\u0442 \u0431\u043e\u043b\u044c\u0448\u0435 \u043f\u0440\u0438\u0431\u044b\u043b\u0438.'}>
-            <div className="space-y-4">
-              <AnalyticsDataTable
-                title={'\u041f\u043e\u0434\u0440\u0430\u0437\u0434\u0435\u043b: \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0438 \u043f\u043e \u043f\u0440\u043e\u0434\u0430\u0436\u0430\u043c'}
-                hint={'\u0420\u0435\u0439\u0442\u0438\u043d\u0433 \u043f\u043e \u043e\u0431\u0449\u0435\u0439 \u0432\u044b\u0440\u0443\u0447\u043a\u0435 \u0438 \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u0443 \u043d\u0430\u043a\u043b\u0430\u0434\u043d\u044b\u0445.'}
-                rows={staffSalesLeaders}
-                columns={[
-                  { key: 'rank', label: '\u2116', render: (_, index) => index + 1, className: 'w-14' },
-                  { key: 'name', label: '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a', render: (row) => row.name || '-' },
-                  { key: 'invoices', label: '\u041d\u0430\u043a\u043b\u0430\u0434\u043d\u044b\u0435', render: (row) => formatCount(row.invoices || 0), align: 'right' },
-                  { key: 'revenue', label: '\u0412\u044b\u0440\u0443\u0447\u043a\u0430', render: (row) => formatMoney(row.revenue || 0), align: 'right' },
-                  { key: 'profit', label: '\u041f\u0440\u0438\u0431\u044b\u043b\u044c', render: (row) => formatMoney(row.profit || 0), align: 'right' },
-                ]}
-              />
-              <AnalyticsDataTable
-                title={'\u041f\u043e\u0434\u0440\u0430\u0437\u0434\u0435\u043b: \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0438 \u043f\u043e \u043f\u0440\u0438\u0431\u044b\u043b\u0438'}
-                hint={'\u041a\u0442\u043e \u043f\u0440\u0438\u043d\u043e\u0441\u0438\u0442 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438 \u043d\u0430\u0438\u0431\u043e\u043b\u044c\u0448\u0443\u044e \u043f\u0440\u0438\u0431\u044b\u043b\u044c.'}
-                rows={[...(data?.staffPerformance || [])].sort((a, b) => Number(b.profit || 0) - Number(a.profit || 0) || Number(b.revenue || 0) - Number(a.revenue || 0))}
-                columns={[
-                  { key: 'rank', label: '\u2116', render: (_, index) => index + 1, className: 'w-14' },
-                  { key: 'name', label: '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a', render: (row) => row.name || '-' },
-                  { key: 'profit', label: '\u041f\u0440\u0438\u0431\u044b\u043b\u044c', render: (row) => formatMoney(row.profit || 0), align: 'right' },
-                  { key: 'revenue', label: '\u0412\u044b\u0440\u0443\u0447\u043a\u0430', render: (row) => formatMoney(row.revenue || 0), align: 'right' },
-                  { key: 'invoices', label: '\u041d\u0430\u043a\u043b\u0430\u0434\u043d\u044b\u0435', render: (row) => formatCount(row.invoices || 0), align: 'right' },
-                ]}
-              />
+         <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Склад:</span>
+            <select 
+              value={selectedWarehouseId} 
+              onChange={e => setSelectedWarehouseId(e.target.value)}
+              className="field-1c !py-1 font-bold min-w-[180px]"
+            >
+               <option value="">Все склады</option>
+               {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+         </div>
+      </div>
+
+      {/* CONTENT Area */}
+      <div className="flex-1 overflow-auto p-6 space-y-6">
+         {/* KPI GRID */}
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            <ReportCard 
+              label="Выручка" 
+              value={formatMoney(data?.summary?.totalRevenue || 0)} 
+              help="Продажи за период" 
+              icon={DollarSign} 
+              color="bg-emerald-500"
+            />
+            <ReportCard 
+              label="Валовая прибыль" 
+              value={formatMoney(data?.summary?.totalProfit || 0)} 
+              help="Выручка - Себестоимость" 
+              icon={TrendingUp} 
+              color="bg-sky-500"
+            />
+            <ReportCard 
+              label="Чистая прибыль" 
+              value={formatMoney(data?.summary?.netProfit || 0)} 
+              help="За вычетом расходов" 
+              icon={TrendingUp} 
+              color="bg-indigo-500"
+            />
+             <ReportCard 
+              label="Общий Долг" 
+              value={formatMoney(data?.summary?.totalDebts || 0)} 
+              help="Дебиторская задолженность" 
+              icon={Package} 
+              color="bg-amber-500"
+            />
+            <ReportCard 
+              label="Расходы" 
+              value={formatMoney(data?.summary?.totalExpenses || 0)} 
+              help="Операционные затраты" 
+              icon={Banknote} 
+              color="bg-rose-500"
+            />
+            <ReportCard 
+              label="Рентабельность" 
+              value={formatPercent(data?.summary?.margin || 0, 1)} 
+              help="Эффективность продаж" 
+              icon={Boxes} 
+              color="bg-brand-yellow"
+            />
+         </div>
+
+         {isLoading ? (
+            <div className="flex h-64 items-center justify-center bg-white border border-border-base rounded">
+               <div className="flex flex-col items-center gap-3">
+                  <div className="w-10 h-10 border-4 border-brand-yellow border-t-transparent animate-spin rounded-full"></div>
+                  <span className="text-[10px] font-black uppercase text-slate-400">Формирование данных...</span>
+               </div>
             </div>
-          </Panel>
-        ) : null}
+         ) : (
+            <div className="space-y-6">
+                {/* CHARTS SECTION */}
+                {activeSection === 'charts' && (
+                    <div className="grid grid-cols-1 gap-6">
+                        <div className="bg-white border border-border-base rounded-[4px] p-6 shadow-sm">
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                                    <LineChartIcon size={14} className="text-brand-orange" /> Динамика выручки и прибыли
+                                </h3>
+                                <div className="flex items-center gap-4">
+                                     <div className="flex items-center gap-2">
+                                         <div className="w-3 h-3 bg-[#3b82f6] rounded-full"></div>
+                                         <span className="text-[10px] font-black uppercase text-slate-400">Выручка</span>
+                                     </div>
+                                     <div className="flex items-center gap-2">
+                                         <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
+                                         <span className="text-[10px] font-black uppercase text-slate-400">Прибыль</span>
+                                     </div>
+                                </div>
+                            </div>
+                            <div className="h-[400px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={data?.chartData || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                            </linearGradient>
+                                            <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis 
+                                            dataKey="name" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }}
+                                            dy={10}
+                                        />
+                                        <YAxis 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }}
+                                            tickFormatter={(v) => `${v/1000}k`}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '4px', color: '#fff' }}
+                                            itemStyle={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' }}
+                                            labelStyle={{ fontSize: '10px', color: '#94a3b8', marginBottom: '4px' }}
+                                        />
+                                        <Area type="monotone" dataKey="sales" name="ВЫРУЧКА" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+                                        <Area type="monotone" dataKey="profit" name="ПРИБЫЛЬ" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorProfit)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div className="bg-white border border-border-base rounded-[4px] p-6 shadow-sm">
+                                <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2 mb-6">
+                                    <BarChartIcon size={14} className="text-brand-orange" /> Соотношение сбыта по складам
+                                </h3>
+                                <div className="h-[250px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={data?.warehousePerformance || []}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }} />
+                                            <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '4px' }} />
+                                            <Bar dataKey="revenue" name="ВЫРУЧКА" fill="#ffda1a" radius={[4, 4, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                             </div>
+
+                             <div className="bg-white border border-border-base rounded-[4px] p-6 shadow-sm">
+                                <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2 mb-6">
+                                    <PieChartIcon size={14} className="text-brand-orange" /> Причины списаний (Доля)
+                                </h3>
+                                <div className="h-[250px] w-full">
+                                     {data?.writeoffReasons && data.writeoffReasons.length > 0 ? (
+                                         <ResponsiveContainer width="100%" height="100%">
+                                             <PieChart>
+                                                 <Pie
+                                                     data={data.writeoffReasons}
+                                                     cx="50%"
+                                                     cy="50%"
+                                                     innerRadius={60}
+                                                     outerRadius={80}
+                                                     paddingAngle={5}
+                                                     dataKey="value"
+                                                     nameKey="name"
+                                                 >
+                                                     {data.writeoffReasons.map((entry, index) => (
+                                                         <Cell key={`cell-${index}`} fill={['#ffda1a', '#ff9d00', '#3b82f6', '#10b981', '#f43f5e'][index % 5]} />
+                                                     ))}
+                                                 </Pie>
+                                                 <Tooltip />
+                                             </PieChart>
+                                         </ResponsiveContainer>
+                                     ) : (
+                                         <div className="h-full flex items-center justify-center text-slate-300 font-black uppercase text-[10px] italic">
+                                             Нет данных по списаниям
+                                         </div>
+                                     )}
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* OVERVIEW SECTION (Ledger Style) */}
+                {activeSection === 'overview' && (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <div className="bg-white border border-border-base rounded-[4px] overflow-hidden shadow-sm">
+                            <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between">
+                                <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                                    <TrendingUp size={14} className="text-brand-orange" /> Лидеры продаж (Товары)
+                                </h3>
+                            </div>
+                            <table className="table-1c border-separate border-spacing-0">
+                                <thead>
+                                    <tr>
+                                        <th className="w-12 text-center">№</th>
+                                        <th>Товар</th>
+                                        <th className="text-right">Кол-во</th>
+                                        <th className="text-right">Выручка</th>
+                                        <th className="text-right">Прибыль</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data?.productPerformance?.slice(0, 10).map((p, i) => (
+                                        <tr key={p.name} className="hover:bg-slate-50 transition-colors">
+                                            <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
+                                            <td className="font-bold text-slate-700">{p.name}</td>
+                                            <td className="text-right font-black text-slate-600">{p.quantity}</td>
+                                            <td className="text-right font-black text-slate-900">{formatMoney(p.revenue || 0)}</td>
+                                            <td className="text-right font-black text-emerald-600">{formatMoney(p.profit || 0)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                         <div className="bg-white border border-border-base rounded-[4px] overflow-hidden shadow-sm">
+                            <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between">
+                                <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                                    <Package size={14} className="text-brand-orange" /> Рейтинг покупателей
+                                </h3>
+                            </div>
+                            <table className="table-1c border-separate border-spacing-0">
+                                <thead>
+                                    <tr>
+                                        <th className="w-12 text-center">№</th>
+                                        <th>Клиент</th>
+                                        <th className="text-right">Закупка</th>
+                                        <th className="text-right">Долг</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data?.customerPerformance?.slice(0, 10).map((c, i) => {
+                                        const debt = data?.customerDebts?.find(d => d.name === c.name)?.debt || 0;
+                                        return (
+                                            <tr key={c.name} className="hover:bg-slate-50 transition-colors">
+                                                <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
+                                                <td className="font-bold text-slate-700">{c.name}</td>
+                                                <td className="text-right font-black text-slate-900">{formatMoney(c.revenue || 0)}</td>
+                                                <td className={clsx("text-right font-black", debt > 0 ? "text-rose-600" : "text-slate-400")}>
+                                                    {formatMoney(debt)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </div>
+         )}
       </div>
     </div>
   );

@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Outlet, useLocation, NavLink } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { Toaster } from 'react-hot-toast';
 import { 
-  Loader2, Menu, Minus, Square, Warehouse, X, 
+  Loader2, Minus, Square, Warehouse, X, 
   LayoutDashboard, ShoppingCart, BookOpen, Package, 
-  History, Users, Calendar, Banknote, LineChart, 
-  BarChart3, Settings, UserCircle
+  Users, Banknote, LineChart, 
+  Settings, UserCircle
 } from 'lucide-react';
 import LoginView from './views/LoginView';
 import { getCurrentUser, isAdminUser } from './utils/userAccess';
@@ -17,14 +17,10 @@ const DashboardView = React.lazy(() => import('./views/DashboardView'));
 const ProductsView = React.lazy(() => import('./views/ProductsView'));
 const SalesView = React.lazy(() => import('./views/SalesView'));
 const CustomerView = React.lazy(() => import('./views/CustomerView'));
-const CustomerDebtsView = React.lazy(() => import('./views/CustomerDebtsView'));
 const SettingsView = React.lazy(() => import('./views/SettingsView'));
 const CatalogView = React.lazy(() => import('./views/CatalogView'));
-const ReportsView = React.lazy(() => import('./views/ReportsView'));
 const AnalyticsView = React.lazy(() => import('./views/AnalyticsView'));
 const ExpensesView = React.lazy(() => import('./views/ExpensesView'));
-const RemindersView = React.lazy(() => import('./views/RemindersView'));
-const HistoryView = React.lazy(() => import('./views/HistoryView'));
 const POSView = React.lazy(() => import('./views/POSView'));
 
 const TitleBar = () => {
@@ -33,36 +29,25 @@ const TitleBar = () => {
   return (
     <div 
       style={{ WebkitAppRegion: 'drag' } as any}
-      className="fixed left-0 right-0 top-0 z-[10000] flex h-10 w-full items-center justify-between bg-[linear-gradient(180deg,#ffdb4d_0%,#ffcc33_100%)] px-4 shadow-sm border-b border-black/5"
+      className="fixed left-0 right-0 top-0 z-[10000] flex h-9 w-full items-center justify-between bg-brand-yellow px-4 shadow-[0_1px_4px_rgba(0,0,0,0.1)] border-b border-black/5"
     >
       <div className="flex items-center gap-3 select-none">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/20 shadow-inner">
-          <Warehouse size={16} className="text-slate-900" />
-        </div>
-        <span className="text-[13px] font-black text-slate-900 uppercase tracking-tight">IT FORCE | BUSINESS CRM</span>
+        <Warehouse size={16} className="text-slate-800" />
+        <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Мой Склад</span>
       </div>
       
       <div 
         style={{ WebkitAppRegion: 'no-drag' } as any}
         className="flex h-full items-stretch"
       >
-        <button
-          onClick={() => windowControls?.minimize?.()}
-          className="flex w-12 items-center justify-center text-slate-900 hover:bg-black/10 transition-colors"
-        >
-          <Minus size={16} />
+        <button onClick={() => windowControls?.minimize?.()} className="flex w-10 items-center justify-center text-slate-800 hover:bg-black/5 transition-colors">
+          <Minus size={14} />
         </button>
-        <button
-          onClick={() => windowControls?.toggleMaximize?.()}
-          className="flex w-12 items-center justify-center text-slate-900 hover:bg-black/10 transition-colors"
-        >
-          <Square size={14} />
+        <button onClick={() => windowControls?.toggleMaximize?.()} className="flex w-10 items-center justify-center text-slate-800 hover:bg-black/5 transition-colors">
+          <Square size={12} />
         </button>
-        <button
-          onClick={() => windowControls?.close?.()}
-          className="flex w-12 items-center justify-center text-slate-900 hover:bg-red-500 hover:text-white transition-colors"
-        >
-          <X size={20} />
+        <button onClick={() => windowControls?.close?.()} className="flex w-12 items-center justify-center text-slate-800 hover:bg-red-600 hover:text-white transition-colors">
+          <X size={18} />
         </button>
       </div>
     </div>
@@ -76,43 +61,40 @@ const NavigationBar = () => {
   const items = [
     { to: '/', icon: LayoutDashboard, label: 'ГЛАВНОЕ', admin: true },
     { to: '/pos', icon: ShoppingCart, label: 'ПРОДАЖИ (POS)', admin: false },
-    { to: '/products', icon: Package, label: 'ТОВАРЫ', admin: false },
-    { to: '/catalog', icon: BookOpen, label: 'КАТАЛОГ', admin: false },
-    { to: '/customers', icon: Users, label: 'КЛИЕНТЫ', admin: false },
+    { to: '/products', icon: Package, label: 'ТОВАРЫ И СКЛАД', admin: false },
+    { to: '/catalog', icon: BookOpen, label: 'РЕФЕРЕНСЫ', admin: false },
+    { to: '/customers', icon: Users, label: 'КОНТРАГЕНТЫ', admin: false },
     { to: '/expenses', icon: Banknote, label: 'ФИНАНСЫ', admin: true },
     { to: '/analytics', icon: LineChart, label: 'АНАЛИТИКА', admin: true },
     { to: '/settings', icon: Settings, label: 'НАСТРОЙКИ', admin: true },
   ].filter(item => !item.admin || isAdmin);
 
   return (
-    <div className="fixed left-0 right-0 top-10 z-[9999] flex h-11 w-full items-center bg-[#f8fafc] border-b border-slate-200 shadow-sm overflow-x-auto no-scrollbar">
-      <div className="flex h-full px-2">
+    <div className="fixed left-0 right-0 top-9 z-[9999] flex h-10 w-full items-center bg-[#f8f9fb] border-b border-border-base shadow-sm">
+      <div className="flex h-full overflow-x-auto no-scrollbar">
         {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) => `
-              relative flex h-full items-center gap-2.5 px-5 text-[11px] font-extrabold transition-all border-r border-slate-100 whitespace-nowrap
+              relative flex h-full items-center gap-2 px-6 text-[10px] font-black transition-all border-r border-border-base whitespace-nowrap uppercase tracking-widest
               ${isActive 
-                ? 'bg-white text-[#d35400] shadow-[inset_0_-2px_0_#ff9900]' 
-                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
+                ? 'bg-white text-brand-orange shadow-[inset_0_-3px_0_#ff9d00]' 
+                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}
             `}
           >
-            {({ isActive }) => (
-              <>
-                <item.icon size={16} className={isActive ? 'text-[#ff9900]' : 'text-slate-400'} />
-                <span className="tracking-wide">{item.label}</span>
-              </>
-            )}
+            <item.icon size={14} className="stroke-[2.5]" />
+            <span>{item.label}</span>
           </NavLink>
         ))}
       </div>
       
-      <div className="ml-auto flex h-full items-center gap-3 border-l border-slate-100 bg-white/50 px-5">
-         <UserCircle size={18} className="text-slate-400" />
-         <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider">{user.username}</span>
-         <div className="h-5 w-[1px] bg-slate-200"></div>
-         <span className="text-[10px] font-bold text-[#ff9900] uppercase">Admin</span>
+      <div className="ml-auto flex h-full items-center gap-3 bg-white px-5 border-l border-border-base">
+         <div className="flex flex-col items-end">
+            <span className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">{user.username}</span>
+            <span className="text-[8px] font-bold text-brand-orange uppercase leading-none">{isAdmin ? 'Администратор' : 'Оператор'}</span>
+         </div>
+         <UserCircle size={20} className="text-slate-300" />
       </div>
     </div>
   );
@@ -122,45 +104,43 @@ const Layout = () => {
   const location = useLocation();
   
   return (
-    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-white">
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-bg-base">
       <TitleBar />
       <NavigationBar />
       
-      <main className="flex-1 w-full overflow-hidden pt-[84px] bg-[#f2f4f7]">
+      <main className="flex-1 w-full overflow-hidden pt-[76px]">
         <div className="h-full w-full overflow-auto custom-scrollbar">
-          <React.Suspense fallback={
-             <div className="flex h-full items-center justify-center">
-                <Loader2 size={32} className="animate-spin text-[#ffcc33]" />
+          <Suspense fallback={
+             <div className="flex h-full items-center justify-center bg-white/50 backdrop-blur-sm">
+                <Loader2 size={32} className="animate-spin text-brand-orange" />
              </div>
           }>
             <motion.div
                key={location.pathname}
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ duration: 0.2, ease: "easeOut" }}
-               className="min-h-full w-full p-6 lg:p-8"
+               initial={{ opacity: 0, x: -10 }}
+               animate={{ opacity: 1, x: 0 }}
+               transition={{ duration: 0.15, ease: "easeOut" }}
+               className="min-h-full w-full p-6 animate-slide-in"
             >
-               <div className="mx-auto max-w-[1600px]">
+               <div className="mx-auto max-w-[1700px]">
                   <Outlet />
                </div>
             </motion.div>
-          </React.Suspense>
+          </Suspense>
         </div>
       </main>
 
-      <footer className="h-7 w-full flex items-center justify-between bg-slate-100 px-4 border-t border-slate-200 text-[10px] font-bold text-slate-500 uppercase select-none">
+      <footer className="h-6 w-full flex items-center justify-between bg-[#f8f9fb] px-4 border-t border-border-base text-[9px] font-black text-slate-400 uppercase tracking-widest select-none">
          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 text-green-600">
-               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-               <span>Соединение установлено</span>
+            <div className="flex items-center gap-1.5 text-emerald-600">
+               <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+               <span>СИСТЕМА ГОТОВА</span>
             </div>
-            <span className="opacity-30">|</span>
-            <span>База данных: SQLITE V3</span>
+            <span>БАЗА: ENTERPRISE_DB</span>
          </div>
-         <div className="flex items-center gap-4">
-            <span>WHOLESALE ENGINE V2.1.0</span>
-            <span className="opacity-30">|</span>
-            <span className="text-orange-600">Enterprise License</span>
+         <div className="flex items-center gap-4 italic font-medium">
+            <span>WHOLESALE ENGINE v4.0 (TAXI INTERFACE)</span>
+            <span className="text-brand-orange border border-brand-orange/20 px-1.5 rounded-[2px] not-italic">LOCKED</span>
          </div>
       </footer>
     </div>
@@ -196,8 +176,8 @@ export default function App() {
 
   if (isBootstrappingSession) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f2f4f7]">
-        <Loader2 size={32} className="animate-spin text-[#ffcc33]" />
+      <div className="flex min-h-screen items-center justify-center bg-bg-base">
+        <Loader2 size={32} className="animate-spin text-brand-orange" />
       </div>
     );
   }

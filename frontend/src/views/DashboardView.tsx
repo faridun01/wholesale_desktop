@@ -1,13 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   Boxes,
   ChevronRight,
-  Clock3,
   Package,
   Store,
-  Search,
   Users,
   Wallet,
   ArrowRight,
@@ -16,36 +14,36 @@ import {
   TrendingDown,
   TrendingUp,
   ShoppingBag,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Loader2
 } from 'lucide-react';
 import { getDashboardSummary } from '../api/dashboard.api';
 import { getWarehouses } from '../api/warehouses.api';
 import { formatCount, formatMoney, formatPercent } from '../utils/format';
 import { filterWarehousesForUser, getCurrentUser, getUserWarehouseId, isAdminUser } from '../utils/userAccess';
-import client from '../api/client';
 import ChartSkeleton from '../components/charts/ChartSkeleton';
+import { clsx } from 'clsx';
 
 const DashboardCharts = React.lazy(() => import('../components/charts/DashboardCharts'));
 
-const DashboardMetric = ({ title, value, delta, deltaValue, icon: Icon, colorClass, subtitle }: any) => (
-  <div className="bg-white border border-[#dcdcdc] rounded-[4px] p-4 relative overflow-hidden group hover:shadow-md transition-shadow">
-    <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#ffcc33]/20 group-hover:bg-[#ffcc33]"></div>
+const DashboardMetric = ({ title, value, delta, deltaValue, icon: Icon, subtitle }: any) => (
+  <div className="bg-white border border-border-base rounded-[4px] p-4 relative overflow-hidden group hover:shadow-sm transition-all border-l-4 border-l-brand-yellow">
     <div className="flex items-start justify-between">
       <div>
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">{title}</p>
-        <h3 className="text-2xl font-black text-slate-800 tracking-tight">{value}</h3>
-        <p className="text-[10px] text-slate-400 mt-1 font-medium italic">{subtitle}</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{title}</p>
+        <h3 className="text-xl font-black text-slate-800 tracking-tight">{value}</h3>
+        <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-tighter">{subtitle}</p>
       </div>
-      <div className={`p-3 rounded-lg ${colorClass}`}>
-        <Icon size={20} />
+      <div className="text-brand-orange bg-slate-50 p-2.5 rounded border border-border-base">
+        <Icon size={18} />
       </div>
     </div>
-    <div className="mt-4 flex items-center gap-2">
-      <span className={`text-xs font-bold flex items-center gap-0.5 ${deltaValue < 0 ? 'text-red-500' : 'text-green-600'}`}>
-        {deltaValue < 0 ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+    <div className="mt-3 pt-3 border-t border-[#f0f0f0] flex items-center gap-2">
+      <span className={`text-[11px] font-black flex items-center gap-0.5 ${deltaValue < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+        {deltaValue < 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
         {delta}
       </span>
-      <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">vs прошлый период</span>
+      <span className="text-[9px] text-slate-400 font-black uppercase tracking-tighter">к прошлому месяцу</span>
     </div>
   </div>
 );
@@ -74,117 +72,115 @@ export default function DashboardView() {
 
   const metrics = [
     {
-      title: 'Выручка',
+      title: 'Выручка / Доход',
       value: formatMoney(summary?.totalRevenue || 0),
-      subtitle: 'За текущий месяц',
+      subtitle: 'Текущий оборот за месяц',
       deltaValue: Number(summary?.metricChanges?.revenue || 0),
       delta: (Number(summary?.metricChanges?.revenue || 0) > 0 ? '+' : '') + formatPercent(summary?.metricChanges?.revenue || 0),
-      colorClass: 'bg-yellow-50 text-yellow-600',
       icon: Wallet,
     },
     {
-      title: 'Всего заказов',
+      title: 'Продажи / Чеки',
       value: formatCount(summary?.totalOrders || 0),
-      subtitle: 'Продажи через базу',
+      subtitle: 'Всего транзакций POS',
       deltaValue: Number(summary?.metricChanges?.orders || 0),
       delta: (Number(summary?.metricChanges?.orders || 0) > 0 ? '+' : '') + formatPercent(summary?.metricChanges?.orders || 0),
-      colorClass: 'bg-blue-50 text-blue-600',
       icon: ShoppingBag,
     },
     {
-      title: 'База клиентов',
+      title: 'Контрагенты',
       value: formatCount(summary?.totalCustomers || 0),
-      subtitle: 'Зарегистрированные контрагенты',
+      subtitle: 'База активных клиентов',
       deltaValue: Number(summary?.metricChanges?.customers || 0),
       delta: (Number(summary?.metricChanges?.customers || 0) > 0 ? '+' : '') + formatPercent(summary?.metricChanges?.customers || 0),
-      colorClass: 'bg-emerald-50 text-emerald-600',
       icon: Users,
     },
     {
-      title: 'Номенклатура',
+      title: 'Складской запас',
       value: formatCount(summary?.totalProducts || 0),
-      subtitle: 'Уникальных позиций',
+      subtitle: 'Активная номенклатура',
       deltaValue: Number(summary?.metricChanges?.products || 0),
       delta: (Number(summary?.metricChanges?.products || 0) > 0 ? '+' : '') + formatPercent(summary?.metricChanges?.products || 0),
-      colorClass: 'bg-orange-50 text-orange-600',
       icon: Boxes,
     },
   ];
 
-  const recentSales = summary?.recentSales?.slice(0, 8) || [];
+  const recentSales = summary?.recentSales?.slice(0, 10) || [];
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-[#dcdcdc] pb-6">
-        <div>
-          <div className="flex items-center gap-2 text-[#ff9900] mb-2">
-            <LayoutDashboard size={18} />
-            <span className="text-[11px] font-black uppercase tracking-[0.2em]">Рабочий стол</span>
+    <div className="flex flex-col gap-6">
+      {/* 1C Header Section */}
+      <div className="flex items-center justify-between border-b border-border-base pb-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-brand-yellow p-2 rounded">
+             <LayoutDashboard size={20} className="text-slate-800" />
           </div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Дашборд <span className="font-light text-slate-400">| Текущее состояние</span></h1>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Информационная панель <span className="text-slate-400 font-normal">| Основной отчет</span></h1>
         </div>
-        <div className="flex items-center gap-3 bg-white p-1.5 rounded-lg border border-[#dcdcdc] shadow-sm">
-           <Store size={16} className="text-slate-400 ml-2" />
+        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-border-base shadow-sm">
+           <Store size={14} className="text-slate-400" />
            <select
              value={selectedWarehouseId}
              onChange={(e) => setSelectedWarehouseId(e.target.value)}
-             className="bg-transparent text-sm font-bold text-slate-700 outline-none pr-4 min-w-[160px]"
+             className="bg-transparent text-[11px] font-black text-slate-700 outline-none uppercase tracking-widest"
            >
-             {isAdmin && <option value="">По всем складам</option>}
+             {isAdmin && <option value="">[Все склады компании]</option>}
              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
            </select>
         </div>
       </div>
 
-      {/* Primary Metrics */}
+      {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map((m, i) => <DashboardMetric key={i} {...m} />)}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recent Transactions Panel */}
-        <div className="lg:col-span-2 bg-white border border-[#dcdcdc] rounded-[4px] shadow-sm overflow-hidden flex flex-col">
-          <div className="bg-[#fcfcfc] border-b border-[#dcdcdc] px-5 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-               <HistoryIcon size={18} className="text-slate-400" />
-               <h2 className="text-[13px] font-black text-slate-700 uppercase tracking-wider">Журнал последних продаж</h2>
-            </div>
-            <button onClick={() => navigate('/sales')} className="text-[11px] font-bold text-[#ff9900] hover:underline flex items-center gap-1">
-               Открыть весь список <ArrowRight size={14} />
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* Main Log Section */}
+        <div className="lg:col-span-8 flex flex-col bg-white border border-border-base rounded-[4px] shadow-sm">
+          <div className="bg-[#f8f9fb] border-b border-border-base px-4 py-3 flex items-center justify-between">
+            <h2 className="text-[11px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+               <HistoryIcon size={14} className="text-slate-400" /> Журнал торговых операций
+            </h2>
+            <button 
+              onClick={() => navigate('/sales')} 
+              className="btn-1c text-[10px] flex items-center gap-1 border-brand-orange/30 text-brand-orange"
+            >
+               Все операции <ArrowRight size={12} />
             </button>
           </div>
-          <div className="flex-1 overflow-auto">
-             <table className="w-full text-left">
-                <thead className="bg-[#f9fafb] text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          <div className="overflow-x-auto">
+             <table className="table-1c">
+                <thead>
                    <tr>
-                      <th className="px-5 py-3 border-b border-[#f0f0f0]">ID/Номер</th>
-                      <th className="px-5 py-3 border-b border-[#f0f0f0]">Клиент</th>
-                      <th className="px-5 py-3 border-b border-[#f0f0f0]">Сумма</th>
-                      <th className="px-5 py-3 border-b border-[#f0f0f0] text-center">Статус</th>
+                      <th className="w-20 text-center">Номер</th>
+                      <th>Контрагент</th>
+                      <th className="text-right">Сумма</th>
+                      <th className="text-center">Статус оплаты</th>
+                      <th className="w-10"></th>
                    </tr>
                 </thead>
-                <tbody className="divide-y divide-[#f0f0f0]">
+                <tbody>
                    {recentSales.map((sale: any) => (
-                      <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors">
-                         <td className="px-5 py-3.5 text-xs font-bold text-slate-900 tracking-tight">#{sale.id}</td>
-                         <td className="px-5 py-3.5 text-xs text-slate-600 font-medium">{sale.customer?.name || 'Розничный покупатель'}</td>
-                         <td className="px-5 py-3.5 text-xs font-extrabold text-slate-800">{formatMoney(sale.netAmount)}</td>
-                         <td className="px-5 py-3.5 text-center">
-                            <span className={`inline-block px-2 py-1 rounded text-[9px] font-black uppercase ${
-                               sale.status === 'paid' ? 'bg-green-100 text-green-700' : 
-                               sale.status === 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                               {sale.status === 'paid' ? 'Оплачено' : sale.status === 'partial' ? 'Частично' : 'Долг'}
+                      <tr key={sale.id}>
+                         <td className="text-center font-mono font-bold text-slate-400">#{sale.id}</td>
+                         <td className="font-bold">{sale.customer?.name || '<Розничный покупатель>'}</td>
+                         <td className="text-right font-black text-slate-900">{formatMoney(sale.netAmount)}</td>
+                         <td className="text-center">
+                            <span className={clsx(
+                              "text-[9px] font-black uppercase px-2 py-0.5 rounded",
+                               sale.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 
+                               sale.status === 'partial' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'
+                            )}>
+                               {sale.status === 'paid' ? 'Оплачено' : sale.status === 'partial' ? 'Частично' : 'Задолженность'}
                             </span>
                          </td>
+                         <td><ChevronRight size={14} className="text-slate-300" /></td>
                       </tr>
                    ))}
                    {!recentSales.length && (
                       <tr>
-                         <td colSpan={4} className="px-5 py-20 text-center text-slate-400 text-sm font-medium italic">
-                            Продажи за выбранный период не найдены
-                         </td>
+                         <td colSpan={5} className="py-20 text-center text-slate-300 font-bold uppercase text-[10px]">Записей не обнаружено</td>
                       </tr>
                    )}
                 </tbody>
@@ -192,60 +188,73 @@ export default function DashboardView() {
           </div>
         </div>
 
-        {/* Inventory Summary Panel */}
-        <div className="space-y-6">
-           <div className="bg-white border border-[#dcdcdc] rounded-[4px] p-5 shadow-sm">
-              <h2 className="text-[12px] font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                 <Package size={16} className="text-orange-500" /> Состояние склада
-              </h2>
+        {/* Right Info Panels */}
+        <div className="lg:col-span-4 flex flex-col gap-6">
+           <div className="bg-white border border-border-base rounded-[4px] p-5 shadow-sm space-y-5">
+              <h2 className="text-[11px] font-black text-slate-800 uppercase tracking-widest border-b border-[#f0f0f0] pb-3">Экономические показатели</h2>
+              
               <div className="space-y-4">
                  <div>
-                    <div className="flex justify-between text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
-                       <span>Оценка склада (в закупе)</span>
+                    <div className="flex justify-between text-[10px] font-black text-slate-400 mb-2 uppercase tracking-tighter">
+                       <span>Оценка ТМЦ на складах</span>
                        <span className="text-slate-900">{formatMoney(summary?.inventoryValue || 0)}</span>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                       <div className="h-full bg-blue-500 w-[70%]"></div>
+                    <div className="h-2 w-full bg-slate-100 rounded-px overflow-hidden">
+                       <div className="h-full bg-brand-orange w-[65%]" style={{ width: summary?.inventoryValue ? '100%' : '0%' }}></div>
                     </div>
                  </div>
+                 
                  <div>
-                    <div className="flex justify-between text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
-                       <span>Дебиторская задолженность</span>
-                       <span className="text-red-600">{formatMoney(summary?.totalDebts || 0)}</span>
+                    <div className="flex justify-between text-[10px] font-black text-slate-400 mb-2 uppercase tracking-tighter">
+                       <span>Общий долг клиентов</span>
+                       <span className="text-rose-600 font-black">{formatMoney(summary?.totalDebts || 0)}</span>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                       <div className="h-full bg-red-400 w-[45%]"></div>
+                    <div className="h-2 w-full bg-slate-100 rounded-px overflow-hidden">
+                       <div className="h-full bg-rose-500 w-[40%]" style={{ width: summary?.totalDebts ? '100%' : '0%' }}></div>
                     </div>
                  </div>
               </div>
-              <div className="mt-8 pt-5 border-t border-[#f0f0f0]">
-                 <p className="text-[10px] font-black tracking-widest text-[#ff9900] uppercase mb-3">Короткие ссылки</p>
-                 <div className="space-y-2">
-                    <button onClick={() => navigate('/products?sort=low-stock')} className="w-full flex items-center justify-between p-3 rounded bg-slate-50 hover:bg-yellow-50 text-xs font-bold text-slate-700 transition-colors">
-                       Критический остаток <ChevronRight size={14} className="text-slate-400" />
-                    </button>
-                    <button onClick={() => navigate('/customers/debts')} className="w-full flex items-center justify-between p-3 rounded bg-slate-50 hover:bg-yellow-50 text-xs font-bold text-slate-700 transition-colors">
-                       Список должников <ChevronRight size={14} className="text-slate-400" />
-                    </button>
-                 </div>
+
+              <div className="pt-4 grid grid-cols-1 gap-2">
+                 <button onClick={() => navigate('/products?sort=low-stock')} className="btn-1c w-full text-left flex items-center justify-between group">
+                    <span>Критический остаток товара</span>
+                    <AlertTriangle size={14} className="text-brand-orange opacity-0 group-hover:opacity-100 transition-opacity" />
+                 </button>
+                 <button onClick={() => navigate('/customers')} className="btn-1c w-full text-left flex items-center justify-between group">
+                    <span>Список задолженностей</span>
+                    <Wallet size={14} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                 </button>
               </div>
            </div>
 
-           <div className="bg-[#1e293b] rounded-[4px] p-6 text-white relative overflow-hidden">
-              <div className="absolute -right-6 -bottom-6 opacity-10 rotate-12">
-                 <ShoppingCart size={120} />
+           <div className="bg-brand-blue rounded-[4px] p-5 text-white shadow-xl relative overflow-hidden group border-b-4 border-b-brand-yellow">
+              <ShoppingCart size={80} className="absolute -right-4 -bottom-4 opacity-10 rotate-12 transition-transform group-hover:scale-110" />
+              <div className="relative z-10">
+                <p className="text-[9px] font-black uppercase tracking-[2px] text-white/50 mb-1">Точка продаж</p>
+                <h3 className="text-xl font-black mb-3 italic tracking-tight">Розничная торговля</h3>
+                <p className="text-[11px] text-white/70 mb-5 leading-relaxed">Быстрое оформление чека, автоматический расчет остатка и печать документов.</p>
+                <button 
+                  onClick={() => navigate('/pos')}
+                  className="w-full py-2.5 bg-brand-yellow text-slate-900 font-black rounded text-[11px] uppercase tracking-widest hover:bg-[#ffe04d] active:scale-95 transition-all"
+                >
+                   Открыть окно POS-терминала
+                </button>
               </div>
-              <p className="text-[11px] font-black uppercase tracking-[2px] opacity-60 mb-2">Быстрые действия</p>
-              <h3 className="text-xl font-black mb-4">Открыть кассу (POS)</h3>
-              <p className="text-xs opacity-70 mb-6 leading-relaxed">Быстрое оформление чеков и учет розничных продаж в один клик.</p>
-              <button 
-                onClick={() => navigate('/pos')}
-                className="w-full py-3 bg-[#ffcc33] text-[#854d0e] font-black rounded text-sm hover:bg-[#ffd659] transition-all shadow-lg shadow-black/20"
-              >
-                 ПЕРЕЙТИ В ТЕРМИНАЛ
-              </button>
            </div>
         </div>
+      </div>
+      
+      {/* Charts Section */}
+      <div className="bg-white border border-border-base rounded-[4px] p-6 shadow-sm min-h-[400px]">
+        <h2 className="text-[11px] font-black text-slate-800 uppercase tracking-widest mb-6 border-b border-[#f0f0f0] pb-3">Графическая аналитика / Сбыт</h2>
+        <Suspense fallback={<ChartSkeleton />}>
+          <DashboardCharts 
+            overviewData={summary?.revenueChartData || []}
+            categoryData={summary?.categoryData || []}
+            totalRevenue={summary?.totalRevenue || 0}
+            ringColors={['#5b8def', '#ff9d00', '#10b981', '#f59e0b', '#6366f1']}
+          />
+        </Suspense>
       </div>
     </div>
   );
