@@ -10,14 +10,16 @@ import {
   Package, 
   CreditCard,
   Printer,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from 'lucide-react';
 import { getCustomerHistory, getCustomerReconciliation } from '../../api/customers.api';
 import { formatMoney } from '../../utils/format';
-import { printReconciliation } from '../../utils/printReconciliation';
+import { generateReconciliationHtml } from '../../utils/printTemplates';
 import { clsx } from 'clsx';
 
 import SaleDetailModal from '../sales/SaleDetailModal';
+import PrintPreviewModal from '../common/PrintPreviewModal';
 
 interface CustomerDossierModalProps {
   isOpen: boolean;
@@ -28,6 +30,7 @@ interface CustomerDossierModalProps {
 export default function CustomerDossierModal({ isOpen, onClose, customer }: CustomerDossierModalProps) {
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
@@ -35,7 +38,11 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
     if (isOpen && customer?.id) {
        setIsLoading(true);
        getCustomerReconciliation(customer.id)
-         .then(data => setHistory(Array.isArray(data) ? data : []))
+         .then(data => {
+            console.log('RECONCILIATION DATA:', data);
+            setHistory(Array.isArray(data) ? data : []);
+         })
+         .catch(err => console.error('RECONCILIATION ERROR:', err))
          .finally(() => setIsLoading(false));
     }
   }, [isOpen, customer]);
@@ -59,8 +66,13 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
   };
 
   const handlePrint = () => {
-    printReconciliation(customer, history);
+    setPreviewOpen(true);
   };
+
+  const reconciliationHtml = useMemo(() => {
+    if (!customer || !history) return '';
+    return generateReconciliationHtml(customer, history);
+  }, [customer, history]);
 
   return (
     <>
@@ -146,23 +158,23 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                           <div className="h-full flex items-center justify-center py-20 text-slate-400 italic text-xs">
                              Загрузка данных...
                           </div>
-                       ) : history.length > 0 ? (
+                       ) : history.filter(h => h.type === 'invoice').length > 0 ? (
                           <table className="table-1c border-separate border-spacing-0">
                              <thead className="sticky top-0 z-10">
                                 <tr>
-                                   <th className="w-12 text-center">№</th>
-                                   <th className="w-32">Дата</th>
+                                   <th className="w-10 text-center">№</th>
+                                   <th className="w-24">Дата</th>
+                                   <th className="w-24">Склад</th>
                                    <th className="w-48">Документ / Содержание</th>
                                    <th className="text-right">Сумма</th>
-                                   <th className="text-right">Оплата</th>
-                                   <th className="text-right w-32">Долг (Сальдо)</th>
-                                   <th className="w-10"></th>
+                                   <th className="text-right">Оплачено</th>
+                                   <th className="text-right w-24">Долг (Сальдо)</th>
+                                   <th className="w-8"></th>
                                 </tr>
                              </thead>
                              <tbody>
-                                {history.map((h, i) => {
+                                {history.filter(h => h.type === 'invoice').map((h, i) => {
                                    const isDebit = h.side === 'debit';
-                                   const isPayment = h.type === 'payment';
                                    
                                    return (
                                       <tr 
@@ -174,6 +186,9 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                                          <td className="font-bold text-slate-600 italic">
                                             {new Date(h.date).toLocaleDateString('ru-RU')}
                                          </td>
+                                         <td className="text-[10px] font-black text-slate-400 uppercase truncate max-w-[100px]" title={h.warehouse}>
+                                            {h.warehouse}
+                                         </td>
                                          <td>
                                            <span className={clsx(
                                               "font-black text-[10px]",
@@ -183,10 +198,10 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                                            </span>
                                          </td>
                                          <td className="text-right font-black text-slate-900">
-                                            {isDebit ? formatMoney(h.amount) : ''}
+                                            {formatMoney(h.amount)}
                                          </td>
                                          <td className="text-right font-black text-emerald-600">
-                                            {!isDebit ? formatMoney(h.amount) : ''}
+                                            {formatMoney(h.paidAmount || 0)}
                                          </td>
                                          <td className={clsx("text-right font-black", h.runningBalance > 0 ? "text-rose-600" : "text-emerald-700")}>
                                             {formatMoney(h.runningBalance)}
@@ -217,6 +232,14 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                  <button onClick={onClose} className="btn-1c !px-10 font-black uppercase">Закрыть</button>
               </div>
             </motion.div>
+            
+            <PrintPreviewModal 
+              isOpen={previewOpen}
+              onClose={() => setPreviewOpen(false)}
+              title={`Акт сверки - ${customer?.name}`}
+              html={reconciliationHtml}
+              type="a4"
+            />
           </div>
         )}
       </AnimatePresence>

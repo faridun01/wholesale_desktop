@@ -118,11 +118,7 @@ export class CustomerService {
     });
 
     return {
-      customers: mapped.filter(c => c.id !== defaultCustomer?.id).map(c => {
-        if (access.isAdmin) return c;
-        // Financial masking for staff
-        return { ...c, total_invoiced: 0, total_paid: 0, balance: 0, average_invoice: 0 };
-      }),
+      customers: mapped.filter(c => c.id !== defaultCustomer?.id),
       total
     };
   }

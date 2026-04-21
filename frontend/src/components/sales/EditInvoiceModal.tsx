@@ -18,6 +18,9 @@ import { formatMoney, roundMoney } from '../../utils/format';
 import { formatProductName } from '../../utils/productName';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
+import PrintPreviewModal from '../common/PrintPreviewModal';
+import { generateTorg12Html, generateReceiptHtml } from '../../utils/printTemplates';
+import { Printer, FileText, Receipt } from 'lucide-react';
 
 interface EditInvoiceModalProps {
   isOpen: boolean;
@@ -33,6 +36,12 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [previewState, setPreviewState] = useState<{ isOpen: boolean; title: string; html: string; type: 'a4' | 'receipt' }>({
+    isOpen: false,
+    title: '',
+    html: '',
+    type: 'a4'
+  });
 
   useEffect(() => {
     if (isOpen && invoice) {
@@ -132,6 +141,24 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
     }
   };
 
+  const handlePrintTorg12 = () => {
+    setPreviewState({
+      isOpen: true,
+      title: `ТОРГ-12 №${invoice.id}`,
+      html: generateTorg12Html(invoice),
+      type: 'a4'
+    });
+  };
+
+  const handlePrintReceipt = () => {
+    setPreviewState({
+      isOpen: true,
+      title: `Чек №${invoice.id}`,
+      html: generateReceiptHtml(invoice),
+      type: 'receipt'
+    });
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -154,7 +181,16 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
                  <p className="text-[9px] font-black uppercase text-slate-500 italic">Изменение состава, цен и скидок</p>
               </div>
            </div>
-           <button onClick={onClose} className="hover:text-rose-600 transition-colors"><X size={24} /></button>
+            <div className="flex items-center gap-2">
+               <button onClick={handlePrintTorg12} className="btn-1c flex items-center gap-1.5 !text-[10px] !py-1">
+                  <FileText size={14} /> ТОРГ-12
+               </button>
+               <button onClick={handlePrintReceipt} className="btn-1c flex items-center gap-1.5 !text-[10px] !py-1">
+                  <Receipt size={14} /> Чек
+               </button>
+               <div className="h-4 w-[1px] bg-black/10 mx-1"></div>
+               <button onClick={onClose} className="hover:text-rose-600 transition-colors ml-1"><X size={24} /></button>
+            </div>
         </div>
 
         {/* Content Area */}
@@ -309,6 +345,14 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
            </div>
         </div>
       </motion.div>
+
+       <PrintPreviewModal 
+         isOpen={previewState.isOpen}
+         onClose={() => setPreviewState(s => ({ ...s, isOpen: false }))}
+         title={previewState.title}
+         html={previewState.html}
+         type={previewState.type}
+       />
     </div>
   );
 }

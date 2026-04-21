@@ -1,9 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Receipt, Package, Banknote, Calendar, UserCircle } from 'lucide-react';
+import { 
+  X, 
+  Receipt, 
+  Package, 
+  Banknote, 
+  Calendar, 
+  UserCircle,
+  Loader2, 
+  FileText, 
+  Printer 
+} from 'lucide-react';
+import { clsx } from 'clsx';
 import { getInvoiceDetails } from '../../api/invoices.api';
 import { formatMoney } from '../../utils/format';
-import { Loader2 } from 'lucide-react';
+import PrintPreviewModal from '../common/PrintPreviewModal';
+import { generateTorg12Html, generateReceiptHtml } from '../../utils/printTemplates';
 
 interface SaleDetailModalProps {
   isOpen: boolean;
@@ -14,6 +26,12 @@ interface SaleDetailModalProps {
 export default function SaleDetailModal({ isOpen, onClose, saleId }: SaleDetailModalProps) {
   const [sale, setSale] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [previewState, setPreviewState] = useState<{ isOpen: boolean; title: string; html: string; type: 'a4' | 'receipt' }>({
+    isOpen: false,
+    title: '',
+    html: '',
+    type: 'a4'
+  });
 
   useEffect(() => {
     if (isOpen && saleId) {
@@ -43,9 +61,24 @@ export default function SaleDetailModal({ isOpen, onClose, saleId }: SaleDetailM
                     Детали документа: Чек №{saleId}
                  </h3>
               </div>
-              <button onClick={onClose} className="hover:text-rose-600 transition-colors">
-                <X size={20} />
-              </button>
+               <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setPreviewState({ isOpen: true, title: `ТОРГ-12 №${saleId}`, html: generateTorg12Html(sale), type: 'a4' })}
+                    className="btn-1c flex items-center gap-1.5 !text-[9px] !py-1 !px-2"
+                  >
+                     <FileText size={12} /> ТОРГ-12
+                  </button>
+                  <button 
+                    onClick={() => setPreviewState({ isOpen: true, title: `Чек №${saleId}`, html: generateReceiptHtml(sale), type: 'receipt' })}
+                    className="btn-1c flex items-center gap-1.5 !text-[9px] !py-1 !px-2"
+                  >
+                     <Receipt size={12} /> Чек
+                  </button>
+                  <div className="h-4 w-[1px] bg-black/10 mx-1"></div>
+                  <button onClick={onClose} className="hover:text-rose-600 transition-colors">
+                    <X size={20} />
+                  </button>
+               </div>
             </div>
 
             {/* Content */}
@@ -102,31 +135,86 @@ export default function SaleDetailModal({ isOpen, onClose, saleId }: SaleDetailM
                      </div>
 
                      {/* Totals Section */}
-                     <div className="bg-white border-t border-slate-200 p-6 space-y-2">
-                        <div className="flex justify-between items-center text-slate-500 text-[10px] uppercase font-black tracking-widest">
-                           <span>Итого без скидки:</span>
-                           <span>{formatMoney(sale.totalAmount)}</span>
-                        </div>
-                        {Number(sale.discountAmount || 0) > 0 && (
-                           <div className="flex justify-between items-center text-rose-500 text-[10px] uppercase font-black tracking-widest">
-                              <span>Скидка:</span>
-                              <span>-{formatMoney(sale.discountAmount)}</span>
+                     <div className="p-4 bg-slate-50 flex justify-between items-start gap-8 border-t border-slate-200">
+                        <div className="flex-1 space-y-4">
+                           {/* Payments Ledger */}
+                           <div className="bg-white rounded border border-slate-200 overflow-hidden shadow-sm">
+                              <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex items-center justify-between">
+                                 <span className="text-[9px] font-black uppercase text-slate-500">История оплат</span>
+                                 <span className="text-[10px] font-bold text-emerald-600">{formatMoney(sale.paidAmount)}</span>
+                              </div>
+                              <div className="max-h-[120px] overflow-auto">
+                                 <table className="w-full text-[10px] border-collapse">
+                                    <thead className="sticky top-0 bg-white border-b border-slate-100">
+                                       <tr>
+                                          <th className="px-3 py-1 text-left text-slate-400">Дата</th>
+                                          <th className="px-3 py-1 text-left text-slate-400">Метод</th>
+                                          <th className="px-3 py-1 text-right text-slate-400">Сумма</th>
+                                       </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                       {Array.isArray(sale.payments) && sale.payments.length > 0 ? (
+                                          sale.payments.map((p: any) => (
+                                             <tr key={p.id}>
+                                                <td className="px-3 py-1.5 text-slate-500">{new Date(p.createdAt).toLocaleDateString('ru-RU')}</td>
+                                                <td className="px-3 py-1.5 font-bold text-slate-700 uppercase">{p.method}</td>
+                                                <td className="px-3 py-1.5 text-right font-black text-emerald-700">{formatMoney(p.amount)}</td>
+                                             </tr>
+                                          ))
+                                       ) : (
+                                          <tr>
+                                             <td colSpan={3} className="px-3 py-4 text-center text-slate-400 italic">Нет зафиксированных оплат</td>
+                                          </tr>
+                                       )}
+                                    </tbody>
+                                 </table>
+                              </div>
                            </div>
-                         )}
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                           <span className="text-xs font-black uppercase text-slate-700 tracking-tighter">К оплате (ИТОГО):</span>
-                           <span className="text-2xl font-black text-brand-orange leading-none">{formatMoney(sale.netAmount)}</span>
+
+                           {Array.isArray(sale.returns) && sale.returns.length > 0 && (
+                              <div className="bg-rose-50/50 rounded border border-rose-100 overflow-hidden shadow-sm">
+                                 <div className="bg-rose-100/50 px-3 py-1.5 border-b border-rose-100">
+                                    <span className="text-[9px] font-black uppercase text-rose-600">Возвраты</span>
+                                 </div>
+                                 <div className="p-3">
+                                    {sale.returns.map((r: any) => (
+                                       <div key={r.id} className="flex justify-between items-center text-[10px]">
+                                          <span className="text-slate-500">{new Date(r.createdAt).toLocaleDateString('ru-RU')}</span>
+                                          <span className="font-black text-rose-700">{formatMoney(r.totalValue)}</span>
+                                       </div>
+                                    ))}
+                                 </div>
+                              </div>
+                           )}
                         </div>
-                        <div className="flex justify-between items-center pt-1 text-emerald-600 text-[10px] font-black uppercase">
-                           <span>Оплачено:</span>
-                           <span>{formatMoney(Math.min(sale.paidAmount || 0, sale.netAmount ?? sale.totalAmount ?? 0))}</span>
-                        </div>
-                        {((sale.netAmount ?? sale.totalAmount ?? 0) - (sale.paidAmount || 0)) > 0.01 && (
-                           <div className="flex justify-between items-center pt-1 text-brand-orange text-[10px] font-black uppercase border-t border-slate-50 mt-1 italic">
-                              <span>Остаток долга:</span>
-                              <span>{formatMoney((sale.netAmount ?? sale.totalAmount ?? 0) - (sale.paidAmount || 0))}</span>
+
+                        <div className="w-48 space-y-1">
+                           <div className="flex justify-between text-[11px] font-bold text-slate-500">
+                              <span>Итого:</span>
+                              <span>{formatMoney(sale.totalAmount)}</span>
                            </div>
-                        )}
+                           {sale.discount > 0 && (
+                              <div className="flex justify-between text-[11px] font-bold text-rose-500">
+                                 <span>Скидка:</span>
+                                 <span>-{formatMoney(sale.discountAmount || (sale.totalAmount * (sale.discount / 100)))}</span>
+                              </div>
+                           )}
+                           <div className="flex justify-between text-base font-black text-slate-900 border-t border-slate-200 pt-1 mt-1">
+                              <span>СУММА:</span>
+                              <span>{formatMoney(sale.netAmount)}</span>
+                           </div>
+                           <div className="flex justify-between text-[11px] font-bold text-emerald-600 pt-2">
+                              <span>ОПЛАЧЕНО:</span>
+                              <span>{formatMoney(sale.paidAmount)}</span>
+                           </div>
+                           <div className={clsx(
+                              "flex justify-between text-[12px] font-black pt-1 border-t-2 border-dotted mt-1",
+                              (sale.netAmount - sale.paidAmount) > 0.01 ? "text-rose-600" : "text-emerald-700"
+                           )}>
+                              <span>ДОЛГ:</span>
+                              <span>{formatMoney(sale.netAmount - sale.paidAmount)}</span>
+                           </div>
+                        </div>
                      </div>
                   </div>
                ) : (
@@ -143,6 +231,14 @@ export default function SaleDetailModal({ isOpen, onClose, saleId }: SaleDetailM
           </motion.div>
         </div>
       )}
+       
+       <PrintPreviewModal 
+         isOpen={previewState.isOpen}
+         onClose={() => setPreviewState(s => ({ ...s, isOpen: false }))}
+         title={previewState.title}
+         html={previewState.html}
+         type={previewState.type}
+       />
     </AnimatePresence>
   );
 }

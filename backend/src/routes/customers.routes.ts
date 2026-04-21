@@ -202,20 +202,48 @@ router.get('/:id/reconciliation', async (req: AuthRequest, res, next) => {
     
     await CustomerService.getCustomerAccess(access, customerId);
 
+    const where = {
+      customerId,
+      cancelled: false,
+      warehouseId: access.isAdmin ? undefined : (access.warehouseId ?? -1),
+      userId: access.isAdmin ? undefined : (access.userId ?? -1),
+    };
+
     const [invoices, payments, returns] = await Promise.all([
       prisma.invoice.findMany({
         where: { customerId, cancelled: false },
-        select: { id: true, netAmount: true, createdAt: true },
+        select: { 
+          id: true, 
+          netAmount: true, 
+          paidAmount: true,
+          returnedAmount: true,
+          createdAt: true,
+          warehouse: { select: { name: true } }
+        },
         orderBy: { createdAt: 'asc' },
       }),
       prisma.payment.findMany({
         where: { customerId },
-        select: { id: true, amount: true, createdAt: true, method: true, invoiceId: true },
+        select: { 
+          id: true, 
+          amount: true, 
+          createdAt: true, 
+          method: true, 
+          invoiceId: true,
+          invoice: { select: { warehouse: { select: { name: true } } } }
+        },
         orderBy: { createdAt: 'asc' },
       }),
       prisma.return.findMany({
         where: { customerId },
-        select: { id: true, totalValue: true, createdAt: true, invoiceId: true, reason: true },
+        select: { 
+          id: true, 
+          totalValue: true, 
+          createdAt: true, 
+          invoiceId: true, 
+          reason: true,
+          invoice: { select: { warehouse: { select: { name: true } } } }
+        },
         orderBy: { createdAt: 'asc' },
       }),
     ]);
@@ -228,11 +256,18 @@ router.get('/:id/reconciliation', async (req: AuthRequest, res, next) => {
         type: 'invoice',
         id: inv.id,
         date: inv.createdAt,
-        amount: inv.netAmount,
-        side: 'debit', // Customer owes us
+        amount: Number(inv.netAmount) + Number(inv.returnedAmount || 0),
+        paidAmount: Number(inv.paidAmount || 0),
+        side: 'debit',
+        warehouse: inv.warehouse?.name || 'Основной склад',
         description: `Накладная №${inv.id}`
       });
     });
+
+    console.log(`[DEBUG] Found ${invoices.length} invoices for customer ${customerId}`);
+    if (invoices.length > 0) {
+      console.log(`[DEBUG] First invoice paidAmount: ${invoices[0].paidAmount} (${typeof invoices[0].paidAmount})`);
+    }
 
     payments.forEach(p => {
       events.push({
@@ -240,8 +275,9 @@ router.get('/:id/reconciliation', async (req: AuthRequest, res, next) => {
         id: p.id,
         date: p.createdAt,
         amount: p.amount,
-        side: 'credit', // Customer paid us
-        description: p.invoiceId ? `Оплата по накл. №${p.invoiceId}` : 'Оплата (аванс)'
+        side: 'credit',
+        warehouse: p.invoice?.warehouse?.name || 'Касса',
+        description: p.invoiceId ? `Оплата по накл. №${p.invoiceId}` : 'Оплата'
       });
     });
 
@@ -251,30 +287,42 @@ router.get('/:id/reconciliation', async (req: AuthRequest, res, next) => {
         id: r.id,
         date: r.createdAt,
         amount: r.totalValue,
-        side: 'credit', // Returning item is like paying (reduces debt)
+        side: 'credit',
+        warehouse: r.invoice?.warehouse?.name || 'Основной склад',
         description: `Возврат по накл. №${r.invoiceId}`
       });
     });
 
-    // Sort by date then by ID
-    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id - b.id);
+    // Sort by date then by type priority then by ID
+    const typePriority: Record<string, number> = { invoice: 1, payment: 2, return: 3 };
+    events.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      if (dateA !== dateB) return dateA - dateB;
+      
+      const pA = typePriority[a.type] || 99;
+      const pB = typePriority[b.type] || 99;
+      if (pA !== pB) return pA - pB;
+      
+      return a.id - b.id;
+    });
 
-    // Calculate running balance
+    // Calculate running balance with logging
     let runningBalance = 0;
-    const historyWithBalance = events.map(e => {
+    const historyWithBalance = events.map((e, index) => {
+      const prevBalance = runningBalance;
       if (e.side === 'debit') {
         runningBalance += e.amount;
       } else {
         runningBalance -= e.amount;
       }
+      
+      console.log(`[LEDGER DEBUG] Row ${index + 1}: ${e.type} #${e.id} | Amount: ${e.amount} | ${prevBalance} -> ${runningBalance}`);
+      
       return { ...e, runningBalance };
     });
 
-    if (access.isAdmin) {
-      return res.json(historyWithBalance);
-    }
-
-    res.json(historyWithBalance.map(e => ({ ...e, amount: 0, runningBalance: 0 })));
+    res.json(historyWithBalance);
   } catch (error) {
     next(error);
   }

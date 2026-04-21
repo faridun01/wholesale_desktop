@@ -192,7 +192,12 @@ export default function ProductsView() {
         const nc = await createSettingsCategory(categoryInput);
         cId = nc.id;
       }
-      await ProductsApi.createProduct({ ...formData, categoryId: Number(cId), warehouseId: Number(selectedWarehouseId || warehouses[0]?.id) });
+      const defaultWarehouseId = getDefaultWarehouseId(warehouses) || warehouses[0]?.id;
+      await ProductsApi.createProduct({ 
+        ...formData, 
+        categoryId: Number(cId), 
+        warehouseId: Number(selectedWarehouseId || defaultWarehouseId) 
+      });
       toast.success('Товар создан');
       setShowAddModal(false);
       fetchProducts(selectedWarehouseId);

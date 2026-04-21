@@ -26,11 +26,16 @@ router.post('/', async (req: AuthRequest, res, next) => {
       : null;
 
     if (!access.isAdmin) {
-      if (!invoice) {
-        return res.status(403).json({ error: 'Forbidden' });
-      }
-      if (!ensureWarehouseAccess(access, invoice.warehouseId) || invoice.userId !== access.userId) {
-        return res.status(403).json({ error: 'Forbidden' });
+      if (invoice) {
+        // Must have access to the warehouse where invoice was created
+        if (!ensureWarehouseAccess(access, invoice.warehouseId)) {
+          return res.status(403).json({ error: 'Нет доступа к складу этой накладной' });
+        }
+      } else {
+        // General payment - check if seller has ANY warehouse access (standard for seller)
+        if (!access.warehouseId && !access.isAdmin) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
       }
     }
 

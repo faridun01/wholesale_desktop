@@ -283,6 +283,12 @@ export default function POSView() {
     getWarehouses().then(data => {
         const filtered = filterWarehousesForUser(Array.isArray(data) ? data : [], user);
         setWarehouses(filtered);
+        // Auto-select default warehouse if none is set
+        if (!warehouseId && filtered.length > 0) {
+            const defId = getDefaultWarehouseId(filtered);
+            if (defId) setWarehouseId(String(defId));
+            else setWarehouseId(String(filtered[0].id));
+        }
     });
   }, []);
 
