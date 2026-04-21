@@ -93,7 +93,7 @@ export default function ProductsView() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRestockModal, setShowRestockModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
-  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [showWriteOffModal, setShowWriteOffModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showBatchesModal, setShowBatchesModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -113,7 +113,7 @@ export default function ProductsView() {
 
   const [restockData, setRestockData] = useState({ quantity: '', costPrice: '', reason: '' });
   const [transferData, setTransferData] = useState({ toWarehouseId: '', quantity: '' });
-  const [mergeTargetId, setMergeTargetId] = useState('');
+  const [writeOffData, setWriteOffData] = useState({ quantity: '', reason: '' });
 
   // --- Data Fetching ---
 
@@ -262,16 +262,19 @@ export default function ProductsView() {
     }
   };
 
-  const handleMergeProduct = async () => {
-    if (!selectedProduct || !mergeTargetId) return;
+  const handleWriteOff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProduct) return;
     try {
-      await client.post(`/products/${selectedProduct.id}/merge`, { targetProductId: Number(mergeTargetId) });
-      toast.success('Слияние успешно завершено');
-      setShowMergeModal(false);
-      setMergeTargetId('');
+      await ProductsApi.writeOffProduct(selectedProduct.id, {
+        quantity: Number(writeOffData.quantity),
+        reason: writeOffData.reason
+      });
+      toast.success('Списание оформлено');
+      setShowWriteOffModal(false);
       fetchProducts(selectedWarehouseId);
     } catch (err) {
-      toast.error('Ошибка при слиянии');
+      toast.error('Ошибка при списании');
     }
   };
 
@@ -380,11 +383,11 @@ export default function ProductsView() {
         <div className="w-[1px] h-6 bg-slate-200 mx-1"></div>
 
         <button 
-          onClick={() => setShowMergeModal(true)} 
+          onClick={() => { setWriteOffData({ quantity: '', reason: '' }); setShowWriteOffModal(true); }} 
           disabled={!selectedProduct} 
-          className="btn-1c flex items-center gap-1.5"
+          className="btn-1c flex items-center gap-1.5 text-orange-600"
         >
-          <X size={14} className="rotate-45" /> Слияние
+          <Scissors size={14} /> Списать
         </button>
 
         <button 
@@ -672,31 +675,55 @@ export default function ProductsView() {
             productBatches={productBatches}
           />
         )}
-        {showMergeModal && (
+        {showWriteOffModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white border-2 border-brand-orange shadow-2xl rounded w-full max-w-md overflow-hidden">
-               <div className="bg-[#5b21b6] text-white px-4 py-2 flex items-center justify-between">
-                 <span className="text-[10px] font-black uppercase tracking-widest text-white">Слияние номенклатуры</span>
-                 <button onClick={() => setShowMergeModal(false)}><X size={18} /></button>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white border-2 border-brand-orange shadow-2xl rounded w-full max-w-sm overflow-hidden">
+               <div className="bg-brand-orange text-white px-4 py-2 flex items-center justify-between border-b border-black/10">
+                 <div className="flex items-center gap-2">
+                    <Scissors size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Списание со склада</span>
+                 </div>
+                 <button onClick={() => setShowWriteOffModal(false)}><X size={18} /></button>
                </div>
-               <div className="p-6 space-y-4">
-                 <p className="text-xs font-bold">Выберите товар, с которым нужно объединить <span className="text-brand-orange">"{selectedProduct?.name}"</span></p>
-                 <select 
-                   value={mergeTargetId} 
-                   onChange={e => setMergeTargetId(e.target.value)}
-                   className="field-1c w-full font-bold"
-                 >
-                   <option value="">Выберите целевой товар...</option>
-                   {getMergeCandidates(selectedProduct).map(p => <option key={p.id} value={p.id}>{p.name} ({p.stock} {p.unit})</option>)}
-                 </select>
+               <form onSubmit={handleWriteOff} className="p-6 space-y-4">
+                 <div className="bg-slate-50 p-3 rounded border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase leading-none mb-1">Товар</p>
+                    <p className="text-xs font-black text-slate-800">{selectedProduct?.name}</p>
+                 </div>
+
+                 <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Количество для списания</label>
+                    <div className="flex items-center gap-2">
+                       <input 
+                         required 
+                         type="number" 
+                         value={writeOffData.quantity} 
+                         onChange={e => setWriteOffData({ ...writeOffData, quantity: e.target.value })} 
+                         className="field-1c w-full text-center text-lg font-black" 
+                         placeholder="0"
+                       />
+                       <span className="text-xs font-bold text-slate-400 uppercase">{selectedProduct?.unit}</span>
+                    </div>
+                 </div>
+
+                 <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Причина списания</label>
+                    <textarea 
+                      required
+                      value={writeOffData.reason}
+                      onChange={e => setWriteOffData({ ...writeOffData, reason: e.target.value })}
+                      className="field-1c w-full min-h-[80px] text-xs font-bold"
+                      placeholder="Например: Брак, Просрочено, Порча..."
+                    />
+                 </div>
+
                  <button 
-                   onClick={handleMergeProduct}
-                   disabled={!mergeTargetId}
-                   className="btn-1c btn-1c-primary w-full py-2.5"
+                   type="submit"
+                   className="w-full bg-brand-orange text-white font-black py-3 rounded shadow-lg hover:bg-[#ff8c00] active:scale-95 transition-all text-xs uppercase tracking-widest"
                  >
-                   ВЫПОЛНИТЬ СЛИЯНИЕ
+                   ПОДТВЕРДИТЬ СПИСАНИЕ
                  </button>
-               </div>
+               </form>
             </motion.div>
           </div>
         )}

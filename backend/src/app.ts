@@ -14,6 +14,8 @@ import { authenticate } from './middlewares/auth.middleware.js';
 import { corsMiddleware, securityHeaders } from './middlewares/security.middleware.js';
 import { imageUpload, uploadsDir } from './utils/upload.js';
 
+import { errorHandler } from './middlewares/error.handler.js';
+
 const app = express();
 
 app.use(corsMiddleware);
@@ -40,16 +42,7 @@ app.post('/api/upload', authenticate, imageUpload.single('photo'), (req, res) =>
   res.json({ photoUrl: `/uploads/${req.file.filename}` });
 });
 
-// Error Handling Middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-
-  // Handle specific errors
-  if (err.message === 'User not found' || err.message === 'Invalid password') {
-    return res.status(401).json({ error: err.message });
-  }
-
-  res.status(500).json({ error: err.message || 'Something went wrong!' });
-});
+// Centralized Error Handling Middleware
+app.use(errorHandler);
 
 export default app;

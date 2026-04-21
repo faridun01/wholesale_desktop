@@ -20,10 +20,17 @@ type BuildRowsOptions = {
   netSalesKey: 'total_sales' | 'net_sales';
 };
 
-export const buildCreatedAtRange = ({ start, end }: DateRangeInput) => ({
-  gte: start ? new Date(String(start)) : undefined,
-  lte: end ? new Date(String(end)) : undefined,
-});
+export const buildCreatedAtRange = ({ start, end }: DateRangeInput) => {
+  const parseDate = (val: any) => {
+    if (!val || val === 'null' || val === 'undefined') return undefined;
+    const d = new Date(String(val));
+    return isNaN(d.getTime()) ? undefined : d;
+  };
+  return {
+    gte: parseDate(start),
+    lte: parseDate(end),
+  };
+};
 
 export const buildCancelledInvoiceWhere = (options: {
   warehouseId: number | null;

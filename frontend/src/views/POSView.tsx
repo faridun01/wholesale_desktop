@@ -113,6 +113,73 @@ export default function POSView() {
   const productSearchRef = useRef<HTMLInputElement>(null);
   const customerSearchRef = useRef<HTMLInputElement>(null);
 
+  // --- Persistence ---
+  useEffect(() => {
+    const savedCart = localStorage.getItem('pos_active_cart');
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (e) {
+        console.error('Failed to load saved cart', e);
+      }
+    }
+    const savedPaid = localStorage.getItem('pos_paid_amount');
+    if (savedPaid) setPaidAmount(savedPaid);
+    
+    const savedCustId = localStorage.getItem('pos_customer_id');
+    if (savedCustId) setCustomerId(Number(savedCustId));
+    
+    const savedCustName = localStorage.getItem('pos_customer_name');
+    if (savedCustName) setCustomerSearch(savedCustName);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('pos_active_cart', JSON.stringify(cart));
+    localStorage.setItem('pos_paid_amount', paidAmount);
+    localStorage.setItem('pos_customer_id', String(customerId || ''));
+    localStorage.setItem('pos_customer_name', customerSearch);
+  }, [cart, paidAmount, customerId, customerSearch]);
+
+  const [deferredChecks, setDeferredChecks] = useState<any[]>(() => {
+    const saved = localStorage.getItem('pos_deferred_checks');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const handleDeferCheck = () => {
+    if (cart.length === 0) return;
+    const newCheck = {
+      id: Date.now(),
+      cart,
+      customerId,
+      customerName: customerSearch,
+      paidAmount,
+      discount,
+      timestamp: new Date().toISOString()
+    };
+    const updated = [...deferredChecks, newCheck];
+    setDeferredChecks(updated);
+    localStorage.setItem('pos_deferred_checks', JSON.stringify(updated));
+    
+    setCart([]);
+    setPaidAmount('');
+    setCustomerId(null);
+    setCustomerSearch('');
+    toast.success('Чек отложен');
+  };
+
+  const handleRestoreCheck = (check: any) => {
+    setCart(check.cart);
+    setCustomerId(check.customerId);
+    setCustomerSearch(check.customerName);
+    setPaidAmount(check.paidAmount);
+    setDiscount(check.discount);
+    
+    const updated = deferredChecks.filter(c => c.id !== check.id);
+    setDeferredChecks(updated);
+    localStorage.setItem('pos_deferred_checks', JSON.stringify(updated));
+    toast.success('Чек восстановлен');
+  };
+
   // --- Hotkeys ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -202,7 +269,6 @@ export default function POSView() {
     }
   };
 
-  // --- Calculations ---
   const getLineTotal = (item: CartItem) => {
     const price = Number(item.sellingPrice || 0) * (1 - (item.lineDiscountPercent || 0) / 100);
     return roundMoney(item.quantity * price);
@@ -212,7 +278,6 @@ export default function POSView() {
   const total = useMemo(() => roundMoney(subtotal * (1 - discount / 100)), [subtotal, discount]);
   const balance = useMemo(() => (Number(paidAmount) || 0) - total, [paidAmount, total]);
 
-  // --- Effects ---
   useEffect(() => {
     getCustomers().then(setCustomers);
     getWarehouses().then(data => {
@@ -261,6 +326,9 @@ export default function POSView() {
         toast.success('Продажа успешно завершена');
         setCart([]);
         setPaidAmount('');
+        setCustomerId(null);
+        setCustomerSearch('');
+        localStorage.removeItem('pos_active_cart');
         navigate('/sales');
     } catch (err: any) {
         toast.error(err.response?.data?.error || 'Ошибка оформления');
@@ -271,7 +339,6 @@ export default function POSView() {
 
   return (
     <div className="flex flex-col h-screen bg-[#e6e8eb] select-none overflow-hidden text-[#1e1e1e]">
-      {/* 1C TOP HEADER */}
       <div className="bg-brand-yellow px-4 py-2 flex items-center justify-between border-b border-black/10 shrink-0">
         <div className="flex items-center gap-3">
           <div className="bg-white/20 p-1 rounded">
@@ -287,14 +354,29 @@ export default function POSView() {
         </div>
       </div>
 
-      {/* TOOLBAR */}
       <div className="toolbar-1c bg-white border-b border-border-base shrink-0 !py-1">
-        <button onClick={() => { setCart([]); setPaidAmount(''); setCustomerId(null); }} className="btn-1c flex items-center gap-1.5 !py-1">
+        <button onClick={() => { setCart([]); setPaidAmount(''); setCustomerId(null); setCustomerSearch(''); }} className="btn-1c flex items-center gap-1.5 !py-1">
           <RefreshCw size={14} /> Новый чек
         </button>
-        <button className="btn-1c flex items-center gap-1.5 !py-1" disabled={cart.length === 0}>
-          <Printer size={14} /> Отложенный чек
+        <button onClick={handleDeferCheck} className="btn-1c flex items-center gap-1.5 !py-1" disabled={cart.length === 0}>
+          <Printer size={14} /> Отложить чек
         </button>
+
+        {deferredChecks.length > 0 && (
+           <div className="flex items-center gap-1 ml-4 border-l pl-4 border-slate-200">
+             <span className="text-[10px] font-black uppercase text-slate-400 mr-2">Отложенные:</span>
+             {deferredChecks.map((check, i) => (
+               <button 
+                key={check.id}
+                onClick={() => handleRestoreCheck(check)}
+                className="bg-brand-orange/10 hover:bg-brand-orange/20 text-brand-orange text-[9px] font-black px-2 py-1 rounded transition-all border border-brand-orange/30"
+               >
+                 #{i + 1} {check.customerName || 'Без имени'}
+               </button>
+             ))}
+           </div>
+        )}
+
         <div className="flex-1"></div>
         <div className="flex items-center gap-2 px-2 py-0.5 bg-slate-50 border border-border-base rounded">
            <Warehouse size={12} className="text-slate-400" />
@@ -309,9 +391,7 @@ export default function POSView() {
         </div>
       </div>
 
-      {/* MAIN CONTENT SPLIT */}
       <div className="flex flex-1 overflow-hidden">
-        {/* LEFT: PRODUCTS REGISTRY */}
         <div className="flex-1 flex flex-col bg-white border-r border-border-base min-w-0">
           <div className="p-2 bg-[#f2f3f7] border-b border-border-base">
             <div className="relative">
@@ -363,9 +443,7 @@ export default function POSView() {
           </div>
         </div>
 
-        {/* RIGHT: CART & TOTALS - FIXED WIDTH */}
         <div className="w-96 flex flex-col bg-[#f0f1f4] shrink-0">
-          {/* CUSTOMER SELECT */}
           <div className="p-3 bg-white border-b border-border-base relative">
              <div className="flex items-center justify-between mb-1.5">
                 <label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
@@ -399,78 +477,73 @@ export default function POSView() {
              </div>
           </div>
 
-          {/* CART ITEMS */}
           <div className="flex-1 overflow-auto p-3 space-y-1.5">
-              {cart.map((item, idx) => (
-                <div key={item.id} className="bg-white border-l-4 border-l-brand-orange p-2 rounded shadow-sm border border-border-base">
-                   <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="text-[10px] font-black text-slate-900 truncate flex-1">{item.name}</span>
-                      <button onClick={() => setCart(cart.filter(c => c.id !== item.id))} className="text-slate-300 hover:text-rose-600">
-                        <X size={12} />
-                      </button>
+              {cart.map((item) => (
+                <div key={item.id} className="bg-white border-l-4 border-l-brand-orange p-2 rounded shadow-sm border border-border-base relative">
+                   <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-black text-slate-900 truncate leading-tight mb-1">{item.name}</p>
+                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 italic">
+                          <span>{item.quantity} {item.unit}</span>
+                          <span className="text-slate-200">|</span>
+                          <span>{formatMoney(item.sellingPrice)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                         <div className="flex items-center bg-slate-50 border border-slate-200 rounded p-0.5 gap-1">
+                            {item.selectedPackagingId && (
+                               <input 
+                                 type="number" 
+                                 value={item.packageQuantity || ''}
+                                 onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { packageQuantity: Number(e.target.value) }) : c))}
+                                 title="Упаковок"
+                                 className="w-10 h-6 text-center font-black text-[11px] bg-brand-yellow/10 border-r border-slate-200 outline-none"
+                               />
+                            )}
+                            <input 
+                              type="number" 
+                              value={item.extraUnitQuantity || ''}
+                              onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { extraUnitQuantity: Number(e.target.value) }) : c))}
+                              title={item.selectedPackagingId ? 'Штук (доп)' : 'Количество'}
+                              className="w-12 h-6 text-center font-black text-[11px] outline-none"
+                            />
+                         </div>
+
+                         <button onClick={() => setCart(cart.filter(c => c.id !== item.id))} className="text-slate-300 hover:text-rose-600 transition-colors ml-1">
+                           <X size={14} />
+                         </button>
+                      </div>
                    </div>
                    
-                   <div className="grid grid-cols-2 gap-2 mb-2">
-                      {/* Packaging Selection */}
-                      {item.packagings.length > 0 && (
-                        <div className="col-span-2">
-                           <select 
-                             value={item.selectedPackagingId || ''}
-                             onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { selectedPackagingId: Number(e.target.value) }) : c))}
-                             className="w-full text-[9px] font-black uppercase bg-slate-50 border border-slate-200 rounded px-1 py-0.5"
-                           >
-                             <option value="">Без упаковки</option>
-                             {item.packagings.map(pkg => (
-                               <option key={pkg.id} value={pkg.id}>{pkg.packageName} ({pkg.unitsPerPackage} {pkg.baseUnitName})</option>
-                             ))}
-                           </select>
-                        </div>
-                      )}
-                      
-                      {/* Package Quantity */}
-                      {item.selectedPackagingId && (
-                        <div className="space-y-0.5">
-                           <label className="text-[8px] font-black text-slate-400 uppercase italic">Упаковок</label>
-                           <input 
-                             type="number" 
-                             value={item.packageQuantity || ''}
-                             onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { packageQuantity: Number(e.target.value) }) : c))}
-                             className="w-full h-6 text-center font-black text-[10px] border border-border-base rounded bg-brand-yellow/5"
-                             placeholder="0"
-                           />
-                        </div>
-                      )}
-                      
-                      {/* Extra Units */}
-                      <div className="space-y-0.5">
-                         <label className="text-[8px] font-black text-slate-400 uppercase italic">{item.selectedPackagingId ? 'Штук (доп)' : 'Количество'}</label>
-                         <input 
-                           type="number" 
-                           value={item.extraUnitQuantity || ''}
-                           onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { extraUnitQuantity: Number(e.target.value) }) : c))}
-                           className="w-full h-6 text-center font-black text-[10px] border border-border-base rounded"
-                           placeholder="0"
-                         />
+                   {item.packagings.length > 0 && (
+                      <div className="mb-1.5">
+                         <select 
+                           value={item.selectedPackagingId || ''}
+                           onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { selectedPackagingId: Number(e.target.value) }) : c))}
+                           className="w-full text-[9px] font-black uppercase bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 outline-none hover:border-brand-orange transition-colors"
+                         >
+                           <option value="">Без упаковки</option>
+                           {item.packagings.map(pkg => (
+                             <option key={pkg.id} value={pkg.id}>{pkg.packageName} ({pkg.unitsPerPackage} {pkg.baseUnitName})</option>
+                           ))}
+                         </select>
                       </div>
-                   </div>
+                   )}
 
-                   <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 mt-1.5">
-                      <div className="text-[9px] font-bold text-slate-400 italic">
-                        {item.quantity} {item.unit}
-                      </div>
-                      <div className="text-right font-black text-slate-800 text-[11px]">{formatMoney(getLineTotal(item))}</div>
+                   <div className="flex items-center justify-end border-t border-slate-50 pt-1.5">
+                      <div className="text-right font-black text-slate-800 text-[11px] tracking-tight">{formatMoney(getLineTotal(item))}</div>
                    </div>
                 </div>
               ))}
-             {cart.length === 0 && (
+              {cart.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-20 py-10">
                    <Package size={48} strokeWidth={1} />
                    <span className="text-[10px] font-black uppercase tracking-widest mt-2">Пусто</span>
                 </div>
-             )}
+              )}
           </div>
 
-          {/* TOTALS & PAYMENT PANEL */}
           <div className="bg-slate-900 text-white p-4 shrink-0 shadow-2xl relative overflow-hidden border-t-2 border-t-brand-yellow">
              <div className="flex items-end justify-between mb-3">
                 <div>
@@ -508,7 +581,6 @@ export default function POSView() {
                 </div>
              </div>
 
-             {/* PAYMENT METHODS */}
              <div className="grid grid-cols-3 gap-2 mb-4">
                 <button 
                   onClick={() => setPaymentMethod('cash')}
@@ -549,11 +621,9 @@ export default function POSView() {
              >
                {isSubmitting ? 'Проведение...' : 'ПРОБИТЬ ЧЕК (Alt+S)'}
              </button>
-             <div className="h-16 w-full" />
            </div>
-         </div>
-       </div>
-     </div>
-   );
+        </div>
+      </div>
+    </div>
+  );
 }
-

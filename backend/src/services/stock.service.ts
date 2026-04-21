@@ -1,4 +1,5 @@
 import prisma from '../db/prisma.js';
+import { ValidationError, ConflictError, NotFoundError } from '../utils/errors.js';
 
 function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -38,7 +39,7 @@ export class StockService {
     const requiredQty = roundQty(toNumber(quantity, 0));
 
     if (requiredQty <= 0) {
-      throw new Error('Количество для списания должно быть больше 0');
+      throw new ValidationError('Количество для списания должно быть больше 0');
     }
 
     let remainingToAllocate = requiredQty;
@@ -61,7 +62,7 @@ export class StockService {
     );
 
     if (totalAvailable < requiredQty) {
-      throw new Error(
+      throw new ValidationError(
         `Недостаточно товара на складе (ID: ${productId}). Доступно: ${totalAvailable}, Требуется: ${requiredQty}`
       );
     }
@@ -174,7 +175,7 @@ export class StockService {
     const transferQty = roundQty(toNumber(quantity, 0));
 
     if (transferQty <= 0) {
-      throw new Error('Количество для переноса должно быть больше 0');
+      throw new ValidationError('Количество для переноса должно быть больше 0');
     }
 
     return await prisma.$transaction(async (tx: any) => {
@@ -193,7 +194,7 @@ export class StockService {
       );
 
       if (totalAvailable < transferQty) {
-        throw new Error(
+      throw new ValidationError(
           `Недостаточно товара для перемещения. Доступно: ${totalAvailable}, Требуется: ${transferQty}`
         );
       }
@@ -276,11 +277,11 @@ export class StockService {
     const normalizedExpensePercent = expensePercent !== undefined ? toNumber(expensePercent, 0) : 0;
 
     if (normalizedQty <= 0) {
-      throw new Error('Количество должно быть больше 0');
+      throw new ValidationError('Количество должно быть больше 0');
     }
 
     if (normalizedCost < 0) {
-      throw new Error('Цена закупки не может быть отрицательной');
+      throw new ValidationError('Цена закупки не может быть отрицательной');
     }
 
     const execute = async (t: any) => {
@@ -337,7 +338,7 @@ export class StockService {
       });
 
       if (!transaction || transaction.type !== 'incoming') {
-        throw new Error('Приходная транзакция не найдена');
+        throw new NotFoundError('Приходная транзакция не найдена');
       }
 
       // Find the batch created by this transaction
@@ -358,7 +359,7 @@ export class StockService {
       }
 
       if (Math.abs(batch.remainingQuantity - batch.quantity) > 0.001) {
-        throw new Error('Нельзя отменить приход: товар из этой партии уже продан или списан.');
+        throw new ConflictError('Нельзя отменить приход: товар из этой партии уже продан или списан.');
       }
 
       await tx.productBatch.delete({ where: { id: batch.id } });
@@ -384,12 +385,10 @@ export class StockService {
     for (const batch of batches) {
       if (remaining <= 0) break;
 
-      const toAdd = remaining; // Just restore to the last/current batch
       await tx.productBatch.update({
         where: { id: batch.id },
         data: { 
-          quantity: { increment: toAdd },
-          remainingQuantity: { increment: toAdd } 
+          remainingQuantity: { increment: remaining } 
         },
       });
       remaining = 0;
@@ -413,7 +412,7 @@ export class StockService {
       });
 
       if (!transaction || transaction.qtyChange >= 0) {
-        throw new Error('Транзакция списания не найдена');
+        throw new NotFoundError('Транзакция списания не найдена');
       }
 
       const qtyToReturn = Math.abs(transaction.qtyChange);
@@ -452,12 +451,12 @@ export class StockService {
       });
 
       if (!transaction || transaction.qtyChange >= 0) {
-        throw new Error('Транзакция списания не найдена');
+        throw new NotFoundError('Транзакция списания не найдена');
       }
 
       const maxReturn = Math.abs(transaction.qtyChange);
       if (quantity <= 0 || quantity > maxReturn + 0.001) {
-        throw new Error(`Некорректное количество. Макс: ${maxReturn}`);
+        throw new ValidationError(`Некорректное количество. Макс: ${maxReturn}`);
       }
 
       const returnedToExisting = await this.addStockToExistingBatches(
@@ -516,11 +515,11 @@ export class StockService {
     const normalizedReason = String(reason || '').trim();
 
     if (normalizedQty <= 0) {
-      throw new Error('Количество для списания должно быть больше 0');
+      throw new ValidationError('Количество для списания должно быть больше 0');
     }
 
     if (!normalizedReason) {
-      throw new Error('Укажите причину списания');
+      throw new ValidationError('Укажите причину списания');
     }
 
     return await prisma.$transaction(async (tx: any) => {
@@ -534,11 +533,11 @@ export class StockService {
       });
 
       if (!product) {
-        throw new Error('Товар не найден');
+        throw new NotFoundError('Товар не найден');
       }
 
       if (Number(product.stock || 0) < normalizedQty) {
-        throw new Error('Недостаточно остатка для списания');
+        throw new ValidationError('Недостаточно остатка для списания');
       }
 
       const batches = await tx.productBatch.findMany({
@@ -556,7 +555,7 @@ export class StockService {
       );
 
       if (totalAvailable < normalizedQty) {
-        throw new Error('Недостаточно остатка в партиях для списания');
+        throw new ValidationError('Недостаточно остатка в партиях для списания');
       }
 
       let remainingToWriteOff = normalizedQty;
@@ -572,7 +571,6 @@ export class StockService {
         await tx.productBatch.update({
           where: { id: batch.id },
           data: {
-            quantity: { decrement: takeFromBatch },
             remainingQuantity: { decrement: takeFromBatch },
           },
         });
@@ -635,6 +633,63 @@ export class StockService {
         totalIncoming: totalIncoming,
         unit: 'шт',
       },
+    });
+  }
+
+  static async zeroBatchRemaining(batchId: number, userId: number) {
+    return await prisma.$transaction(async (tx: any) => {
+      const batch = await tx.productBatch.findUnique({
+        where: { id: batchId },
+        select: { 
+          id: true, 
+          productId: true, 
+          warehouseId: true, 
+          remainingQuantity: true, 
+          costPrice: true,
+          product: { select: { sellingPrice: true } }
+        }
+      });
+      if (!batch) throw new NotFoundError('Партия не найдена');
+      if (batch.remainingQuantity <= 0) return { success: true };
+
+      const qtyToWriteOff = batch.remainingQuantity;
+
+      await tx.productBatch.update({
+        where: { id: batch.id },
+        data: { remainingQuantity: 0 }
+      });
+
+      await tx.inventoryTransaction.create({
+        data: {
+          productId: batch.productId,
+          warehouseId: batch.warehouseId,
+          userId,
+          qtyChange: -qtyToWriteOff,
+          type: 'adjustment',
+          reason: `Batch #${batchId} Zeroed`,
+          costAtTime: Number(batch.costPrice || 0),
+          sellingAtTime: Number((batch as any).product?.sellingPrice || 0)
+        }
+      });
+
+      await this.updateProductStockCache(batch.productId, tx);
+      return { success: true };
+    });
+  }
+
+  static async deleteBatch(batchId: number) {
+    return await prisma.$transaction(async (tx: any) => {
+      const batch = await tx.productBatch.findUnique({
+        where: { id: batchId },
+        include: { saleAllocations: true }
+      });
+      if (!batch) throw new NotFoundError('Партия не найдена');
+      if (batch.remainingQuantity !== batch.quantity) throw new ConflictError('Нельзя удалить партию, из которой уже продан товар');
+      if (batch.saleAllocations.length > 0) throw new ConflictError('Партия используется в резервах');
+
+      await tx.productBatch.delete({ where: { id: batchId } });
+      await this.updateProductStockCache(batch.productId, tx);
+      return { success: true };
     });
   }
 }

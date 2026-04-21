@@ -46,8 +46,8 @@ export default function DashboardCharts({
   return (
     <section className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_360px] xl:items-stretch">
       <div className="space-y-4">
-        <div className="rounded-3xl border border-white bg-white p-4 shadow-sm">
-          <div className="mt-5 h-[220px] sm:h-[280px] lg:h-70">
+        <div className="rounded-3xl border border-white bg-white p-4 shadow-sm border-l-4 border-l-brand-blue">
+          <div className="mt-5 h-[220px] sm:h-[280px] lg:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={overviewData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
@@ -84,12 +84,12 @@ export default function DashboardCharts({
         {leftBottomContent}
       </div>
 
-      <div className="flex h-full min-w-0 flex-col rounded-[24px] border border-white bg-white p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
+      <div className="flex h-full min-w-0 flex-col rounded-[24px] border border-white bg-white p-4 shadow-sm border-l-4 border-l-brand-orange">
+        <div className="flex items-start justify-between gap-3 px-2">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Продажи по категориям</h2>
-            <p className="mt-2 text-[11px] text-slate-500">Общая выручка</p>
-            <p className="mt-2 break-words text-[clamp(1.05rem,1.45vw,1.45rem)] font-semibold leading-none tracking-tight text-slate-900">
+            <h2 className="text-sm font-black text-slate-800 uppercase tracking-tighter">Продажи по категориям</h2>
+            <p className="mt-1 text-[10px] text-slate-400 font-bold uppercase italic">Анализ товарных групп</p>
+            <p className="mt-3 break-words text-2xl font-black leading-none tracking-tighter text-brand-orange">
               {formatMoney(totalRevenue)}
             </p>
           </div>
@@ -97,9 +97,9 @@ export default function DashboardCharts({
             <button
               type="button"
               onClick={onOpenProfitReport}
-              className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+              className="shrink-0 rounded-[4px] border border-brand-orange/20 bg-brand-orange/5 px-3 py-1.5 text-[9px] font-black uppercase text-brand-orange transition-all hover:bg-brand-orange/10"
             >
-              Товары по прибыли
+              ПРИБЫЛЬ
             </button>
           ) : null}
         </div>
@@ -111,39 +111,48 @@ export default function DashboardCharts({
                 data={categoryData}
                 cx="50%"
                 cy="50%"
-                innerRadius={52}
-                outerRadius={74}
-                paddingAngle={2}
+                innerRadius={60}
+                outerRadius={85}
+                paddingAngle={4}
                 dataKey="value"
+                stroke="none"
               >
                 {categoryData.map((entry, index) => (
-                  <Cell key={`${entry.name}-${index}`} fill={ringColors[index % ringColors.length]} />
+                  <Cell 
+                    key={`${entry.name}-${index}`} 
+                    fill={ringColors[index % ringColors.length]} 
+                    className="hover:opacity-80 transition-opacity cursor-pointer outline-none"
+                  />
                 ))}
               </Pie>
               <Tooltip
                 contentStyle={{
-                  borderRadius: 16,
+                  borderRadius: '4px',
                   border: '1px solid #e2e8f0',
-                  boxShadow: '0 18px 40px rgba(15, 23, 42, 0.08)',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase'
                 }}
+                formatter={(v: number) => [formatMoney(v), '']}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="mt-4 flex-1 space-y-3">
+        <div className="mt-4 flex-1 space-y-2 px-2 overflow-auto max-h-[120px] custom-scrollbar">
           {categoryData.map((item, index) => (
-            <div key={`${item.name}-${index}`} className="flex items-center justify-between gap-3 text-sm">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="h-3 w-3 rounded-full" style={{ backgroundColor: ringColors[index % ringColors.length] }} />
-                <span className="break-words text-[12px] leading-4 text-slate-600">{item.name}</span>
+            <div key={`${item.name}-${index}`} className="flex items-center justify-between gap-3 text-[11px] hover:bg-slate-50 p-1 rounded transition-colors group">
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: ringColors[index % ringColors.length] }} />
+                <span className="truncate font-bold text-slate-600 group-hover:text-slate-900">{item.name}</span>
               </div>
-              <span className="text-slate-900">
+              <span className="font-black text-slate-900 shrink-0">
                 {totalCategoryValue > 0 ? formatPercent((item.value / totalCategoryValue) * 100) : formatPercent(0)}
               </span>
             </div>
           ))}
-          {!categoryData.length && <p className="text-sm text-slate-400">Нет данных по категориям</p>}
+          {!categoryData.length && <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest text-center mt-4 italic">Данные отсутствуют</p>}
         </div>
 
         <div className="mt-5 grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">

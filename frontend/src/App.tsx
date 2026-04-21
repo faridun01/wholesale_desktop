@@ -1,12 +1,12 @@
 import React, { Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Outlet, useLocation, NavLink } from 'react-router-dom';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Toaster } from 'react-hot-toast';
 import { 
   Loader2, Minus, Square, Warehouse, X, 
   LayoutDashboard, ShoppingCart, BookOpen, Package, 
   Users, Banknote, LineChart, 
-  Settings, UserCircle, Receipt
+  Settings, UserCircle, Receipt, Scissors
 } from 'lucide-react';
 import LoginView from './views/LoginView';
 import { getCurrentUser, isAdminUser } from './utils/userAccess';
@@ -22,6 +22,7 @@ const CatalogView = React.lazy(() => import('./views/CatalogView'));
 const AnalyticsView = React.lazy(() => import('./views/AnalyticsView'));
 const ExpensesView = React.lazy(() => import('./views/ExpensesView'));
 const POSView = React.lazy(() => import('./views/POSView'));
+const WriteOffsView = React.lazy(() => import('./views/WriteOffsView'));
 
 const TitleBar = () => {
   const windowControls = (window as any).electron?.windowControls;
@@ -62,6 +63,7 @@ const NavigationBar = () => {
     { to: '/pos', icon: ShoppingCart, label: 'ПРОДАЖИ (POS)', admin: false },
     { to: '/sales', icon: Receipt, label: 'ЖУРНАЛ ПРОДАЖ', admin: false },
     { to: '/products', icon: Package, label: 'ТОВАРЫ И СКЛАД', admin: false },
+    { to: '/write-offs', icon: Scissors, label: 'СПИСАНИЯ', admin: false },
     { to: '/catalog', icon: BookOpen, label: 'РЕФЕРЕНСЫ', admin: false },
     { to: '/customers', icon: Users, label: 'КОНТРАГЕНТЫ', admin: false },
     { to: '/expenses', icon: Banknote, label: 'ФИНАНСЫ', admin: true },
@@ -108,7 +110,7 @@ const Layout = () => {
       <TitleBar />
       <NavigationBar />
       
-      <main className="flex-1 w-full overflow-hidden pt-[76px] relative z-0">
+      <main className="flex-1 w-full overflow-hidden relative z-0">
          <Suspense fallback={
             <div className="flex h-full items-center justify-center bg-white/50 backdrop-blur-sm">
                <Loader2 size={32} className="animate-spin text-brand-orange" />
@@ -186,6 +188,7 @@ export default function App() {
         <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route path="/" element={isAdminUser(getCurrentUser()) ? <DashboardView /> : <Navigate to="/pos" />} />
           <Route path="/products" element={<ProductsView />} />
+          <Route path="/write-offs" element={<WriteOffsView />} />
           <Route path="/catalog" element={<CatalogView />} />
           <Route path="/sales" element={<SalesView />} />
           <Route path="/pos" element={<POSView />} />

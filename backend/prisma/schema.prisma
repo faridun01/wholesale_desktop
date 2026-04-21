@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,29 +6,29 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
-model User {
-  id               Int       @id @default(autoincrement())
-  username         String    @unique
-  passwordHash     String    @map("password_hash")
-  phone            String?   // Added for password recovery
-  role             String    @default("SELLER") // 'ADMIN' | 'MANAGER' | 'SELLER'
-  warehouseId      Int?      @map("warehouse_id")
-  active           Boolean   @default(true)
-  canCancelInvoices Boolean   @default(false) @map("can_cancel_invoices")
-  canDeleteData    Boolean   @default(false) @map("can_delete_data")
-  twoFactorEnabled Boolean   @default(false) @map("two_factor_enabled")
-  twoFactorSecret  String?   @map("two_factor_secret")
-  twoFactorBackupCodes Json?    @map("two_factor_backup_codes")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  warehouse    Warehouse? @relation(fields: [warehouseId], references: [id])
-  invoices     Invoice[]
-  payments     Payment[]
-  returns      Return[]
-  transactions InventoryTransaction[]
-  reminders    Reminder[]
-  expenses     Expense[]
+model User {
+  id                   Int                    @id @default(autoincrement())
+  username             String                 @unique
+  passwordHash         String                 @map("password_hash")
+  phone                String?
+  role                 String                 @default("SELLER")
+  warehouseId          Int?                   @map("warehouse_id")
+  active               Boolean                @default(true)
+  canCancelInvoices    Boolean                @default(false) @map("can_cancel_invoices")
+  canDeleteData        Boolean                @default(false) @map("can_delete_data")
+  twoFactorEnabled     Boolean                @default(false) @map("two_factor_enabled")
+  twoFactorSecret      String?                @map("two_factor_secret")
+  twoFactorBackupCodes Json?                  @map("two_factor_backup_codes")
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+  expenses             Expense[]
+  transactions         InventoryTransaction[]
+  invoices             Invoice[]
+  payments             Payment[]
+  reminders            Reminder[]
+  returns              Return[]
+  warehouse            Warehouse?             @relation(fields: [warehouseId], references: [id])
 
   @@index([active, warehouseId])
   @@index([role, active])
@@ -39,25 +36,24 @@ model User {
 }
 
 model Warehouse {
-  id          Int      @id @default(autoincrement())
-  name        String
-  address     String?
-  city        String?
-  phone       String?
-  note        String?
-  isDefault   Boolean  @default(false) @map("is_default")
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  users        User[]
-  products     Product[]
-  packagings   ProductPackaging[]
-  batches      ProductBatch[]
-  invoices     Invoice[]
+  id                Int                    @id @default(autoincrement())
+  name              String
+  address           String?
+  city              String?
+  phone             String?
+  note              String?
+  isDefault         Boolean                @default(false) @map("is_default")
+  active            Boolean                @default(true)
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+  expenses          Expense[]
+  transactions      InventoryTransaction[]
+  invoices          Invoice[]
+  batches           ProductBatch[]
+  packagings        ProductPackaging[]
+  products          Product[]
   purchaseDocuments PurchaseDocument[]
-  transactions InventoryTransaction[]
-  expenses     Expense[]
+  users             User[]
 
   @@index([active, city])
   @@map("warehouses")
@@ -69,44 +65,43 @@ model Category {
   active    Boolean   @default(true)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
-
   products  Product[]
 
   @@map("categories")
 }
 
 model Product {
-  id             Int      @id @default(autoincrement())
-  categoryId     Int      @map("category_id")
-  sku            String?
-  name           String
-  rawName        String?  @map("raw_name")
-  brand          String?
-  nameKey        String   @default("") @map("name_key")
-  unit           String
-  baseUnitName   String   @default("шт") @map("base_unit_name")
-  purchaseCostPrice Float? @map("purchase_cost_price")
-  expensePercent Float   @default(0) @map("expense_percent")
-  costPrice      Float  @map("cost_price")
-  sellingPrice   Float  @map("selling_price")
-  minStock       Float    @default(0) @map("min_stock")
-  initialStock   Float    @default(0) @map("initial_stock")
-  totalIncoming  Float    @default(0) @map("total_incoming")
-  stock          Float    @default(0)
-  photoUrl       String?  @map("photo_url")
-  active         Boolean  @default(true)
-  warehouseId    Int?     @map("warehouse_id")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  category     Category     @relation(fields: [categoryId], references: [id])
-  warehouse    Warehouse?   @relation(fields: [warehouseId], references: [id])
-  batches      ProductBatch[]
-  invoiceItems InvoiceItem[]
-  transactions InventoryTransaction[]
-  priceHistory PriceHistory[]
-  packagings   ProductPackaging[]
-  purchaseItems PurchaseDocumentItem[]
+  id                Int                    @id @default(autoincrement())
+  categoryId        Int                    @map("category_id")
+  sku               String?
+  name              String
+  rawName           String?                @map("raw_name")
+  brand             String?
+  nameKey           String                 @default("") @map("name_key")
+  unit              String
+  baseUnitName      String                 @default("шт") @map("base_unit_name")
+  purchaseCostPrice Float?                 @map("purchase_cost_price")
+  expensePercent    Float                  @default(0) @map("expense_percent")
+  costPrice         Float                  @map("cost_price")
+  sellingPrice      Float                  @map("selling_price")
+  minStock          Float                  @default(0) @map("min_stock")
+  initialStock      Float                  @default(0) @map("initial_stock")
+  totalIncoming     Float                  @default(0) @map("total_incoming")
+  stock             Float                  @default(0)
+  photoUrl          String?                @map("photo_url")
+  active            Boolean                @default(true)
+  warehouseId       Int?                   @map("warehouse_id")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+  transactions      InventoryTransaction[]
+  invoiceItems      InvoiceItem[]
+  priceHistory      PriceHistory[]
+  batches           ProductBatch[]
+  packagings        ProductPackaging[]
+  warehouse         Warehouse?             @relation(fields: [warehouseId], references: [id])
+  category          Category               @relation(fields: [categoryId], references: [id])
+  purchaseItems     PurchaseDocumentItem[]
+  returnItems       ReturnItem[]
 
   @@unique([warehouseId, nameKey])
   @@unique([name, warehouseId])
@@ -117,22 +112,21 @@ model Product {
 }
 
 model ProductPackaging {
-  id                  Int      @id @default(autoincrement())
-  productId           Int      @map("product_id")
-  warehouseId         Int?     @map("warehouse_id")
-  packageName         String   @map("package_name")
-  baseUnitName        String   @map("base_unit_name")
-  unitsPerPackage     Int      @map("units_per_package")
-  packageSellingPrice Float? @map("package_selling_price")
+  id                  Int        @id @default(autoincrement())
+  productId           Int        @map("product_id")
+  warehouseId         Int?       @map("warehouse_id")
+  packageName         String     @map("package_name")
+  baseUnitName        String     @map("base_unit_name")
+  unitsPerPackage     Int        @map("units_per_package")
+  packageSellingPrice Float?     @map("package_selling_price")
   barcode             String?
-  active              Boolean  @default(true)
-  isDefault           Boolean  @default(false) @map("is_default")
-  sortOrder           Int      @default(0) @map("sort_order")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-
-  product   Product    @relation(fields: [productId], references: [id])
-  warehouse Warehouse? @relation(fields: [warehouseId], references: [id])
+  active              Boolean    @default(true)
+  isDefault           Boolean    @default(false) @map("is_default")
+  sortOrder           Int        @default(0) @map("sort_order")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+  warehouse           Warehouse? @relation(fields: [warehouseId], references: [id])
+  product             Product    @relation(fields: [productId], references: [id])
 
   @@unique([productId, packageName, unitsPerPackage])
   @@unique([barcode, warehouseId])
@@ -144,31 +138,29 @@ model ProductPackaging {
 model PriceHistory {
   id           Int      @id @default(autoincrement())
   productId    Int      @map("product_id")
-  costPrice    Float  @map("cost_price")
-  sellingPrice Float  @map("selling_price")
+  costPrice    Float    @map("cost_price")
+  sellingPrice Float    @map("selling_price")
   createdAt    DateTime @default(now()) @map("created_at")
-
-  product Product @relation(fields: [productId], references: [id])
+  product      Product  @relation(fields: [productId], references: [id])
 
   @@index([productId, createdAt])
   @@map("price_history")
 }
 
 model ProductBatch {
-  id                Int      @id @default(autoincrement())
-  productId         Int      @map("product_id")
-  warehouseId       Int      @map("warehouse_id")
+  id                Int              @id @default(autoincrement())
+  productId         Int              @map("product_id")
+  warehouseId       Int              @map("warehouse_id")
   quantity          Float
-  remainingQuantity Float    @map("remaining_quantity")
-  purchaseCostPrice Float? @map("purchase_cost_price")
-  expensePercent    Float    @default(0) @map("expense_percent")
-  costPrice         Float  @map("cost_price")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  product         Product          @relation(fields: [productId], references: [id])
-  warehouse       Warehouse        @relation(fields: [warehouseId], references: [id])
-  saleAllocations SaleAllocation[]
+  remainingQuantity Float            @map("remaining_quantity")
+  purchaseCostPrice Float?           @map("purchase_cost_price")
+  expensePercent    Float            @default(0) @map("expense_percent")
+  costPrice         Float            @map("cost_price")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  warehouse         Warehouse        @relation(fields: [warehouseId], references: [id])
+  product           Product          @relation(fields: [productId], references: [id])
+  saleAllocations   SaleAllocation[]
 
   @@index([warehouseId, remainingQuantity])
   @@index([productId, warehouseId])
@@ -177,26 +169,25 @@ model ProductBatch {
 }
 
 model Customer {
-  id        Int      @id @default(autoincrement())
-  customerType String @default("individual") @map("customer_type")
-  name      String
-  customerCategory String? @map("customer_category")
-  companyName String? @map("company_name")
-  contactName String? @map("contact_name")
-  phone     String?
-  country   String?
-  region    String?
-  address   String?
-  city      String?
-  notes     String?
-  createdByUserId Int? @map("created_by_user_id")
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  invoices Invoice[]
-  payments Payment[]
-  returns  Return[]
+  id               Int       @id @default(autoincrement())
+  customerType     String    @default("individual") @map("customer_type")
+  name             String
+  customerCategory String?   @map("customer_category")
+  companyName      String?   @map("company_name")
+  contactName      String?   @map("contact_name")
+  phone            String?
+  country          String?
+  region           String?
+  address          String?
+  city             String?
+  notes            String?
+  createdByUserId  Int?      @map("created_by_user_id")
+  active           Boolean   @default(true)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  invoices         Invoice[]
+  payments         Payment[]
+  returns          Return[]
 
   @@index([active, city, createdAt])
   @@index([createdByUserId, createdAt])
@@ -220,38 +211,36 @@ model CompanyProfile {
 }
 
 model Supplier {
-  id          Int      @id @default(autoincrement())
-  name        String
-  phone       String?
-  address     String?
-  city        String?
-  notes       String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
+  id                Int                @id @default(autoincrement())
+  name              String
+  phone             String?
+  address           String?
+  city              String?
+  notes             String?
+  active            Boolean            @default(true)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
   purchaseDocuments PurchaseDocument[]
 
   @@map("suppliers")
 }
 
 model PurchaseDocument {
-  id             Int       @id @default(autoincrement())
-  supplierId     Int?      @map("supplier_id")
-  warehouseId    Int       @map("warehouse_id")
-  sourceType     String    @default("pdf") @map("source_type")
-  documentNumber String?   @map("document_number")
-  documentDate   DateTime? @map("document_date")
-  fileUrl        String?   @map("file_url")
-  rawText        String?   @map("raw_text")
-  status         String    @default("draft")
-  importedAt     DateTime? @map("imported_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-
-  supplier  Supplier?              @relation(fields: [supplierId], references: [id])
-  warehouse Warehouse              @relation(fields: [warehouseId], references: [id])
-  items     PurchaseDocumentItem[]
+  id             Int                    @id @default(autoincrement())
+  supplierId     Int?                   @map("supplier_id")
+  warehouseId    Int                    @map("warehouse_id")
+  sourceType     String                 @default("pdf") @map("source_type")
+  documentNumber String?                @map("document_number")
+  documentDate   DateTime?              @map("document_date")
+  fileUrl        String?                @map("file_url")
+  rawText        String?                @map("raw_text")
+  status         String                 @default("draft")
+  importedAt     DateTime?              @map("imported_at")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+  items          PurchaseDocumentItem[]
+  warehouse      Warehouse              @relation(fields: [warehouseId], references: [id])
+  supplier       Supplier?              @relation(fields: [supplierId], references: [id])
 
   @@index([warehouseId, createdAt])
   @@index([supplierId, createdAt])
@@ -259,26 +248,25 @@ model PurchaseDocument {
 }
 
 model PurchaseDocumentItem {
-  id                   Int      @id @default(autoincrement())
-  purchaseDocumentId   Int      @map("purchase_document_id")
-  matchedProductId     Int?     @map("matched_product_id")
-  rawName              String   @map("raw_name")
-  cleanName            String   @map("clean_name")
-  brand                String?
-  nameKey              String   @map("name_key")
-  packageName          String?  @map("package_name")
-  baseUnitName         String   @map("base_unit_name")
-  unitsPerPackage      Int?     @map("units_per_package")
-  packageQuantity      Float?   @map("package_quantity")
-  extraUnitQuantity    Float    @default(0) @map("extra_unit_quantity")
-  totalBaseUnits       Float    @map("total_base_units")
-  expensePercent       Float    @default(0) @map("expense_percent")
-  costPricePerBaseUnit Float? @map("cost_price_per_base_unit")
-  effectiveCostPricePerBaseUnit Float? @map("effective_cost_price_per_base_unit")
-  createdAt            DateTime @default(now()) @map("created_at")
-
-  purchaseDocument PurchaseDocument @relation(fields: [purchaseDocumentId], references: [id])
-  matchedProduct   Product?         @relation(fields: [matchedProductId], references: [id])
+  id                            Int              @id @default(autoincrement())
+  purchaseDocumentId            Int              @map("purchase_document_id")
+  matchedProductId              Int?             @map("matched_product_id")
+  rawName                       String           @map("raw_name")
+  cleanName                     String           @map("clean_name")
+  brand                         String?
+  nameKey                       String           @map("name_key")
+  packageName                   String?          @map("package_name")
+  baseUnitName                  String           @map("base_unit_name")
+  unitsPerPackage               Int?             @map("units_per_package")
+  packageQuantity               Float?           @map("package_quantity")
+  extraUnitQuantity             Float            @default(0) @map("extra_unit_quantity")
+  totalBaseUnits                Float            @map("total_base_units")
+  expensePercent                Float            @default(0) @map("expense_percent")
+  costPricePerBaseUnit          Float?           @map("cost_price_per_base_unit")
+  effectiveCostPricePerBaseUnit Float?           @map("effective_cost_price_per_base_unit")
+  createdAt                     DateTime         @default(now()) @map("created_at")
+  matchedProduct                Product?         @relation(fields: [matchedProductId], references: [id])
+  purchaseDocument              PurchaseDocument @relation(fields: [purchaseDocumentId], references: [id])
 
   @@index([purchaseDocumentId])
   @@index([matchedProductId])
@@ -287,36 +275,35 @@ model PurchaseDocumentItem {
 }
 
 model Invoice {
-  id          Int      @id @default(autoincrement())
-  customerId  Int      @map("customer_id")
-  userId      Int      @map("user_id")
-  warehouseId Int      @map("warehouse_id")
-  totalAmount Float  @map("total_amount")
-  discount    Float    @default(0)
-  tax         Float  @default(0)
-  netAmount   Float  @map("net_amount")
-  paidAmount  Float  @default(0) @map("paid_amount")
-  returnedAmount Float @default(0) @map("returned_amount")
-  status      String   @default("unpaid") // 'paid' | 'partial' | 'unpaid'
-  cancelled   Boolean  @default(false)
-  paymentDueDate DateTime? @map("payment_due_date")
-  companyNameSnapshot String? @map("company_name_snapshot")
-  companyCountrySnapshot String? @map("company_country_snapshot")
-  companyRegionSnapshot String? @map("company_region_snapshot")
-  companyCitySnapshot String? @map("company_city_snapshot")
-  companyAddressSnapshot String? @map("company_address_snapshot")
-  customerNameSnapshot String? @map("customer_name_snapshot")
-  customerPhoneSnapshot String? @map("customer_phone_snapshot")
-  customerAddressSnapshot String? @map("customer_address_snapshot")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  customer     Customer      @relation(fields: [customerId], references: [id])
-  user         User          @relation(fields: [userId], references: [id])
-  warehouse    Warehouse     @relation(fields: [warehouseId], references: [id])
-  items        InvoiceItem[]
-  payments     Payment[]
-  returns      Return[]
+  id                      Int           @id @default(autoincrement())
+  customerId              Int           @map("customer_id")
+  userId                  Int           @map("user_id")
+  warehouseId             Int           @map("warehouse_id")
+  totalAmount             Float         @map("total_amount")
+  discount                Float         @default(0)
+  tax                     Float         @default(0)
+  netAmount               Float         @map("net_amount")
+  paidAmount              Float         @default(0) @map("paid_amount")
+  returnedAmount          Float         @default(0) @map("returned_amount")
+  status                  String        @default("unpaid")
+  cancelled               Boolean       @default(false)
+  paymentDueDate          DateTime?     @map("payment_due_date")
+  companyNameSnapshot     String?       @map("company_name_snapshot")
+  companyCountrySnapshot  String?       @map("company_country_snapshot")
+  companyRegionSnapshot   String?       @map("company_region_snapshot")
+  companyCitySnapshot     String?       @map("company_city_snapshot")
+  companyAddressSnapshot  String?       @map("company_address_snapshot")
+  customerNameSnapshot    String?       @map("customer_name_snapshot")
+  customerPhoneSnapshot   String?       @map("customer_phone_snapshot")
+  customerAddressSnapshot String?       @map("customer_address_snapshot")
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+  items                   InvoiceItem[]
+  warehouse               Warehouse     @relation(fields: [warehouseId], references: [id])
+  user                    User          @relation(fields: [userId], references: [id])
+  customer                Customer      @relation(fields: [customerId], references: [id])
+  payments                Payment[]
+  returns                 Return[]
 
   @@index([warehouseId, cancelled, createdAt])
   @@index([cancelled, createdAt])
@@ -326,29 +313,28 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id           Int      @id @default(autoincrement())
-  invoiceId    Int      @map("invoice_id")
-  productId    Int      @map("product_id")
-  quantity     Float
-  totalBaseUnits Float? @map("total_base_units")
-  packageQuantity Float? @map("package_quantity")
-  extraUnitQuantity Float @default(0) @map("extra_unit_quantity")
-  packagingId  Int?     @map("packaging_id")
-  packageNameSnapshot String? @map("package_name_snapshot")
-  baseUnitNameSnapshot String? @map("base_unit_name_snapshot")
-  unitsPerPackageSnapshot Int? @map("units_per_package_snapshot")
-  productNameSnapshot String? @map("product_name_snapshot")
-  rawNameSnapshot String? @map("raw_name_snapshot")
-  brandSnapshot String? @map("brand_snapshot")
-  sellingPrice Float  @map("selling_price")
-  costPrice    Float  @default(0) @map("cost_price")
-  discount     Float    @default(0)
-  totalPrice   Float  @map("total_price")
-  returnedQty  Float    @default(0) @map("returned_qty")
-
-  invoice         Invoice          @relation(fields: [invoiceId], references: [id])
-  product         Product          @relation(fields: [productId], references: [id])
-  saleAllocations SaleAllocation[]
+  id                      Int              @id @default(autoincrement())
+  invoiceId               Int              @map("invoice_id")
+  productId               Int              @map("product_id")
+  quantity                Float
+  totalBaseUnits          Float?           @map("total_base_units")
+  packageQuantity         Float?           @map("package_quantity")
+  extraUnitQuantity       Float            @default(0) @map("extra_unit_quantity")
+  packagingId             Int?             @map("packaging_id")
+  packageNameSnapshot     String?          @map("package_name_snapshot")
+  baseUnitNameSnapshot    String?          @map("base_unit_name_snapshot")
+  unitsPerPackageSnapshot Int?             @map("units_per_package_snapshot")
+  productNameSnapshot     String?          @map("product_name_snapshot")
+  rawNameSnapshot         String?          @map("raw_name_snapshot")
+  brandSnapshot           String?          @map("brand_snapshot")
+  sellingPrice            Float            @map("selling_price")
+  costPrice               Float            @default(0) @map("cost_price")
+  discount                Float            @default(0)
+  totalPrice              Float            @map("total_price")
+  returnedQty             Float            @default(0) @map("returned_qty")
+  product                 Product          @relation(fields: [productId], references: [id])
+  invoice                 Invoice          @relation(fields: [invoiceId], references: [id])
+  saleAllocations         SaleAllocation[]
 
   @@index([invoiceId])
   @@index([productId])
@@ -356,13 +342,12 @@ model InvoiceItem {
 }
 
 model SaleAllocation {
-  id            Int   @id @default(autoincrement())
-  invoiceItemId Int   @map("invoice_item_id")
-  batchId       Int   @map("batch_id")
+  id            Int          @id @default(autoincrement())
+  invoiceItemId Int          @map("invoice_item_id")
+  batchId       Int          @map("batch_id")
   quantity      Float
-
-  invoiceItem  InvoiceItem  @relation(fields: [invoiceItemId], references: [id])
-  batch        ProductBatch @relation(fields: [batchId], references: [id])
+  batch         ProductBatch @relation(fields: [batchId], references: [id])
+  invoiceItem   InvoiceItem  @relation(fields: [invoiceItemId], references: [id])
 
   @@index([invoiceItemId])
   @@index([batchId])
@@ -374,13 +359,12 @@ model Payment {
   customerId Int      @map("customer_id")
   invoiceId  Int?     @map("invoice_id")
   userId     Int      @map("user_id")
-  amount     Float 
-  method     String   @default("cash") // 'cash' | 'card' | 'transfer'
+  amount     Float
+  method     String   @default("cash")
   createdAt  DateTime @default(now()) @map("created_at")
-
-  customer Customer @relation(fields: [customerId], references: [id])
-  invoice  Invoice? @relation(fields: [invoiceId], references: [id])
-  user     User     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+  invoice    Invoice? @relation(fields: [invoiceId], references: [id])
+  customer   Customer @relation(fields: [customerId], references: [id])
 
   @@index([customerId, createdAt])
   @@index([invoiceId, createdAt])
@@ -389,20 +373,19 @@ model Payment {
 }
 
 model Expense {
-  id          Int      @id @default(autoincrement())
-  warehouseId Int      @map("warehouse_id")
-  userId      Int      @map("user_id")
+  id          Int       @id @default(autoincrement())
+  warehouseId Int       @map("warehouse_id")
+  userId      Int       @map("user_id")
   category    String
   title       String
-  amount      Float 
-  paidAmount  Float  @default(0) @map("paid_amount")
-  expenseDate DateTime @map("expense_date")
+  amount      Float
+  paidAmount  Float     @default(0) @map("paid_amount")
+  expenseDate DateTime  @map("expense_date")
   note        String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
-  user      User      @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  user        User      @relation(fields: [userId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
 
   @@index([warehouseId, expenseDate])
   @@index([userId, createdAt])
@@ -415,12 +398,12 @@ model Return {
   customerId Int      @map("customer_id")
   userId     Int      @map("user_id")
   reason     String?
-  totalValue Float  @map("total_value")
+  totalValue Float    @map("total_value")
   createdAt  DateTime @default(now()) @map("created_at")
-
-  invoice  Invoice  @relation(fields: [invoiceId], references: [id])
-  customer Customer @relation(fields: [customerId], references: [id])
-  user     User     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+  customer   Customer @relation(fields: [customerId], references: [id])
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id])
+  items      ReturnItem[]
 
   @@index([invoiceId, createdAt])
   @@index([customerId, createdAt])
@@ -428,22 +411,54 @@ model Return {
   @@map("returns")
 }
 
-model InventoryTransaction {
-  id           Int      @id @default(autoincrement())
-  productId    Int      @map("product_id")
-  warehouseId  Int      @map("warehouse_id")
-  userId       Int      @map("user_id")
-  qtyChange    Float    @map("qty_change")
-  type         String   // 'incoming' | 'outgoing' | 'return' | 'adjustment' | 'transfer'
-  reason       String?
-  referenceId  Int?     @map("reference_id") // ID of Invoice, Return, etc.
-  costAtTime   Float? @map("cost_at_time")
-  sellingAtTime Float? @map("selling_at_time")
-  createdAt    DateTime @default(now()) @map("created_at")
+model ReturnItem {
+  id        Int     @id @default(autoincrement())
+  returnId  Int     @map("return_id")
+  productId Int     @map("product_id")
+  quantity  Float
+  price     Float
 
-  product   Product   @relation(fields: [productId], references: [id])
-  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
-  user      User      @relation(fields: [userId], references: [id])
+  return    Return  @relation(fields: [returnId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("return_items")
+}
+
+model InventoryWriteOff {
+  id          Int      @id @default(autoincrement())
+  warehouseId Int      @map("warehouse_id")
+  userId      Int      @map("user_id")
+  reason      String?
+  note        String?
+  totalValue  Float?   @map("total_value")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  transactions InventoryTransaction[]
+  
+  @@index([warehouseId, createdAt])
+  @@map("inventory_write_offs")
+}
+
+model InventoryTransaction {
+  id            Int       @id @default(autoincrement())
+  productId     Int       @map("product_id")
+  warehouseId   Int       @map("warehouse_id")
+  userId        Int       @map("user_id")
+  qtyChange     Float     @map("qty_change")
+  stockAfter    Float?    @map("stock_after")
+  type          String
+  reason        String?
+  referenceId   Int?      @map("reference_id")
+  writeOffId    Int?      @map("write_off_id")
+  isReversed    Boolean   @default(false) @map("is_reversed")
+  reversedId    Int?      @map("reversed_id")
+  costAtTime    Float?    @map("cost_at_time")
+  sellingAtTime Float?    @map("selling_at_time")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  user          User      @relation(fields: [userId], references: [id])
+  warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
+  product       Product   @relation(fields: [productId], references: [id])
+  writeOff      InventoryWriteOff? @relation(fields: [writeOffId], references: [id])
 
   @@index([type, warehouseId, createdAt])
   @@index([warehouseId, createdAt])
@@ -468,15 +483,24 @@ model Reminder {
   description String?
   dueDate     DateTime @map("due_date")
   isCompleted Boolean  @default(false) @map("is_completed")
-  type        String   @default("general") // 'restock' | 'payment' | 'general'
+  type        String   @default("general")
   referenceId Int?     @map("reference_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
 
   @@index([userId, isCompleted, dueDate])
   @@index([dueDate])
   @@index([referenceId])
   @@map("reminders")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model rate_limit_entries {
+  key           String?   @id
+  count         Int
+  reset_at      DateTime
+  blocked_until DateTime?
+
+  @@ignore
 }

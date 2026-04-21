@@ -78,6 +78,46 @@ function buildCurrentInvoiceItemSnapshot(item: any) {
 
 export class InvoiceService {
   /**
+   * Fetchespaginated invoices list with calculated totals and profit (for admins)
+   */
+  public static async getInvoices(access: any, params: { warehouseId?: number, pagination: { skip: number, limit: number } }) {
+    const where: any = {
+      cancelled: false,
+      warehouseId: params.warehouseId ?? undefined,
+      userId: access.isAdmin ? undefined : (access.userId ?? -1)
+    };
+
+    const [invoices, total] = await Promise.all([
+      prisma.invoice.findMany({
+        where,
+        include: { customer: true, user: true, items: true },
+        skip: params.pagination.skip,
+        take: params.pagination.limit,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.invoice.count({ where })
+    ]);
+
+    const mapped = invoices.map((inv: any) => {
+      let totalProfit: number | undefined = undefined;
+      if (access.isAdmin) {
+        totalProfit = inv.items.reduce((sum: number, item: any) => {
+          return sum + (item.sellingPrice - (item.costPrice || 0)) * (item.quantity - (item.returnedQty || 0));
+        }, 0);
+      }
+
+      return {
+        ...inv,
+        customer_name: inv.customerNameSnapshot || inv.customer?.name || '---',
+        staff_name: inv.user?.username || '---',
+        totalProfit
+      };
+    });
+
+    return { invoices: mapped, total };
+  }
+
+  /**
    * Creates a new invoice and allocates stock.
    */
   static async createInvoice(data: {

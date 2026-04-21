@@ -1,5 +1,6 @@
 import prisma from '../db/prisma.js';
 import type { AuthRequest } from '../middlewares/auth.middleware.js';
+import { ForbiddenError } from './errors.js';
 
 export type AccessContext = {
   isAdmin: boolean;
@@ -65,4 +66,10 @@ export function ensureWarehouseAccess(context: AccessContext, warehouseId: numbe
   }
 
   return Boolean(context.warehouseId && warehouseId && Number(context.warehouseId) === Number(warehouseId));
+}
+
+export function ensureAdminAccess(context: AccessContext) {
+  if (!context.isAdmin) {
+    throw new ForbiddenError('Только администратор может выполнять это действие');
+  }
 }
