@@ -179,6 +179,33 @@ router.post('/history/:transactionId/reverse-writeoff', async (req: AuthRequest,
   }
 });
 
+router.post('/history/:transactionId/return-writeoff', async (req: AuthRequest, res, next) => {
+  try {
+    const access = await getAccessContext(req);
+    ensureAdminAccess(access);
+    const result = await StockService.returnWriteOffTransaction(
+      Number(req.params.transactionId),
+      Number(req.body.quantity),
+      req.user!.id,
+      String(req.body.reason || '').trim(),
+    );
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/history/:transactionId/writeoff', async (req: AuthRequest, res, next) => {
+  try {
+    const access = await getAccessContext(req);
+    ensureAdminAccess(access);
+    const result = await StockService.deleteWriteOffTransactionPermanently(Number(req.params.transactionId));
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/:id/batches', async (req: AuthRequest, res, next) => {
   try {
     const access = await getAccessContext(req);

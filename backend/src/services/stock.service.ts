@@ -442,6 +442,7 @@ export class StockService {
       }
 
       await tx.inventoryTransaction.delete({ where: { id: transactionId } });
+      await this.updateProductStockCache(transaction.productId, tx);
 
       return { success: true };
     });

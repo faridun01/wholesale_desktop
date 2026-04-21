@@ -29,7 +29,7 @@ export default function WriteOffReturnModal({ isOpen, onClose, transaction, onSu
 
     setIsSubmitting(true);
     try {
-      await client.post(`/products/history/${transaction.transaction_id || transaction.id}/reverse-writeoff`, {
+      await client.post(`/products/history/${transaction.transaction_id || transaction.id}/return-writeoff`, {
         quantity: qty,
         reason: reason || 'Отмена/возврат списания'
       });

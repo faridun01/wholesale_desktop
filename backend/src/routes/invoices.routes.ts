@@ -39,7 +39,10 @@ router.get('/', async (req: AuthRequest, res, next) => {
     const warehouseId = getScopedWarehouseId(access, req.query.warehouseId);
     const pagination = parsePaginationQuery(req.query, { defaultLimit: 500, maxLimit: 1000 });
 
-    const { invoices, total } = await InvoiceService.getInvoices(access, { warehouseId, pagination });
+    const { invoices, total } = await InvoiceService.getInvoices(access, {
+      warehouseId: warehouseId ?? undefined,
+      pagination,
+    });
 
     setPaginationHeaders(res, { ...pagination, total });
     res.json(invoices);
