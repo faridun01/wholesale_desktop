@@ -153,11 +153,11 @@ export default function SalesView() {
 
   const getEffectiveStatus = (inv: any) => {
     const paid = Number(inv.paidAmount || 0);
-    const net = Number(inv.netAmount || inv.totalAmount || 0);
+    const net = typeof inv.netAmount === 'number' ? inv.netAmount : Number(inv.totalAmount || 0);
     const returned = Number(inv.returnedAmount || 0);
 
     if (returned > 0 && net <= 0.01) return 'returned';
-    if (paid > 0 && paid >= net - 0.01) return 'paid';
+    if (paid >= net - 0.01) return 'paid';
     return paid > 0 ? 'partial' : 'unpaid';
   };
 
@@ -289,7 +289,10 @@ export default function SalesView() {
                <tbody>
                   {paginated.map((inv, idx) => {
                       const date = new Date(inv.createdAt);
-                      const balance = (inv.netAmount || inv.totalAmount || 0) - (inv.paidAmount || 0);
+                      const netAmt = typeof inv.netAmount === 'number' ? inv.netAmount : Number(inv.totalAmount || 0);
+                      const paidAmt = Number(inv.paidAmount || 0);
+                      const displayPaid = Math.min(paidAmt, netAmt); // Cap display paid amount
+                      const balance = Math.max(0, netAmt - paidAmt); // No negative balance in display
                       return (
                         <tr key={inv.id} onDoubleClick={() => fetchInvoiceDetails(inv.id)} className="hover:bg-brand-yellow/5 group cursor-pointer">
                             <td className="text-center font-mono text-[10px] text-slate-400">{(currentPage-1)*pageSize+idx+1}</td>
@@ -306,8 +309,8 @@ export default function SalesView() {
                                {inv.staff_name && <div className="text-[9px] text-slate-400 flex items-center gap-1 mt-0.5"><UserIcon size={10} /> {inv.staff_name}</div>}
                             </td>
                             <td><div className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 italic"><WarehouseIcon size={12} className="text-slate-300" /> {inv.warehouse_name || '—'}</div></td>
-                            <td className="text-right font-black text-slate-900">{formatMoney(inv.netAmount || inv.totalAmount || 0)}</td>
-                            <td className="text-right font-black text-emerald-600">{formatMoney(inv.paidAmount || 0)}</td>
+                            <td className="text-right font-black text-slate-900">{formatMoney(netAmt)}</td>
+                            <td className="text-right font-black text-emerald-600">{formatMoney(displayPaid)}</td>
                             <td className={clsx("text-right font-black", balance > 0.01 ? "text-brand-orange" : "text-slate-300")}>{formatMoney(balance)}</td>
                             <td className="text-center">{getStatusBadge(inv)}</td>
                             <td className="text-center">
@@ -401,11 +404,11 @@ export default function SalesView() {
                          </div>
                          <div className="p-3 bg-slate-900 border border-slate-800 rounded">
                             <span className="text-[8px] font-black uppercase text-slate-500 block mb-1">К оплате (NET)</span>
-                            <div className="text-base font-black text-brand-yellow">{formatMoney(selectedInvoice.netAmount || selectedInvoice.totalAmount || 0)}</div>
+                            <div className="text-base font-black text-brand-yellow">{formatMoney(typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0))}</div>
                          </div>
                          <div className="p-3 bg-emerald-50 border border-emerald-100 rounded">
                             <span className="text-[8px] font-black uppercase text-emerald-600 block mb-1">Оплачено</span>
-                            <div className="text-base font-black text-emerald-600">{formatMoney(selectedInvoice.paidAmount || 0)}</div>
+                            <div className="text-base font-black text-emerald-600">{formatMoney(Math.min(selectedInvoice.paidAmount || 0, typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0)))}</div>
                          </div>
                       </div>
                    </div>
@@ -463,7 +466,13 @@ export default function SalesView() {
                     
                     <div className="flex items-center gap-2">
                         <button 
-                          onClick={() => { setShowDetailsModal(false); setShowPaymentModal(true); setPaymentAmount(String(roundMoney((selectedInvoice.netAmount || selectedInvoice.totalAmount || 0) - (selectedInvoice.paidAmount || 0)))); }}
+                          onClick={() => { 
+                            const net = typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0);
+                            const paid = selectedInvoice.paidAmount || 0;
+                            setShowDetailsModal(false); 
+                            setShowPaymentModal(true); 
+                            setPaymentAmount(String(Math.max(0, roundMoney(net - paid)))); 
+                          }}
                           disabled={getEffectiveStatus(selectedInvoice) === 'paid'}
                           className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2 disabled:grayscale disabled:opacity-30"
                         >
@@ -511,7 +520,7 @@ export default function SalesView() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-2 bg-slate-50 border border-slate-200 rounded">
                                 <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Долг клиента</span>
-                                <span className="text-sm font-black text-rose-600">{formatMoney((selectedInvoice.netAmount || selectedInvoice.totalAmount || 0) - (selectedInvoice.paidAmount || 0))}</span>
+                                <span className="text-sm font-black text-rose-600">{formatMoney(Math.max(0, (typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0)) - (selectedInvoice.paidAmount || 0)))}</span>
                             </div>
                             <div className="p-2 bg-emerald-50 border border-emerald-100 rounded">
                                 <span className="text-[9px] font-black uppercase text-emerald-600 block mb-1">Сумма оплаты</span>
@@ -525,15 +534,16 @@ export default function SalesView() {
                         </div>
                         <button 
                           onClick={async () => {
-                             const debt = (selectedInvoice.netAmount || selectedInvoice.totalAmount || 0) - (selectedInvoice.paidAmount || 0);
+                             const currentNet = typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0);
+                             const debt = Math.max(0, currentNet - (selectedInvoice.paidAmount || 0));
                              const amount = Number(paymentAmount);
                              if (amount > debt + 0.01) {
-                               toast.error('Сумма превышает остаток долга');
-                               return;
+                                toast.error('Сумма превышает остаток долга');
+                                return;
                              }
                              if (amount <= 0) {
-                               toast.error('Введите корректную сумму');
-                               return;
+                                toast.error('Введите корректную сумму');
+                                return;
                              }
 
                              setIsPaying(true);

@@ -176,15 +176,22 @@ export default function DashboardView() {
                       <tr key={sale.id}>
                          <td className="text-center font-mono font-bold text-slate-400">#{sale.id}</td>
                          <td className="font-bold">{sale.customer?.name || '<Розничный покупатель>'}</td>
-                         <td className="text-right font-black text-slate-900">{formatMoney(sale.netAmount)}</td>
+                         <td className="text-right font-black text-slate-900">{formatMoney(typeof sale.netAmount === 'number' ? sale.netAmount : (sale.totalAmount || 0))}</td>
                          <td className="text-center">
-                            <span className={clsx(
-                              "text-[9px] font-black uppercase px-2 py-0.5 rounded",
-                               sale.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 
-                               sale.status === 'partial' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'
-                            )}>
-                               {sale.status === 'paid' ? 'Оплачено' : sale.status === 'partial' ? 'Частично' : 'Задолженность'}
-                            </span>
+                            {(() => {
+                               const paid = Number(sale.paidAmount || 0);
+                               const net = typeof sale.netAmount === 'number' ? sale.netAmount : Number(sale.totalAmount || 0);
+                               const returned = Number(sale.returnedAmount || 0);
+                               
+                               if (returned > 0 && net <= 0.01) return <span className="bg-rose-100 text-rose-700 text-[9px] font-black uppercase px-2 py-0.5 rounded">Возврат</span>;
+                               if (paid >= net - 0.01) return <span className="bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase px-2 py-0.5 rounded">Оплачено</span>;
+                               return <span className={clsx(
+                                 "text-[9px] font-black uppercase px-2 py-0.5 rounded",
+                                  paid > 0 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'
+                               )}>
+                                  {paid > 0 ? 'Частично' : 'Задолженность'}
+                               </span>;
+                            })()}
                          </td>
                          <td><ChevronRight size={14} className="text-slate-300" /></td>
                       </tr>

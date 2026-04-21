@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, 
@@ -39,12 +39,20 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
     }
   }, [isOpen, customer]);
 
-  const summary = {
-    totalRevenue: history.reduce((acc, h) => acc + (h.netAmount || h.totalAmount || 0), 0),
-    totalPaid: history.reduce((acc, h) => acc + (h.paidAmount || 0), 0),
-    balance: customer?.balance || 0,
-    invoiceCount: history.length
-  };
+  const summary = useMemo(() => {
+    const revenue = history.reduce((acc, h) => acc + (typeof h.netAmount === 'number' ? h.netAmount : Number(h.totalAmount || 0)), 0);
+    const paid = history.reduce((acc, h) => {
+        const net = typeof h.netAmount === 'number' ? h.netAmount : Number(h.totalAmount || 0);
+        return acc + Math.min(Number(h.paidAmount || 0), net);
+    }, 0);
+    
+    return {
+      totalRevenue: revenue,
+      totalPaid: paid,
+      balance: Math.max(0, revenue - paid),
+      invoiceCount: history.length
+    };
+  }, [history]);
 
   const handleShowDetail = (id: number) => {
     setSelectedSaleId(id);
@@ -74,7 +82,7 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                  </div>
                  <div className="flex items-center gap-2 text-slate-400">
                     <button onClick={onClose} className="hover:bg-black/5 p-1 rounded transition-colors text-slate-700">
-                      <X size={20} />
+                       <X size={20} />
                     </button>
                  </div>
               </div>
@@ -150,7 +158,11 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                              </thead>
                              <tbody>
                                 {history.map((h, i) => {
-                                   const bal = Math.max(0, (h.netAmount || h.totalAmount || 0) - (h.paidAmount || 0));
+                                   const net = typeof h.netAmount === 'number' ? h.netAmount : Number(h.totalAmount || 0);
+                                   const paid = Number(h.paidAmount || 0);
+                                   const displayPaid = Math.min(paid, net);
+                                   const bal = Math.max(0, net - paid);
+                                   
                                    return (
                                       <tr key={h.id} className="hover:bg-brand-yellow/5 group cursor-pointer" onClick={() => handleShowDetail(h.id)}>
                                          <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
@@ -160,8 +172,8 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                                              Че{h.id}
                                            </span>
                                          </td>
-                                         <td className="text-right font-black text-slate-900">{formatMoney(h.netAmount || h.totalAmount || 0)}</td>
-                                         <td className="text-right font-black text-emerald-600">{formatMoney(h.paidAmount || 0)}</td>
+                                         <td className="text-right font-black text-slate-900">{formatMoney(net)}</td>
+                                         <td className="text-right font-black text-emerald-600">{formatMoney(displayPaid)}</td>
                                          <td className={clsx("text-right font-black", bal > 0 ? "text-rose-600" : "text-slate-300")}>{formatMoney(bal)}</td>
                                          <td className="text-center">
                                             <ChevronRight size={14} className="text-slate-200 group-hover:text-brand-orange transition-colors" />

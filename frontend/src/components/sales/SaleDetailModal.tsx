@@ -118,9 +118,15 @@ export default function SaleDetailModal({ isOpen, onClose, saleId }: SaleDetailM
                            <span className="text-2xl font-black text-brand-orange leading-none">{formatMoney(sale.netAmount)}</span>
                         </div>
                         <div className="flex justify-between items-center pt-1 text-emerald-600 text-[10px] font-black uppercase">
-                           <span>Оплачено фактически:</span>
-                           <span>{formatMoney(sale.paidAmount || 0)}</span>
+                           <span>Оплачено:</span>
+                           <span>{formatMoney(Math.min(sale.paidAmount || 0, sale.netAmount ?? sale.totalAmount ?? 0))}</span>
                         </div>
+                        {((sale.netAmount ?? sale.totalAmount ?? 0) - (sale.paidAmount || 0)) > 0.01 && (
+                           <div className="flex justify-between items-center pt-1 text-brand-orange text-[10px] font-black uppercase border-t border-slate-50 mt-1 italic">
+                              <span>Остаток долга:</span>
+                              <span>{formatMoney((sale.netAmount ?? sale.totalAmount ?? 0) - (sale.paidAmount || 0))}</span>
+                           </div>
+                        )}
                      </div>
                   </div>
                ) : (

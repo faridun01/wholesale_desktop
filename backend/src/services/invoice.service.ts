@@ -911,19 +911,44 @@ export class InvoiceService {
       // 6. Update invoice returned amount and net amount
       totalRefundValue = roundMoney(totalRefundValue);
       const newReturnedAmount = roundMoney(Number(invoice.returnedAmount) + totalRefundValue);
-      const newNetAmount = roundMoney(Number(invoice.netAmount) - totalRefundValue);
-      
-      // Update status based on new net amount
-      const status = getInvoiceStatus(Number(invoice.paidAmount), Number(newNetAmount));
+      const newNetAmount = Math.max(0, roundMoney(Number(invoice.netAmount) - totalRefundValue));
+      const currentPaid = Number(invoice.paidAmount || 0);
 
-      await tx.invoice.update({
-        where: { id: invoiceId },
-        data: { 
-          returnedAmount: newReturnedAmount,
-          netAmount: newNetAmount,
-          status
-        }
-      });
+      // Check if we need to return change (overpaid)
+      if (currentPaid > newNetAmount + 0.01) {
+        const changeToReturn = roundMoney(currentPaid - newNetAmount);
+        // Create a negative payment record (Refund of excess cash/change)
+        await tx.payment.create({
+          data: {
+            customerId: invoice.customerId,
+            invoiceId,
+            userId,
+            amount: -changeToReturn,
+            method: 'cash',
+            notes: `Возврат сдачи (Накладная #${invoiceId})`
+          }
+        });
+
+        await tx.invoice.update({
+          where: { id: invoiceId },
+          data: { 
+            returnedAmount: newReturnedAmount,
+            netAmount: newNetAmount,
+            paidAmount: newNetAmount, // Cap it to the new net
+            status: 'paid'
+          }
+        });
+      } else {
+        const status = getInvoiceStatus(currentPaid, Number(newNetAmount));
+        await tx.invoice.update({
+          where: { id: invoiceId },
+          data: { 
+            returnedAmount: newReturnedAmount,
+            netAmount: newNetAmount,
+            status
+          }
+        });
+      }
 
       return { success: true, refundAmount: roundMoney(totalRefundValue) };
     }, TRANSACTION_OPTIONS);
