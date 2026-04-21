@@ -119,7 +119,7 @@ export const printReconciliation = (customer: any, events: any[]) => {
       <div class="info-grid">
         <div class="info-box">
           <div class="info-label">Организация:</div>
-          <div class="font-bold">Wholesale CRM Systems</div>
+          <div class="font-bold">Мэй Фу Душанбе</div>
           <div>Таджикистан, г. Душанбе</div>
         </div>
         <div class="info-box">

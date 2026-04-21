@@ -251,83 +251,51 @@ router.get('/:id/reconciliation', async (req: AuthRequest, res, next) => {
     // Transform into a flat chronological list of events for the ledger
     const events: any[] = [];
 
-    invoices.forEach(inv => {
+    // FIFO Distribution logic to eliminate discrepancies
+    let remainingGlobalCredit = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    
+    // Sort invoices by date to apply credit properly
+    const sortedInvoices = [...invoices].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    
+    sortedInvoices.forEach(inv => {
+      const net = Number(inv.netAmount || 0);
+      const effectivePaid = Math.min(net, remainingGlobalCredit);
+      remainingGlobalCredit -= effectivePaid;
+
       events.push({
         type: 'invoice',
         id: inv.id,
         date: inv.createdAt,
-        amount: Number(inv.netAmount) + Number(inv.returnedAmount || 0),
-        paidAmount: Number(inv.paidAmount || 0),
+        amount: net,
+        paidAmount: effectivePaid,
         side: 'debit',
         warehouse: inv.warehouse?.name || 'Основной склад',
-        description: `Накладная №${inv.id}`
+        description: `📦 Продажа (Накладная №${inv.id})`,
+        status: (Number(inv.returnedAmount) > 0 && net <= 0.01) ? 'Возврат' : 
+                (effectivePaid >= net ? 'Оплачено' : 
+                (effectivePaid > 0 ? 'Частично' : 'Долг'))
       });
     });
 
-    console.log(`[DEBUG] Found ${invoices.length} invoices for customer ${customerId}`);
-    if (invoices.length > 0) {
-      console.log(`[DEBUG] First invoice paidAmount: ${invoices[0].paidAmount} (${typeof invoices[0].paidAmount})`);
-    }
+    // Final summary calculation
+    const totalRevenue = invoices.reduce((sum, inv) => sum + Number(inv.netAmount || 0), 0);
+    const totalPaidGlobal = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-    payments.forEach(p => {
-      events.push({
-        type: 'payment',
-        id: p.id,
-        date: p.createdAt,
-        amount: p.amount,
-        side: 'credit',
-        warehouse: p.invoice?.warehouse?.name || 'Касса',
-        description: p.invoiceId ? `Оплата по накл. №${p.invoiceId}` : 'Оплата'
-      });
-    });
+    // Sort by date descending for the UI
+    const sortedEvents = events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    returns.forEach(r => {
-      events.push({
-        type: 'return',
-        id: r.id,
-        date: r.createdAt,
-        amount: r.totalValue,
-        side: 'credit',
-        warehouse: r.invoice?.warehouse?.name || 'Основной склад',
-        description: `Возврат по накл. №${r.invoiceId}`
-      });
-    });
-
-    // Sort by date then by type priority then by ID
-    const typePriority: Record<string, number> = { invoice: 1, payment: 2, return: 3 };
-    events.sort((a, b) => {
-      const dateA = new Date(a.date).getTime();
-      const dateB = new Date(b.date).getTime();
-      if (dateA !== dateB) return dateA - dateB;
-      
-      const pA = typePriority[a.type] || 99;
-      const pB = typePriority[b.type] || 99;
-      if (pA !== pB) return pA - pB;
-      
-      return a.id - b.id;
-    });
-
-    // Calculate running balance with logging
-    let runningBalance = 0;
-    const historyWithBalance = events.map((e, index) => {
-      const prevBalance = runningBalance;
-      if (e.side === 'debit') {
-        runningBalance += e.amount;
-      } else {
-        runningBalance -= e.amount;
+    res.json({
+      history: sortedEvents,
+      summary: {
+        totalRevenue,
+        totalPaid: totalPaidGlobal,
+        balance: totalRevenue - totalPaidGlobal
       }
-      
-      console.log(`[LEDGER DEBUG] Row ${index + 1}: ${e.type} #${e.id} | Amount: ${e.amount} | ${prevBalance} -> ${runningBalance}`);
-      
-      return { ...e, runningBalance };
     });
-
-    res.json(historyWithBalance);
   } catch (error) {
     next(error);
   }
 });
-
 router.get('/:id/history', async (req: AuthRequest, res, next) => {
   try {
     const access = await getAccessContext(req);

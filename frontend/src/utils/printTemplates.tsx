@@ -32,7 +32,7 @@ export const generateTorg12Html = (invoice: any) => {
       <table class="header-table" style="margin-top: 20px;">
         <tr>
           <td width="15%" class="font-bold">Грузоотправитель:</td>
-          <td>Wholesale CRM Systems, Таджикистан, г. Душанбе</td>
+          <td>Мэй Фу Душанбе, Таджикистан, г. Душанбе</td>
         </tr>
         <tr>
           <td class="font-bold">Грузополучатель:</td>
@@ -40,7 +40,7 @@ export const generateTorg12Html = (invoice: any) => {
         </tr>
         <tr>
           <td class="font-bold">Поставщик:</td>
-          <td>Wholesale CRM Systems</td>
+          <td>Мэй Фу Душанбе</td>
         </tr>
         <tr>
           <td class="font-bold">Плательщик:</td>
@@ -144,7 +144,7 @@ export const generateReceiptHtml = (invoice: any) => {
       </style>
     </head>
     <body>
-      <div class="text-center bold">Wholesale CRM Systems</div>
+      <div class="text-center bold">Мэй Фу Душанбе</div>
       <div class="text-center">Таджикистан, г. Душанбе</div>
       <div class="dashed"></div>
       <div class="text-center bold">КАССОВЫЙ ЧЕК №${invoice.id}</div>
@@ -217,7 +217,7 @@ export const generateReconciliationHtml = (customer: any, events: any[]) => {
       </div>
       
       <div style="margin-bottom: 20px;">
-        <div><b>Организация:</b> Wholesale CRM Systems</div>
+        <div><b>Организация:</b> Мэй Фу Душанбе</div>
         <div><b>Контрагент:</b> ${customer.name}</div>
       </div>
 

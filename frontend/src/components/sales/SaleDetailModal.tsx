@@ -121,15 +121,41 @@ export default function SaleDetailModal({ isOpen, onClose, saleId }: SaleDetailM
                               </tr>
                            </thead>
                            <tbody>
-                              {sale.items?.map((item: any, i: number) => (
-                                 <tr key={item.id}>
-                                    <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
-                                    <td className="font-bold text-slate-700">{item.product?.name || 'Удаленный товар'}</td>
-                                    <td className="text-center font-black">{item.quantity} {item.product?.unit || 'шт'}</td>
-                                    <td className="text-right text-slate-500 italic">{formatMoney(item.sellingPrice)}</td>
-                                    <td className="text-right font-black text-slate-900">{formatMoney(item.quantity * item.sellingPrice)}</td>
-                                 </tr>
-                              ))}
+                               {sale.items?.map((item: any, i: number) => {
+                                  const effectiveQty = Math.max(0, Number(item.quantity || 0) - Number(item.returnedQty || 0));
+                                  const isReturned = Number(item.returnedQty || 0) > 0;
+                                  const isFullReturn = effectiveQty <= 0.001 && isReturned;
+
+                                  return (
+                                     <tr key={item.id} className={clsx(isFullReturn && "opacity-40 bg-slate-50")}>
+                                        <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
+                                        <td className="font-bold text-slate-700">
+                                           <div className="flex flex-col">
+                                              <span>{item.product?.name || item.productNameSnapshot || 'Удаленный товар'}</span>
+                                              {isReturned && (
+                                                 <span className="text-[8px] font-black text-rose-500 uppercase tracking-tighter">
+                                                    {isFullReturn ? 'Полный возврат' : `Возвращено: ${item.returnedQty} ${item.unit || 'шт'}`}
+                                                 </span>
+                                              )}
+                                           </div>
+                                        </td>
+                                        <td className="text-center font-black">
+                                           <div className="flex flex-col">
+                                              <span className={clsx(isReturned && !isFullReturn && "text-slate-400 text-[9px] line-through")}>
+                                                 {item.quantity} {item.unit || 'шт'}
+                                              </span>
+                                              {!isFullReturn && isReturned && (
+                                                 <span className="text-emerald-700">{effectiveQty} {item.unit || 'шт'}</span>
+                                              )}
+                                           </div>
+                                        </td>
+                                        <td className="text-right text-slate-500 italic">{formatMoney(item.sellingPrice)}</td>
+                                        <td className="text-right font-black text-slate-900">
+                                           {formatMoney(effectiveQty * item.sellingPrice)}
+                                        </td>
+                                     </tr>
+                                  );
+                               })}
                            </tbody>
                         </table>
                      </div>

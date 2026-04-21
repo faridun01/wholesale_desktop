@@ -11,7 +11,8 @@ import {
   CreditCard,
   Printer,
   ChevronRight,
-  FileText
+  FileText,
+  Warehouse
 } from 'lucide-react';
 import { getCustomerHistory, getCustomerReconciliation } from '../../api/customers.api';
 import { formatMoney } from '../../utils/format';
@@ -158,62 +159,67 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                           <div className="h-full flex items-center justify-center py-20 text-slate-400 italic text-xs">
                              Загрузка данных...
                           </div>
-                       ) : history.filter(h => h.type === 'invoice').length > 0 ? (
-                          <table className="table-1c border-separate border-spacing-0">
-                             <thead className="sticky top-0 z-10">
-                                <tr>
-                                   <th className="w-10 text-center">№</th>
-                                   <th className="w-24">Дата</th>
-                                   <th className="w-24">Склад</th>
-                                   <th className="w-48">Документ / Содержание</th>
-                                   <th className="text-right">Сумма</th>
-                                   <th className="text-right">Оплачено</th>
-                                   <th className="text-right w-24">Долг (Сальдо)</th>
-                                   <th className="w-8"></th>
-                                </tr>
-                             </thead>
-                             <tbody>
-                                {history.filter(h => h.type === 'invoice').map((h, i) => {
-                                   const isDebit = h.side === 'debit';
-                                   
-                                   return (
-                                      <tr 
-                                        key={`${h.type}-${h.id}`} 
-                                        className={clsx("hover:bg-brand-yellow/5 group cursor-pointer", !isDebit && "bg-slate-50/50")} 
-                                        onClick={() => handleShowDetail(h.id, h.type)}
-                                      >
-                                         <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
-                                         <td className="font-bold text-slate-600 italic">
-                                            {new Date(h.date).toLocaleDateString('ru-RU')}
-                                         </td>
-                                         <td className="text-[10px] font-black text-slate-400 uppercase truncate max-w-[100px]" title={h.warehouse}>
-                                            {h.warehouse}
-                                         </td>
-                                         <td>
-                                           <span className={clsx(
-                                              "font-black text-[10px]",
-                                              isDebit ? "text-brand-orange hover:underline decoration-brand-orange" : "text-emerald-700 font-bold"
-                                           )}>
-                                              {h.description}
-                                           </span>
-                                         </td>
-                                         <td className="text-right font-black text-slate-900">
-                                            {formatMoney(h.amount)}
-                                         </td>
-                                         <td className="text-right font-black text-emerald-600">
-                                            {formatMoney(h.paidAmount || 0)}
-                                         </td>
-                                         <td className={clsx("text-right font-black", h.runningBalance > 0 ? "text-rose-600" : "text-emerald-700")}>
-                                            {formatMoney(h.runningBalance)}
-                                         </td>
-                                         <td className="text-center text-slate-200 group-hover:text-brand-orange transition-colors">
-                                            {isDebit && <ChevronRight size={14} />}
-                                         </td>
-                                      </tr>
-                                   );
+                       ) : history.filter(h => h.type === 'invoice' || h.type === 'return').length > 0 ? (
+                           <table className="table-1c border-separate border-spacing-0">
+                              <thead className="sticky top-0 z-10 shadow-sm">
+                                  <tr>
+                                     <th className="w-12 text-center">№</th>
+                                     <th className="text-left py-3">Документ / Содержание</th>
+                                     <th className="w-32 text-right">Сумма</th>
+                                     <th className="w-32 text-right">Оплачено</th>
+                                     <th className="w-32 text-right">Остаток</th>
+                                     <th className="w-24 text-center">Статус</th>
+                                     <th className="w-10"></th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                 {history.filter(h => h.type === 'invoice').map((h, i) => {
+                                    const isDebit = h.side === 'debit';
+                                    const netAmt = h.amount;
+                                    const paidAmt = h.paidAmount || 0;
+                                    const rowBalance = Math.max(0, netAmt - paidAmt);
+                                    
+                                    return (
+                                       <tr 
+                                          key={`${h.type}-${h.id}-${i}`} 
+                                          className="hover:bg-brand-yellow/5 group cursor-pointer"
+                                          onClick={() => handleShowDetail(h.id, h.type)}
+                                       >
+                                          <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
+                                          <td>
+                                             <div className="font-black text-[11px] leading-none mb-1 text-brand-orange">
+                                                № {h.id}
+                                             </div>
+                                             <div className="text-[8px] font-black uppercase text-slate-400">Продажа</div>
+                                          </td>
+                                          <td className="text-right font-black text-slate-900">
+                                             {formatMoney(netAmt)}
+                                          </td>
+                                          <td className="text-right font-black text-emerald-600">
+                                             {formatMoney(paidAmt)}
+                                          </td>
+                                          <td className={clsx("text-right font-black", rowBalance > 0.01 ? "text-brand-orange" : "text-slate-300")}>
+                                             {formatMoney(rowBalance)}
+                                          </td>
+                                          <td className="text-center">
+                                             <span className={clsx(
+                                                "px-2 py-0.5 rounded-[2px] text-[10px] font-black uppercase border whitespace-nowrap inline-block",
+                                                h.status === 'Возврат' ? "text-rose-600 bg-rose-50 border-rose-200" :
+                                                h.status === 'Оплачено' ? "text-emerald-600 bg-emerald-50 border-emerald-200" :
+                                                h.status === 'Частично' ? "text-brand-orange bg-brand-orange/5 border-brand-orange/20" :
+                                                "text-slate-500 bg-slate-50 border-slate-200"
+                                             )}>
+                                                {h.status === 'Долг' ? 'Долг' : h.status}
+                                             </span>
+                                          </td>
+                                          <td className="text-center text-slate-200 group-hover:text-brand-orange transition-colors">
+                                             <ChevronRight size={16} />
+                                          </td>
+                                       </tr>
+                                    );
                                  })}
-                             </tbody>
-                          </table>
+                              </tbody>
+                           </table>
                        ) : (
                           <div className="h-full flex flex-col items-center justify-center py-20 text-slate-300 opacity-50 uppercase font-black text-[10px] tracking-widest gap-2">
                              <Package size={48} strokeWidth={1} />

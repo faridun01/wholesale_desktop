@@ -80,7 +80,7 @@ export default function PrintPreviewModal({ isOpen, onClose, title, html, type }
 
           {/* Footer Info */}
           <div className="bg-[#202124] px-6 py-2 flex items-center justify-center text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-             Wholesale CRM Systems &copy; 2026 | Система документооборота
+             Мэй Фу Душанбе &copy; 2026 | Система документооборота
           </div>
         </motion.div>
       </div>
