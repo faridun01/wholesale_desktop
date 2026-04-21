@@ -9,3 +9,7 @@ export const cancelInvoice = async (id: number) => {
   const response = await client.post(`/invoices/${id}/cancel`);
   return response.data;
 };
+export const getInvoiceDetails = async (id: number) => {
+  const response = await client.get(`/invoices/${id}`);
+  return response.data;
+};

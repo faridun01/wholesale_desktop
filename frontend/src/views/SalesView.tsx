@@ -42,6 +42,7 @@ import PaginationControls from '../components/common/PaginationControls';
 import { printSalesInvoice } from '../utils/print/salesInvoicePrint';
 import { printThermalReceipt } from '../utils/print/thermalReceiptPrint';
 import ReturnModal from '../components/sales/ReturnModal';
+import EditInvoiceModal from '../components/sales/EditInvoiceModal';
 
 // Logics helpers
 const normalizeProductSearchValue = (value: unknown) => formatProductName(value).toLowerCase();
@@ -444,6 +445,13 @@ export default function SalesView() {
                         >
                            <Banknote size={14} strokeWidth={3} /> ПРИНЯТЬ ОПЛАТУ
                         </button>
+                        <div className="w-[1px] h-6 bg-slate-300 mx-1"></div>
+                        <button 
+                           onClick={() => { setShowDetailsModal(false); setShowEditModal(true); }}
+                           className="btn-1c !bg-white !text-brand-orange hover:!bg-brand-orange/5 flex items-center gap-2"
+                        >
+                           <Pencil size={14} /> РЕДАКТИРОВАТЬ
+                        </button>
                         <button 
                            onClick={() => { setShowDetailsModal(false); setShowReturnModal(true); }}
                            className="btn-1c !bg-white !text-rose-600 hover:!bg-rose-50 flex items-center gap-2"
@@ -531,6 +539,13 @@ export default function SalesView() {
       <ReturnModal 
          isOpen={showReturnModal} 
          onClose={() => setShowReturnModal(false)} 
+         invoice={selectedInvoice} 
+         onSuccess={fetchInvoices} 
+      />
+
+      <EditInvoiceModal 
+         isOpen={showEditModal} 
+         onClose={() => setShowEditModal(false)} 
          invoice={selectedInvoice} 
          onSuccess={fetchInvoices} 
       />

@@ -16,6 +16,8 @@ import {
   Layers,
   Store,
   RefreshCw,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx } from 'clsx';
@@ -79,8 +81,10 @@ export default function ProductsView() {
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(userWarehouseId ? String(userWarehouseId) : '');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(isAdmin ? '' : (getUserWarehouseId(user) ? String(getUserWarehouseId(user)) : ''));
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('name'); // New sort state
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc'); // New sort order
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
@@ -291,11 +295,24 @@ export default function ProductsView() {
 
   const filteredProducts = useMemo(() => {
     const s = search.toLowerCase();
-    return products.filter(p => 
+    const filtered = products.filter(p => 
       (p.name.toLowerCase().includes(s) || String(p.id).includes(s)) &&
       (selectedCategoryId === 'all' || String(p.categoryId) === selectedCategoryId)
     );
-  }, [products, search, selectedCategoryId]);
+
+    return [...filtered].sort((a, b) => {
+      let valA: any = a[sortBy as keyof typeof a];
+      let valB: any = b[sortBy as keyof typeof b];
+
+      if (sortBy === 'name') {
+        return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      
+      valA = Number(valA) || 0;
+      valB = Number(valB) || 0;
+      return sortOrder === 'asc' ? valA - valB : valB - valA;
+    });
+  }, [products, search, selectedCategoryId, sortBy, sortOrder]);
 
   const paginatedProducts = useMemo(() => {
     return filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -394,49 +411,67 @@ export default function ProductsView() {
         >
           <Layers size={14} /> Партии
         </button>
-
-        <div className="flex-1"></div>
-
-        <div className="flex items-center gap-3 px-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black uppercase text-slate-400">Группа:</span>
-            <select 
-                value={selectedCategoryId} 
-                onChange={e => setSelectedCategoryId(e.target.value)}
-                className="bg-slate-100 border-none rounded px-2 py-1 text-xs font-bold outline-none focus:ring-1 focus:ring-brand-orange max-w-[150px]"
-            >
-                <option value="all">Все группы</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black uppercase text-slate-400">Склад:</span>
-            <select 
-              value={selectedWarehouseId} 
-              onChange={e => setSelectedWarehouseId(e.target.value)}
-              className="bg-slate-100 border-none rounded px-2 py-1 text-xs font-bold outline-none focus:ring-1 focus:ring-brand-orange"
-            >
-              {isAdmin && <option value="">Все склады</option>}
-              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-            </select>
-          </div>
-          <button onClick={() => fetchProducts(selectedWarehouseId)} className="p-1.5 hover:bg-slate-100 rounded text-slate-400">
-            <RefreshCw size={14} />
-          </button>
-        </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="bg-[#f2f3f7] p-2 flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      {/* Second Row: Search, Category, Sorting */}
+      <div className="bg-[#f2f3f7] p-2 flex flex-wrap items-center gap-4 border-b border-border-base">
+        <div className="relative w-64">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 
-            placeholder="Поиск (наименование, артикул)..." 
+            placeholder="Поиск..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="field-1c w-full pl-8 py-1"
           />
+        </div>
+
+        <div className="h-6 w-[1px] bg-slate-300"></div>
+
+        <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase text-slate-400">Группа:</span>
+            <select 
+                value={selectedCategoryId} 
+                onChange={e => setSelectedCategoryId(e.target.value)}
+                className="bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-bold outline-none focus:ring-1 focus:ring-brand-orange min-w-[120px]"
+            >
+                <option value="all">Все группы</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase text-slate-400">Сортировка:</span>
+            <select 
+                value={sortBy} 
+                onChange={e => setSortBy(e.target.value)}
+                className="bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-bold outline-none focus:ring-1 focus:ring-brand-orange"
+            >
+                <option value="name">По имени</option>
+                <option value="stock">По остатку</option>
+                <option value="sellingPrice">По цене</option>
+            </select>
+            <button 
+              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+              className="p-1 hover:bg-white rounded border border-slate-200 text-slate-600"
+            >
+              {sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+            </button>
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+            <span className="text-[10px] font-black uppercase text-slate-400">Склад:</span>
+            <select 
+              value={selectedWarehouseId} 
+              onChange={e => setSelectedWarehouseId(e.target.value)}
+              className="bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-bold outline-none focus:ring-1 focus:ring-brand-orange"
+            >
+              {isAdmin && <option value="">Все склады</option>}
+              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+            <button onClick={() => fetchProducts(selectedWarehouseId)} className="p-1.5 hover:bg-white rounded border border-slate-200 text-slate-400 transition-colors">
+              <RefreshCw size={14} />
+            </button>
         </div>
       </div>
 
@@ -571,7 +606,7 @@ export default function ProductsView() {
 
         {showRestockModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white border rounded shadow-2xl w-full max-w-sm">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="bg-white border rounded shadow-2xl w-full max-w-sm overflow-hidden">
               <div className="bg-brand-blue text-white px-4 py-2 flex justify-between uppercase text-[10px] font-black tracking-widest">
                 <span>Оформление прихода</span>
                 <button onClick={() => setShowRestockModal(false)}><X size={16}/></button>
@@ -594,8 +629,8 @@ export default function ProductsView() {
 
         {showTransferModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white border rounded shadow-2xl w-full max-w-sm">
-              <div className="bg-brand-blue text-white px-4 py-2 flex justify-between uppercase text-[10px] font-black tracking-widest">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="bg-white border rounded shadow-2xl w-full max-w-sm overflow-hidden">
+              <div className="bg-brand-blue text-white px-4 py-2 flex items-center justify-between uppercase text-[10px] font-black tracking-widest">
                 <span>Перемещение товара</span>
                 <button onClick={() => setShowTransferModal(false)}><X size={16}/></button>
               </div>
