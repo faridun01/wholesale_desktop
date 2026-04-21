@@ -252,11 +252,12 @@ router.get('/:id/reconciliation', async (req: AuthRequest, res, next) => {
 
     // 1. Add Invoices (Debits)
     invoices.forEach(inv => {
+      const originalNetAmount = Number(inv.netAmount || 0) + Number(inv.returnedAmount || 0);
       events.push({
         type: 'invoice',
         id: inv.id,
         date: inv.createdAt,
-        amount: Number(inv.netAmount || 0),
+        amount: originalNetAmount,
         side: 'debit',
         warehouse: inv.warehouse?.name || 'Основной склад',
         description: `📦 Продажа (Накладная №${inv.id})`,

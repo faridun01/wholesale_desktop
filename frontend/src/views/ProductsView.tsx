@@ -181,7 +181,7 @@ export default function ProductsView() {
   useEffect(() => {
     fetchProducts(selectedWarehouseId);
 
-    const handleRefresh = () => fetchProducts(selectedWarehouseId, true);
+    const handleRefresh = () => fetchProducts(selectedWarehouseId);
     window.addEventListener('refresh-data', handleRefresh);
     return () => window.removeEventListener('refresh-data', handleRefresh);
   }, [selectedWarehouseId]);
