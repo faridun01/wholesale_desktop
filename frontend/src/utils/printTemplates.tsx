@@ -27,8 +27,6 @@ export const generateTorg12Html = (invoice: any) => {
       </style>
     </head>
     <body>
-      <div class="text-right">Унифицированная форма № ТОРГ-12<br>Утверждена постановлением Госкомстата России от 25.12.98 № 132</div>
-      
       <table class="header-table" style="margin-top: 20px;">
         <tr>
           <td width="15%" class="font-bold">Грузоотправитель:</td>
@@ -59,18 +57,13 @@ export const generateTorg12Html = (invoice: any) => {
           <tr>
             <th rowspan="2" class="text-center">№</th>
             <th rowspan="2" class="text-center">Наименование, характеристика, сорт, артикул товара</th>
-            <th colspan="2" class="text-center">Единица измерения</th>
+            <th rowspan="2" class="text-center">Единица измерения</th>
             <th rowspan="2" class="text-center">Количество</th>
             <th rowspan="2" class="text-center">Цена, руб. коп.</th>
-            <th rowspan="2" class="text-center">Сумма без учета НДС, руб. коп.</th>
-            <th colspan="2" class="text-center">НДС</th>
-            <th rowspan="2" class="text-center">Сумма с учетом НДС, руб. коп.</th>
+            <th rowspan="2" class="text-center">Сумма</th>
           </tr>
           <tr>
-            <th class="text-center">наим.</th>
-            <th class="text-center">код</th>
-            <th class="text-center">ставка, %</th>
-            <th class="text-center">сумма, руб. коп.</th>
+            <th class="text-center"> </th>
           </tr>
         </thead>
         <tbody>
@@ -79,22 +72,15 @@ export const generateTorg12Html = (invoice: any) => {
               <td class="text-center">${i + 1}</td>
               <td>${item.productNameSnapshot || item.product?.name}</td>
               <td class="text-center">${item.baseUnitNameSnapshot || item.unit || 'шт'}</td>
-              <td class="text-center">796</td>
               <td class="text-right">${item.quantity}</td>
               <td class="text-right">${formatMoney(item.sellingPrice)}</td>
-              <td class="text-right">${formatMoney(item.totalPrice || item.sellingPrice * item.quantity)}</td>
-              <td class="text-center">0%</td>
-              <td class="text-right">0.00</td>
               <td class="text-right">${formatMoney(item.totalPrice || item.sellingPrice * item.quantity)}</td>
             </tr>
           `).join('')}
           <tr class="font-bold">
-            <td colspan="4" class="text-right">Итого</td>
+            <td colspan="3" class="text-right">Итого</td>
             <td class="text-right">${totalQty}</td>
             <td>X</td>
-            <td class="text-right">${formatMoney(totalAmount)}</td>
-            <td>X</td>
-            <td class="text-right">0.00</td>
             <td class="text-right">${formatMoney(totalAmount)}</td>
           </tr>
         </tbody>

@@ -1,5 +1,6 @@
 import { formatMoney, roundMoney, ceilMoney } from '../format';
 import { formatProductName } from '../productName';
+import { openDocumentPreview } from './openDocumentPreview';
 
 const escapeHtml = (value: unknown) =>
   String(value ?? '')
@@ -69,10 +70,6 @@ export function printSalesInvoice({
     return { ok: false, reason: 'invalid' as const };
   }
 
-  const printWindow = window.open('', '_blank', 'width=980,height=900');
-  if (!printWindow) {
-    return { ok: false, reason: 'blocked' as const };
-  }
 
   const customerName = invoice.customer_name || 'Обычный клиент';
   const customerPhone = invoice.customer_phone || '';
@@ -249,8 +246,21 @@ export function printSalesInvoice({
           body { margin: 0; padding: 6px; font-family: Arial, sans-serif; color: #0f172a; background: #ffffff; }
           .sheet { max-width: 920px; margin: 0 auto; }
           .doc-title { text-align: center; border-bottom: 1px solid #d9e3ef; padding-bottom: 8px; margin-bottom: 8px; }
-          .doc-title-text { margin: 0; font-size: 20px; font-weight: 800; }
-          .doc-title-date { margin: 3px 0 0; font-size: 11px; font-weight: 700; color: #334155; }
+          .doc-title-text {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+          }
+          .doc-title-date {
+            margin: 5px 0 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            color: #334155;
+          }
           .header { display: flex; justify-content: space-between; align-items: stretch; gap: 16px; margin-bottom: 8px; }
           .party-block { min-width: 0; border: none; border-radius: 0; padding: 6px 0; background: transparent; }
           .seller-block { flex: 1; }
@@ -356,14 +366,6 @@ export function printSalesInvoice({
     </html>
   `;
 
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.onload = () => {
-    printWindow.print();
-  };
-
-  return { ok: true as const };
+  return openDocumentPreview(`Накладная №${invoice.id}`, html, 'a4');
 }
 

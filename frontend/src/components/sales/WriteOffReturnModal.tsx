@@ -48,7 +48,7 @@ export default function WriteOffReturnModal({ isOpen, onClose, transaction, onSu
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
         <motion.div 
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -83,7 +83,7 @@ export default function WriteOffReturnModal({ isOpen, onClose, transaction, onSu
                         type="number" 
                         value={quantity}
                         onChange={e => setQuantity(e.target.value)}
-                        className="field-1c w-full !text-2xl font-black text-brand-orange text-center py-3"
+                        className="field-1c w-full text-2xl! font-black text-brand-orange text-center py-3"
                         autoFocus
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 font-black uppercase text-[10px]">{transaction.unit || 'шт'}</span>

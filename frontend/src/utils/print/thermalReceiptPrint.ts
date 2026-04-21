@@ -1,11 +1,9 @@
 import { formatMoney } from '../format';
 import { formatProductName } from '../productName';
+import { openDocumentPreview } from './openDocumentPreview';
 
 export function printThermalReceipt(invoice: any) {
   if (typeof window === 'undefined' || !invoice) return;
-
-  const printWindow = window.open('', '_blank', 'width=300,height=600');
-  if (!printWindow) return;
 
   const items = Array.isArray(invoice.items) ? invoice.items : [];
   const date = new Date(invoice.createdAt).toLocaleString('ru-RU');
@@ -48,10 +46,5 @@ export function printThermalReceipt(invoice: any) {
     </html>
   `;
 
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.onload = () => {
-    printWindow.print();
-    printWindow.close();
-  };
+  openDocumentPreview(`Чек №${invoice.id}`, html, 'receipt');
 }

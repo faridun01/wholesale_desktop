@@ -1,13 +1,3 @@
-import React from 'react';
-
-interface PrintPreviewModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  html: string;
-  type: 'a4' | 'receipt';
-}
-
 const PREVIEW_WINDOW_FEATURES = {
   a4: 'popup=yes,width=1280,height=900,resizable=yes,scrollbars=yes',
   receipt: 'popup=yes,width=460,height=820,resizable=yes,scrollbars=yes',
@@ -21,9 +11,32 @@ function escapeHtml(value: string) {
     .replaceAll('"', '&quot;');
 }
 
+function extractPreviewParts(sourceHtml: string) {
+  const styles = Array.from(sourceHtml.matchAll(/<style[^>]*>[\s\S]*?<\/style>/gi))
+    .map((match) => match[0])
+    .join('\n');
+
+  const bodyMatch = sourceHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  const bodyContent = bodyMatch ? bodyMatch[1] : sourceHtml;
+
+  const cleanedBody = bodyContent
+    .replace(/<!doctype[^>]*>/gi, '')
+    .replace(/<\/?html[^>]*>/gi, '')
+    .replace(/<\/?head[^>]*>/gi, '')
+    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+    .replace(/<meta[^>]*>/gi, '')
+    .trim();
+
+  return {
+    styles,
+    bodyContent: cleanedBody,
+  };
+}
+
 function buildPreviewHtml(title: string, html: string, type: 'a4' | 'receipt') {
   const safeTitle = escapeHtml(title);
   const safeFileName = title.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'document';
+  const { styles: documentStyles, bodyContent } = extractPreviewParts(html);
   const toolbarHtml = `
     <div class="preview-toolbar no-print">
       <div class="preview-toolbar__meta">
@@ -200,11 +213,12 @@ function buildPreviewHtml(title: string, html: string, type: 'a4' | 'receipt') {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>${safeTitle}</title>
         ${screenStyles}
+        ${documentStyles}
       </head>
       <body>
         <div class="preview-shell">
           ${toolbarHtml}
-          <div class="preview-document">${html}</div>
+          <div class="preview-document">${bodyContent}</div>
         </div>
         ${interactionScript}
       </body>
@@ -212,44 +226,23 @@ function buildPreviewHtml(title: string, html: string, type: 'a4' | 'receipt') {
   `;
 }
 
-export default function PrintPreviewModal({ isOpen, onClose, title, html, type }: PrintPreviewModalProps) {
-  const previewWindowRef = React.useRef<Window | null>(null);
+export function openDocumentPreview(title: string, html: string, type: 'a4' | 'receipt') {
+  if (typeof window === 'undefined') {
+    return { ok: false as const, reason: 'invalid' as const };
+  }
 
-  React.useEffect(() => {
-    if (!isOpen) {
-      if (previewWindowRef.current && !previewWindowRef.current.closed) {
-        previewWindowRef.current.close();
-      }
-      previewWindowRef.current = null;
-      return;
-    }
+  const windowName = `print-preview-${type}`;
+  const previewWindow = window.open('', windowName, PREVIEW_WINDOW_FEATURES[type]);
 
-    const windowName = `print-preview-${type}`;
-    const previewWindow = window.open('', windowName, PREVIEW_WINDOW_FEATURES[type]);
+  if (!previewWindow) {
+    return { ok: false as const, reason: 'blocked' as const };
+  }
 
-    if (!previewWindow) {
-      onClose();
-      return;
-    }
+  previewWindow.document.open();
+  previewWindow.document.write(buildPreviewHtml(title, html, type));
+  previewWindow.document.close();
+  previewWindow.document.title = title;
+  previewWindow.focus();
 
-    previewWindowRef.current = previewWindow;
-    previewWindow.document.open();
-    previewWindow.document.write(buildPreviewHtml(title, html, type));
-    previewWindow.document.close();
-    previewWindow.focus();
-
-    const checkIfClosed = window.setInterval(() => {
-      if (previewWindow.closed) {
-        window.clearInterval(checkIfClosed);
-        previewWindowRef.current = null;
-        onClose();
-      }
-    }, 300);
-
-    return () => {
-      window.clearInterval(checkIfClosed);
-    };
-  }, [html, isOpen, onClose, title, type]);
-
-  return null;
+  return { ok: true as const };
 }
