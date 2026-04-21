@@ -330,6 +330,7 @@ export default function POSView() {
             paymentMethod: paymentMethod === 'debt' ? 'cash' : paymentMethod
         });
         toast.success('Продажа успешно завершена');
+        window.dispatchEvent(new CustomEvent('refresh-data'));
         setCart([]);
         setPaidAmount('');
         setCustomerId(null);

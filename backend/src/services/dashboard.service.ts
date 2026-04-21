@@ -70,7 +70,7 @@ export class DashboardService {
       prisma.invoice.findMany({
         where: invoiceWhere,
         orderBy: { createdAt: 'desc' },
-        take: 5,
+        take: 10,
         include: { customer: { select: { name: true } } },
       }),
       prisma.invoice.findMany({

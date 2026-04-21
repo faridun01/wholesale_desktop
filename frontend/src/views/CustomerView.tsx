@@ -54,6 +54,10 @@ export default function CustomerView() {
 
   useEffect(() => {
     fetchCustomers();
+
+    const handleRefresh = () => fetchCustomers();
+    window.addEventListener('refresh-data', handleRefresh);
+    return () => window.removeEventListener('refresh-data', handleRefresh);
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {

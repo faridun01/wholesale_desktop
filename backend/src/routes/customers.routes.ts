@@ -247,49 +247,81 @@ router.get('/:id/reconciliation', async (req: AuthRequest, res, next) => {
         orderBy: { createdAt: 'asc' },
       }),
     ]);
-
     // Transform into a flat chronological list of events for the ledger
     const events: any[] = [];
 
-    // FIFO Distribution logic to eliminate discrepancies
-    let remainingGlobalCredit = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    
-    // Sort invoices by date to apply credit properly
-    const sortedInvoices = [...invoices].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    
-    sortedInvoices.forEach(inv => {
-      const net = Number(inv.netAmount || 0);
-      const effectivePaid = Math.min(net, remainingGlobalCredit);
-      remainingGlobalCredit -= effectivePaid;
-
+    // 1. Add Invoices (Debits)
+    invoices.forEach(inv => {
       events.push({
         type: 'invoice',
         id: inv.id,
         date: inv.createdAt,
-        amount: net,
-        paidAmount: effectivePaid,
+        amount: Number(inv.netAmount || 0),
         side: 'debit',
         warehouse: inv.warehouse?.name || 'Основной склад',
         description: `📦 Продажа (Накладная №${inv.id})`,
-        status: (Number(inv.returnedAmount) > 0 && net <= 0.01) ? 'Возврат' : 
-                (effectivePaid >= net ? 'Оплачено' : 
-                (effectivePaid > 0 ? 'Частично' : 'Долг'))
+        // Paid amount and status for the Dossier Tab UI
+        paidAmount: Number(inv.paidAmount || 0),
+        status: (Number(inv.returnedAmount) > 0 && Number(inv.netAmount) <= 0.01) ? 'Возврат' : 
+                (Number(inv.paidAmount) >= Number(inv.netAmount) - 0.01 ? 'Оплачено' : 
+                (Number(inv.paidAmount) > 0.01 ? 'Частично' : 'Долг'))
       });
+    });
+
+    // 2. Add Payments (Credits)
+    payments.forEach(p => {
+      events.push({
+        type: 'payment',
+        id: p.id,
+        date: p.createdAt,
+        amount: Number(p.amount || 0),
+        side: 'credit',
+        description: `💸 Оплата (${p.method})${p.invoiceId ? ` по накл. №${p.invoiceId}` : ' (Аванс)'}`
+      });
+    });
+
+    // 3. Add Returns (Credits)
+    returns.forEach(r => {
+      events.push({
+        type: 'return',
+        id: r.id,
+        date: r.createdAt,
+        amount: Number(r.totalValue || 0),
+        side: 'credit',
+        description: `↩️ Возврат по накл. №${r.invoiceId} (${r.reason || 'б/п'})`
+      });
+    });
+
+    // 4. Sort all events chronologically for Saldo calculation
+    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // 5. Calculate Running Balance (Saldo)
+    let runningBalance = 0;
+    events.forEach(ev => {
+      if (ev.side === 'debit') {
+        runningBalance += ev.amount;
+      } else {
+        runningBalance -= ev.amount;
+      }
+      ev.runningBalance = runningBalance;
     });
 
     // Final summary calculation
     const totalRevenue = invoices.reduce((sum, inv) => sum + Number(inv.netAmount || 0), 0);
     const totalPaidGlobal = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const totalReturns = returns.reduce((sum, r) => sum + Number(r.totalValue || 0), 0);
 
-    // Sort by date descending for the UI
-    const sortedEvents = events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Sort by date descending for the UI display (most recent first)
+    const sortedEvents = [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     res.json({
       history: sortedEvents,
       summary: {
         totalRevenue,
         totalPaid: totalPaidGlobal,
-        balance: totalRevenue - totalPaidGlobal
+        totalReturns,
+        balance: totalRevenue - totalPaidGlobal - totalReturns,
+        invoiceCount: invoices.length
       }
     });
   } catch (error) {

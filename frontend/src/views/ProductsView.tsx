@@ -180,6 +180,10 @@ export default function ProductsView() {
 
   useEffect(() => {
     fetchProducts(selectedWarehouseId);
+
+    const handleRefresh = () => fetchProducts(selectedWarehouseId, true);
+    window.addEventListener('refresh-data', handleRefresh);
+    return () => window.removeEventListener('refresh-data', handleRefresh);
   }, [selectedWarehouseId]);
 
   // --- Handlers ---
@@ -199,6 +203,7 @@ export default function ProductsView() {
         warehouseId: Number(selectedWarehouseId || defaultWarehouseId) 
       });
       toast.success('Товар создан');
+      window.dispatchEvent(new CustomEvent('refresh-data'));
       setShowAddModal(false);
       fetchProducts(selectedWarehouseId);
     } catch (err) {
@@ -212,6 +217,7 @@ export default function ProductsView() {
     try {
       await ProductsApi.updateProduct(selectedProduct.id, { ...formData, categoryId: Number(formData.categoryId) });
       toast.success('Обновлено');
+      window.dispatchEvent(new CustomEvent('refresh-data'));
       setShowEditModal(false);
       fetchProducts(selectedWarehouseId);
     } catch (err) {
@@ -224,6 +230,7 @@ export default function ProductsView() {
     try {
       await ProductsApi.deleteProduct(selectedProduct.id, { force: true });
       toast.success('Удалено');
+      window.dispatchEvent(new CustomEvent('refresh-data'));
       setShowDeleteConfirm(false);
       setSelectedProduct(null);
       fetchProducts(selectedWarehouseId);
@@ -243,6 +250,7 @@ export default function ProductsView() {
         costPrice: Number(restockData.costPrice),
       });
       toast.success('Приход оформлен');
+      window.dispatchEvent(new CustomEvent('refresh-data'));
       setShowRestockModal(false);
       fetchProducts(selectedWarehouseId);
     } catch (err) {
@@ -260,6 +268,7 @@ export default function ProductsView() {
         quantity: Number(transferData.quantity),
       });
       toast.success('Перемещено');
+      window.dispatchEvent(new CustomEvent('refresh-data'));
       setShowTransferModal(false);
       fetchProducts(selectedWarehouseId);
     } catch (err) {
@@ -276,6 +285,7 @@ export default function ProductsView() {
         reason: writeOffData.reason
       });
       toast.success('Списание оформлено');
+      window.dispatchEvent(new CustomEvent('refresh-data'));
       setShowWriteOffModal(false);
       fetchProducts(selectedWarehouseId);
     } catch (err) {
@@ -291,6 +301,7 @@ export default function ProductsView() {
     try {
       await client.post(`/inventory/incoming/${id}/reverse`);
       toast.success('Приход отменен');
+      window.dispatchEvent(new CustomEvent('refresh-data'));
       if (selectedProduct) {
         const h = await ProductsApi.getProductHistory(selectedProduct.id);
         setProductHistory(h);

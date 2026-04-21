@@ -110,6 +110,25 @@ function ensureDatabase() {
 
 function startBackend() {
   const port = 3001;
+
+  if (process.platform === 'win32') {
+    try {
+      // Find PID on port 3001 and kill it
+      const cmd = `netstat -ano | findstr :${port}`;
+      const output = execSync(cmd).toString();
+      const lines = output.trim().split('\n');
+      lines.forEach(line => {
+        const parts = line.trim().split(/\s+/);
+        const pid = parts[parts.length - 1];
+        if (pid && pid !== '0') {
+           log(`Cleaning up old process ${pid} on port ${port}...`);
+           execSync(`taskkill /F /T /PID ${pid}`);
+        }
+      });
+    } catch (e) {
+      // Ignore errors if no process found
+    }
+  }
   
   log('Starting backend process...');
   const serverPath = isDev
@@ -199,15 +218,32 @@ function createWindow() {
   });
 }
 
+function killBackend() {
+  if (backendProcess) {
+    if (process.platform === 'win32') {
+      try {
+        // On Windows, use taskkill to kill the entire process tree
+        execSync(`taskkill /F /T /PID ${backendProcess.pid}`);
+      } catch (e) {
+        log(`Warning: taskkill failed: ${e.message}`);
+        backendProcess.kill();
+      }
+    } else {
+      backendProcess.kill();
+    }
+    backendProcess = null;
+  }
+}
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    if (backendProcess) backendProcess.kill();
+    killBackend();
     app.quit();
   }
 });
 
 app.on('quit', () => {
-  if (backendProcess) backendProcess.kill();
+  killBackend();
 });
 
 ipcMain.handle('window:minimize', (e) => {

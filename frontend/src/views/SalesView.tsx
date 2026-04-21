@@ -84,7 +84,7 @@ type EditInvoiceItem = {
 
 export default function SalesView() {
   const PAYMENT_EPSILON = 0.01;
-  const pageSize = 15;
+  const pageSize = 10;
   const [invoices, setInvoices] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -491,8 +491,26 @@ export default function SalesView() {
                         >
                            <RotateCcw size={14} /> ВОЗВРАТ
                         </button>
-                        <div className="w-[1px] h-6 bg-slate-300 mx-1"></div>
-                        <button onClick={() => setShowDetailsModal(false)} className="btn-1c !bg-slate-900 !text-white hover:!bg-slate-800 !px-8">
+                         <div className="w-[1px] h-6 bg-slate-300 mx-1"></div>
+                         <button 
+                            onClick={async () => {
+                               if (!window.confirm('Вы уверены, что хотите ОТМЕНИТЬ эту накладную? Это действие вернет товар на склад и аннулирует долг.')) return;
+                               try {
+                                  await client.post(`/invoices/${selectedInvoice.id}/cancel`);
+                                  toast.success('Накладная отменена');
+                                  window.dispatchEvent(new CustomEvent('refresh-data'));
+                                  setShowDetailsModal(false);
+                                  fetchInvoices();
+                               } catch (err: any) {
+                                  toast.error(err.response?.data?.error || 'Ошибка при отмене');
+                               }
+                            }}
+                            className="btn-1c !bg-white !text-rose-700 hover:!bg-rose-50 border-rose-100 flex items-center gap-2"
+                         >
+                            <Trash2 size={14} /> ОТМЕНИТЬ
+                         </button>
+                         <div className="w-[1px] h-6 bg-slate-300 mx-1"></div>
+                         <button onClick={() => setShowDetailsModal(false)} className="btn-1c !bg-slate-900 !text-white hover:!bg-slate-800 !px-8">
                            ЗАКРЫТЬ
                         </button>
                     </div>
@@ -554,9 +572,10 @@ export default function SalesView() {
                                   amount,
                                   method: 'cash'
                                 });
-                                toast.success('Оплата проведена');
-                                setShowPaymentModal(false);
-                                fetchInvoices();
+                                 toast.success('Оплата проведена');
+                                 window.dispatchEvent(new CustomEvent('refresh-data'));
+                                 setShowPaymentModal(false);
+                                 fetchInvoices();
                              } catch(e) { toast.error('Ошибка оплаты'); }
                              finally { setIsPaying(false); }
                           }}

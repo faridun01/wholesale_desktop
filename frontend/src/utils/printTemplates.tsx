@@ -190,8 +190,9 @@ export const generateReceiptHtml = (invoice: any) => {
 
 export const generateReconciliationHtml = (customer: any, events: any[]) => {
   const today = new Date().toLocaleDateString('ru-RU');
-  const totalDebit = events.filter(e => e.side === 'debit').reduce((sum, e) => sum + e.amount, 0);
-  const totalCredit = events.filter(e => e.side === 'credit').reduce((sum, e) => sum + e.amount, 0);
+  const sorted = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const totalDebit = sorted.filter(e => e.side === 'debit').reduce((sum, e) => sum + e.amount, 0);
+  const totalCredit = sorted.filter(e => e.side === 'credit').reduce((sum, e) => sum + e.amount, 0);
   const finalBalance = totalDebit - totalCredit;
 
   return `
@@ -233,13 +234,13 @@ export const generateReconciliationHtml = (customer: any, events: any[]) => {
           </tr>
         </thead>
         <tbody>
-          ${events.map((e, i) => `
+          ${sorted.map((e, i) => `
             <tr>
               <td class="text-center">${i + 1}</td>
               <td>${new Date(e.date).toLocaleDateString('ru-RU')}</td>
               <td>${e.description}</td>
-              <td class="text-right">${e.side === 'debit' ? formatMoney(e.amount) : ''}</td>
-              <td class="text-right">${e.side === 'credit' ? formatMoney(e.amount) : ''}</td>
+              <td class="text-right">${e.side === 'debit' ? formatMoney(e.amount) : '0,00'}</td>
+              <td class="text-right">${e.side === 'credit' ? formatMoney(e.amount) : '0,00'}</td>
               <td class="text-right font-bold">${formatMoney(e.runningBalance)}</td>
             </tr>
           `).join('')}
