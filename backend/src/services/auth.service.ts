@@ -69,12 +69,8 @@ const createHttpError = (message: string, status: number) =>
 const normalizeUsername = (username: string) => username.trim();
 
 const validatePasswordStrength = (password: string) => {
-  if (password.length < securityConfig.auth.minimumPasswordLength) {
-    throw createHttpError(`Password must be at least ${securityConfig.auth.minimumPasswordLength} characters long`, 400);
-  }
-
-  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) {
-    throw createHttpError('Password must contain uppercase, lowercase letters and at least one number', 400);
+  if (password.length < 4) {
+    throw createHttpError(`Password must be at least 4 characters long`, 400);
   }
 };
 

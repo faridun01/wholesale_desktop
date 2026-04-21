@@ -31,16 +31,19 @@ export class CustomerService {
    */
   public static mapCustomerWithTotals(customer: any) {
     const invoices = Array.isArray(customer.invoices) ? customer.invoices : [];
+    const payments = Array.isArray(customer.payments) ? customer.payments : [];
+    
     const totalInvoiced = invoices.reduce((sum: number, inv: any) => sum + Number(inv.netAmount || 0), 0);
-    const totalPaid = invoices.reduce((sum: number, inv: any) => sum + Number(inv.paidAmount || 0), 0);
-    const balance = invoices.reduce((sum: number, inv: any) => sum + this.getInvoiceBalance(inv), 0);
+    const totalPaid = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+    const balance = totalInvoiced - totalPaid;
+    
     const invoiceCount = invoices.length;
     const averageInvoice = invoiceCount > 0 ? totalInvoiced / invoiceCount : 0;
 
     const unpaidInvoices = invoices.filter((inv: any) => {
-      const paid = Math.max(0, Number(inv.paidAmount || 0));
-      const bal = this.getInvoiceBalance(inv);
-      return paid <= this.PAYMENT_EPSILON && bal > this.PAYMENT_EPSILON;
+      const net = Number(inv.netAmount || 0);
+      const paid = Number(inv.paidAmount || 0);
+      return net > paid + this.PAYMENT_EPSILON;
     });
 
     const lastPurchaseAt = invoices.reduce((latest: string | null, inv: any) => {
@@ -94,8 +97,11 @@ export class CustomerService {
         include: {
           invoices: {
             where: { cancelled: false },
-            select: { netAmount: true, paidAmount: true, createdAt: true, warehouse: { select: { name: true } } },
+            select: { id: true, netAmount: true, paidAmount: true, createdAt: true, warehouse: { select: { name: true } } },
           },
+          payments: {
+            select: { amount: true }
+          }
         },
         skip: pagination.skip,
         take: pagination.limit,

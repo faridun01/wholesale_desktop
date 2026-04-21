@@ -14,7 +14,7 @@ export const registerBodySchema = z.object({
   password: z.string().min(1),
   phone: z.string().trim().min(1).optional(),
   role: z.string().trim().min(1).optional(),
-  warehouseId: z.coerce.number().int().positive().optional(),
+  warehouseId: z.coerce.number().int().positive().nullable().optional(),
   canCancelInvoices: z.boolean().optional(),
   canDeleteData: z.boolean().optional(),
 });

@@ -120,8 +120,8 @@ export class ReportService {
       warehousePerf[inv.warehouseId].sales += netAmount;
 
       const staffKey = String(inv.user?.id || 0);
-      if (!staffPerf[staffKey]) staffPerf[staffKey] = { id: Number(inv.user?.id || 0), name: inv.user?.username || '?', invoices: 0, revenue: 0, profit: 0 };
-      staffPerf[staffKey].invoices++;
+      if (!staffPerf[staffKey]) staffPerf[staffKey] = { id: Number(inv.user?.id || 0), name: inv.user?.username || '?', operations: 0, revenue: 0, profit: 0 };
+      staffPerf[staffKey].operations++;
       staffPerf[staffKey].revenue += netAmount;
 
       const customerKey = String(inv.customer?.id || 0);

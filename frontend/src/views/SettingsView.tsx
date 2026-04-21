@@ -53,8 +53,9 @@ export default function SettingsView() {
 
   const [showAddUser, setShowAddUser] = useState(false);
   const [showEditUser, setShowEditUser] = useState(false);
+  const [showDeleteUserConfirm, setShowDeleteUserConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [newUser, setNewUser] = useState({ username: '', password: '', confirmPassword: '', role: 'SELLER', warehouseId: '', canCancelInvoices: false, canDeleteData: false });
+  const [userForm, setUserForm] = useState({ username: '', password: '', confirmPassword: '', role: 'SELLER', warehouseId: '', canCancelInvoices: false, canDeleteData: false });
   const [warehousePage, setWarehousePage] = useState(1);
 
   const currentUser = useMemo(() => getCurrentUser(), []);
@@ -134,6 +135,63 @@ export default function SettingsView() {
       fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Ошибка при выборе основного склада');
+    }
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (userForm.password !== userForm.confirmPassword) {
+      return toast.error('Пароли не совпадают');
+    }
+    try {
+      await client.post('/auth/register', {
+        ...userForm,
+        warehouseId: userForm.warehouseId ? Number(userForm.warehouseId) : null
+      });
+      toast.success('Пользователь создан');
+      setShowAddUser(false);
+      setUserForm({ username: '', password: '', confirmPassword: '', role: 'SELLER', warehouseId: '', canCancelInvoices: false, canDeleteData: false });
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Ошибка при создании пользователя');
+    }
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    if (userForm.password && userForm.password !== userForm.confirmPassword) {
+      return toast.error('Пароли не совпадают');
+    }
+    try {
+      const data: any = {
+        role: userForm.role,
+        warehouseId: userForm.warehouseId ? Number(userForm.warehouseId) : null,
+        canCancelInvoices: userForm.canCancelInvoices,
+        canDeleteData: userForm.canDeleteData
+      };
+      if (userForm.password) data.password = userForm.password;
+
+      await client.put(`/auth/users/${selectedUser.id}`, data);
+      toast.success('Данные обновлены');
+      setShowEditUser(false);
+      setSelectedUser(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Ошибка обновления');
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    try {
+      await client.delete(`/auth/users/${selectedUser.id}`);
+      toast.success('Пользователь удален');
+      setShowDeleteUserConfirm(false);
+      setSelectedUser(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Ошибка удаления');
     }
   };
 
@@ -399,9 +457,34 @@ export default function SettingsView() {
                                     )}
                                  </td>
                                  <td className="text-center">
-                                    <div className="flex items-center justify-center gap-1 opacity-20 hover:opacity-100 transition-opacity">
-                                       <button className="p-1 text-slate-400 hover:text-sky-600"><Edit size={14} /></button>
-                                       <button className="p-1 text-slate-300 hover:text-rose-500"><Trash2 size={14} /></button>
+                                    <div className="flex items-center justify-center gap-1">
+                                       <button 
+                                          className="p-1 text-slate-400 hover:text-sky-600"
+                                          onClick={() => {
+                                             setSelectedUser(u);
+                                             setUserForm({
+                                                ...userForm,
+                                                role: u.role,
+                                                warehouseId: u.warehouseId ? String(u.warehouseId) : '',
+                                                canCancelInvoices: u.canCancelInvoices,
+                                                canDeleteData: u.canDeleteData,
+                                                password: '',
+                                                confirmPassword: ''
+                                             });
+                                             setShowEditUser(true);
+                                          }}
+                                       >
+                                          <Edit size={14} />
+                                       </button>
+                                       <button 
+                                          className="p-1 text-slate-300 hover:text-rose-500"
+                                          onClick={() => {
+                                             setSelectedUser(u);
+                                             setShowDeleteUserConfirm(true);
+                                          }}
+                                       >
+                                          <Trash2 size={14} />
+                                       </button>
                                     </div>
                                  </td>
                               </tr>
@@ -595,7 +678,152 @@ export default function SettingsView() {
             cancelText="ОТМЕНА"
             type="danger"
          />
+         <ConfirmationModal 
+            isOpen={showDeleteUserConfirm}
+            onClose={() => setShowDeleteUserConfirm(false)}
+            onConfirm={handleDeleteUser}
+            title="Удаление пользователя"
+            message={`Вы действительно хотите удалить пользователя "${selectedUser?.username}"? Он больше не сможет войти в систему.`}
+            confirmText="УДАЛИТЬ ПОЛЬЗОВАТЕЛЯ"
+            cancelText="ОТМЕНА"
+            type="danger"
+         />
       </Suspense>
+
+      {/* User Modal (ADD) */}
+      <AnimatePresence>
+        {showAddUser && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAddUser(false)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-lg rounded-[4px] shadow-2xl border-t-4 border-t-brand-yellow overflow-hidden">
+              <div className="bg-slate-50 px-5 py-3 border-b border-border-base flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase text-slate-800 flex items-center gap-2 italic">
+                  <Users size={14} className="text-brand-orange" /> Новый пользователь системы
+                </h3>
+                <button onClick={() => setShowAddUser(false)} className="text-slate-300 hover:text-slate-600"><X size={18} /></button>
+              </div>
+              <form onSubmit={handleAddUser} className="p-6 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Логин для входа</label>
+                  <input required value={userForm.username} onChange={e => setUserForm({ ...userForm, username: e.target.value })} className="field-1c w-full font-black uppercase" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Пароль</label>
+                    <input required type="password" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} className="field-1c w-full" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Подтверждение</label>
+                    <input required type="password" value={userForm.confirmPassword} onChange={e => setUserForm({ ...userForm, confirmPassword: e.target.value })} className="field-1c w-full" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Роль (Доступ)</label>
+                    <select value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} className="field-1c w-full font-bold">
+                      <option value="SELLER">Продавец</option>
+                      <option value="MANAGER">Менеджер</option>
+                      <option value="ADMIN">Администратор</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Привязка к складу</label>
+                    <select value={userForm.warehouseId} onChange={e => setUserForm({ ...userForm, warehouseId: e.target.value })} className="field-1c w-full font-bold">
+                      <option value="">Все склады (ЦО)</option>
+                      {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="bg-slate-50 p-4 rounded border border-slate-200 space-y-3 mt-4">
+                   <p className="text-[9px] font-black uppercase text-slate-400 mb-2">Дополнительные привилегии</p>
+                   <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={userForm.canCancelInvoices} onChange={e => setUserForm({...userForm, canCancelInvoices: e.target.checked})} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-slate-200 peer-checked:bg-emerald-500 rounded-full transition-all relative">
+                         <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-slate-600">Разрешить отмену накладных</span>
+                   </label>
+                   <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={userForm.canDeleteData} onChange={e => setUserForm({...userForm, canDeleteData: e.target.checked})} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-slate-200 peer-checked:bg-rose-500 rounded-full transition-all relative">
+                         <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-slate-600">Разрешить удаление данных</span>
+                   </label>
+                </div>
+                <div className="pt-4">
+                   <button type="submit" className="w-full btn-1c !bg-brand-yellow !border-brand-orange/30 !py-4 font-black tracking-widest uppercase">ЗАРЕГИСТРИРОВАТЬ</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* User Modal (EDIT) */}
+      <AnimatePresence>
+        {showEditUser && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowEditUser(false)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-lg rounded-[4px] shadow-2xl border-t-4 border-t-sky-500 overflow-hidden">
+              <div className="bg-slate-50 px-5 py-3 border-b border-border-base flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase text-slate-800 flex items-center gap-2 italic">
+                  <Edit size={14} className="text-sky-600" /> Редактирование: {selectedUser?.username}
+                </h3>
+                <button onClick={() => setShowEditUser(false)} className="text-slate-300 hover:text-slate-600"><X size={18} /></button>
+              </div>
+              <form onSubmit={handleUpdateUser} className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Роль (Доступ)</label>
+                    <select value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} className="field-1c w-full font-bold">
+                      <option value="SELLER">Продавец</option>
+                      <option value="MANAGER">Менеджер</option>
+                      <option value="ADMIN">Администратор</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Склад</label>
+                    <select value={userForm.warehouseId} onChange={e => setUserForm({ ...userForm, warehouseId: e.target.value })} className="field-1c w-full font-bold">
+                      <option value="">Все склады (ЦО)</option>
+                      {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="bg-slate-50 p-4 rounded border border-slate-200 mt-4 space-y-4">
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Смена пароля (оставьте пустым если не меняется)</label>
+                      <div className="grid grid-cols-2 gap-2">
+                         <input type="password" placeholder="Новый пароль" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} className="field-1c w-full" />
+                         <input type="password" placeholder="Повтор" value={userForm.confirmPassword} onChange={e => setUserForm({...userForm, confirmPassword: e.target.value})} className="field-1c w-full" />
+                      </div>
+                   </div>
+                </div>
+                <div className="bg-slate-50 p-4 rounded border border-slate-200 space-y-3">
+                   <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={userForm.canCancelInvoices} onChange={e => setUserForm({...userForm, canCancelInvoices: e.target.checked})} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-slate-200 peer-checked:bg-emerald-500 rounded-full transition-all relative">
+                         <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-slate-600">Разрешить отмену накладных</span>
+                   </label>
+                   <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={userForm.canDeleteData} onChange={e => setUserForm({...userForm, canDeleteData: e.target.checked})} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-slate-200 peer-checked:bg-rose-500 rounded-full transition-all relative">
+                         <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-slate-600">Разрешить удаление данных</span>
+                   </label>
+                </div>
+                <div className="pt-4 flex gap-2">
+                   <button type="submit" className="flex-1 btn-1c !bg-sky-600 !text-white border-none !py-4 font-black tracking-widest uppercase">СОХРАНИТЬ</button>
+                   <button type="button" onClick={() => setShowEditUser(false)} className="flex-1 btn-1c !bg-slate-100 !py-4 font-black tracking-widest uppercase">ОТМЕНА</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
