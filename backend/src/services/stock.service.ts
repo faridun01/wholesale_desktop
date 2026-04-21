@@ -267,7 +267,9 @@ export class StockService {
     reason?: string,
     purchaseCostPrice?: number,
     expensePercent?: number,
-    tx?: any
+    tx?: any,
+    type: string = 'incoming',
+    referenceId?: number
   ) {
     const client = tx || prisma;
     const normalizedQty = roundQty(toNumber(quantity, 0));
@@ -303,9 +305,10 @@ export class StockService {
           warehouseId,
           userId,
           qtyChange: normalizedQty,
-          type: 'incoming',
+          type: type as any,
           reason: normalizedReason,
           costAtTime: normalizedCost,
+          referenceId: referenceId
         },
       });
 
@@ -476,28 +479,31 @@ export class StockService {
           reason || `Возврат списания #${transactionId}`,
           undefined,
           undefined,
-          tx
+          tx,
+          'adjustment',
+          transactionId
         );
+      } else {
+        // If returned to existing batches, addStock wasn't called, so we must create transaction manually
+        await tx.inventoryTransaction.create({
+          data: {
+            productId: transaction.productId,
+            warehouseId: transaction.warehouseId,
+            userId,
+            qtyChange: quantity,
+            type: 'adjustment',
+            reason: reason || `Возврат списания #${transactionId}`,
+            referenceId: transactionId,
+            costAtTime: Number(transaction.costAtTime || 0)
+          }
+        });
       }
 
-      await tx.inventoryTransaction.create({
-        data: {
-          productId: transaction.productId,
-          warehouseId: transaction.warehouseId,
-          userId,
-          qtyChange: quantity,
-          type: 'return',
-          reason: reason || `Возврат списания #${transactionId}`,
-          referenceId: transactionId,
-          costAtTime: transaction.costAtTime,
-        }
-      });
-
       await this.updateProductStockCache(transaction.productId, tx);
-
       return { success: true };
     });
   }
+
 
   static async deleteWriteOffTransactionPermanently(transactionId: number) {
     await prisma.inventoryTransaction.delete({ where: { id: transactionId } });
