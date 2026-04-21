@@ -39,6 +39,9 @@ import { getCustomers } from '../api/customers.api';
 import { getWarehouses } from '../api/warehouses.api';
 import { getProducts } from '../api/products.api';
 import PaginationControls from '../components/common/PaginationControls';
+import { printSalesInvoice } from '../utils/print/salesInvoicePrint';
+import { printThermalReceipt } from '../utils/print/thermalReceiptPrint';
+import ReturnModal from '../components/sales/ReturnModal';
 
 // Logics helpers
 const normalizeProductSearchValue = (value: unknown) => formatProductName(value).toLowerCase();
@@ -102,6 +105,7 @@ export default function SalesView() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [showReturnModal, setShowReturnModal] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -417,31 +421,40 @@ export default function SalesView() {
 
                 {/* Modal Actions */}
                 <div className="bg-[#f8f9fb] border-t border-border-base p-4 flex flex-wrap items-center justify-between gap-4">
-                   <div className="flex items-center gap-2">
-                       <button className="btn-1c flex items-center gap-2 !bg-white">
-                          <Printer size={14} /> Печать ТОРГ-12
-                       </button>
-                       <button className="btn-1c flex items-center gap-2 !bg-white">
-                          <Printer size={14} /> Кассовый чек
-                       </button>
-                   </div>
-                   
-                   <div className="flex items-center gap-2">
-                       <button 
-                         onClick={() => { setShowDetailsModal(false); setShowPaymentModal(true); setPaymentAmount(String(roundMoney((selectedInvoice.netAmount || selectedInvoice.totalAmount || 0) - (selectedInvoice.paidAmount || 0)))); }}
-                         disabled={getEffectiveStatus(selectedInvoice) === 'paid'}
-                         className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2 disabled:grayscale disabled:opacity-30"
-                       >
-                          <Banknote size={14} strokeWidth={3} /> ПРИНЯТЬ ОПЛАТУ
-                       </button>
-                       <button className="btn-1c !bg-white !text-rose-600 hover:!bg-rose-50 flex items-center gap-2">
-                          <RotateCcw size={14} /> ВОЗВРАТ
-                       </button>
-                       <div className="w-[1px] h-6 bg-slate-300 mx-1"></div>
-                       <button onClick={() => setShowDetailsModal(false)} className="btn-1c !bg-slate-900 !text-white hover:!bg-slate-800 !px-8">
-                          ЗАКРЫТЬ
-                       </button>
-                   </div>
+                    <div className="flex items-center gap-2">
+                        <button 
+                           onClick={() => printSalesInvoice({ invoice: selectedInvoice, statusLabel: '', subtotal: 0, discountAmount: 0, netAmount: 0, balanceAmount: 0, changeAmount: 0, appliedPaidAmount: 0 })}
+                           className="btn-1c flex items-center gap-2 !bg-white"
+                        >
+                           <Printer size={14} /> Печать ТОРГ-12
+                        </button>
+                        <button 
+                           onClick={() => printThermalReceipt(selectedInvoice)}
+                           className="btn-1c flex items-center gap-2 !bg-white"
+                        >
+                           <Printer size={14} /> Кассовый чек
+                        </button>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => { setShowDetailsModal(false); setShowPaymentModal(true); setPaymentAmount(String(roundMoney((selectedInvoice.netAmount || selectedInvoice.totalAmount || 0) - (selectedInvoice.paidAmount || 0)))); }}
+                          disabled={getEffectiveStatus(selectedInvoice) === 'paid'}
+                          className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2 disabled:grayscale disabled:opacity-30"
+                        >
+                           <Banknote size={14} strokeWidth={3} /> ПРИНЯТЬ ОПЛАТУ
+                        </button>
+                        <button 
+                           onClick={() => { setShowDetailsModal(false); setShowReturnModal(true); }}
+                           className="btn-1c !bg-white !text-rose-600 hover:!bg-rose-50 flex items-center gap-2"
+                        >
+                           <RotateCcw size={14} /> ВОЗВРАТ
+                        </button>
+                        <div className="w-[1px] h-6 bg-slate-300 mx-1"></div>
+                        <button onClick={() => setShowDetailsModal(false)} className="btn-1c !bg-slate-900 !text-white hover:!bg-slate-800 !px-8">
+                           ЗАКРЫТЬ
+                        </button>
+                    </div>
                 </div>
              </motion.div>
           </div>
@@ -480,12 +493,23 @@ export default function SalesView() {
                         </div>
                         <button 
                           onClick={async () => {
+                             const debt = (selectedInvoice.netAmount || selectedInvoice.totalAmount || 0) - (selectedInvoice.paidAmount || 0);
+                             const amount = Number(paymentAmount);
+                             if (amount > debt + 0.01) {
+                               toast.error('Сумма превышает остаток долга');
+                               return;
+                             }
+                             if (amount <= 0) {
+                               toast.error('Введите корректную сумму');
+                               return;
+                             }
+
                              setIsPaying(true);
                              try {
                                 await client.post('/payments', {
                                   customer_id: selectedInvoice.customerId,
                                   invoice_id: selectedInvoice.id,
-                                  amount: Number(paymentAmount),
+                                  amount,
                                   method: 'cash'
                                 });
                                 toast.success('Оплата проведена');
@@ -503,6 +527,13 @@ export default function SalesView() {
             </div>
          )}
       </AnimatePresence>
+
+      <ReturnModal 
+         isOpen={showReturnModal} 
+         onClose={() => setShowReturnModal(false)} 
+         invoice={selectedInvoice} 
+         onSuccess={fetchInvoices} 
+      />
     </div>
   );
 }

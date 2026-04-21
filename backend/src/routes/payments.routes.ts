@@ -51,8 +51,15 @@ router.post('/', async (req: AuthRequest, res, next) => {
         });
 
         if (currentInvoice) {
-          const newPaidAmount = roundMoney(Number(currentInvoice.paidAmount) + normalizedAmount);
           const netAmount = Number(currentInvoice.netAmount);
+          const currentPaid = Number(currentInvoice.paidAmount);
+          const debt = Math.max(0, netAmount - currentPaid);
+
+          if (normalizedAmount > debt + PAYMENT_EPSILON) {
+            throw new Error(`Сумма оплаты (${normalizedAmount}) превышает остаток долга (${roundMoney(debt)})`);
+          }
+
+          const newPaidAmount = roundMoney(currentPaid + normalizedAmount);
           const status = newPaidAmount > 0 && newPaidAmount >= netAmount - PAYMENT_EPSILON ? 'paid' : 'partial';
           
           await tx.invoice.update({

@@ -9,6 +9,7 @@ import { formatCount, formatMoney, formatPercent } from '../utils/format';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import PaginationControls from '../components/common/PaginationControls';
 import { getCurrentUser, isAdminUser } from '../utils/userAccess';
+import CustomerDossierModal from '../components/customers/CustomerDossierModal';
 
 const emptyForm = {
   customerType: 'individual',
@@ -37,6 +38,7 @@ export default function CustomerView() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(emptyForm);
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
 
   const fetchCustomers = async () => {
     setIsLoading(true);
@@ -142,7 +144,11 @@ export default function CustomerView() {
         
         <div className="w-[1px] h-6 bg-slate-200 mx-1"></div>
         
-        <button className="btn-1c flex items-center gap-1.5" disabled={!selectedCustomer}>
+        <button 
+          onClick={() => setIsDossierOpen(true)} 
+          className="btn-1c flex items-center gap-1.5" 
+          disabled={!selectedCustomer}
+        >
            <FileText size={14} /> Досье
         </button>
 
@@ -284,6 +290,12 @@ export default function CustomerView() {
         message={`Вы уверены, что хотите удалить "${selectedCustomer?.name}"? История операций будет сохранена.`}
         confirmText="Удалить"
         cancelText="Отмена"
+      />
+
+      <CustomerDossierModal 
+        isOpen={isDossierOpen} 
+        onClose={() => setIsDossierOpen(false)} 
+        customer={selectedCustomer} 
       />
     </div>
   );

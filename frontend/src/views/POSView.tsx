@@ -549,10 +549,11 @@ export default function POSView() {
              >
                {isSubmitting ? 'Проведение...' : 'ПРОБИТЬ ЧЕК (Alt+S)'}
              </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+             <div className="h-16 w-full" />
+           </div>
+         </div>
+       </div>
+     </div>
+   );
 }
 

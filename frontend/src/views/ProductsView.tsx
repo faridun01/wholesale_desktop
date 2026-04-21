@@ -80,6 +80,7 @@ export default function ProductsView() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(userWarehouseId ? String(userWarehouseId) : '');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
@@ -287,8 +288,6 @@ export default function ProductsView() {
   };
 
   // --- Computed ---
-
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
 
   const filteredProducts = useMemo(() => {
     const s = search.toLowerCase();

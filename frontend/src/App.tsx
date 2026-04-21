@@ -6,7 +6,7 @@ import {
   Loader2, Minus, Square, Warehouse, X, 
   LayoutDashboard, ShoppingCart, BookOpen, Package, 
   Users, Banknote, LineChart, 
-  Settings, UserCircle
+  Settings, UserCircle, Receipt
 } from 'lucide-react';
 import LoginView from './views/LoginView';
 import { getCurrentUser, isAdminUser } from './utils/userAccess';
@@ -27,26 +27,25 @@ const TitleBar = () => {
   const windowControls = (window as any).electron?.windowControls;
   
   return (
-    <div 
-      style={{ WebkitAppRegion: 'drag' } as any}
-      className="fixed left-0 right-0 top-0 z-[10000] flex h-9 w-full items-center justify-between bg-brand-yellow px-4 shadow-[0_1px_4px_rgba(0,0,0,0.1)] border-b border-black/5"
-    >
-      <div className="flex items-center gap-3 select-none">
+    <div className="flex-none flex h-9 w-full items-center justify-between bg-brand-yellow px-4 shadow-[0_1px_4px_rgba(0,0,0,0.1)] border-b border-black/5 relative z-[1000]">
+      <div className="flex items-center gap-3 select-none" style={{ WebkitAppRegion: 'drag' } as any}>
         <Warehouse size={16} className="text-slate-800" />
         <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Мой Склад</span>
       </div>
       
+      <div className="flex-1 h-full" style={{ WebkitAppRegion: 'drag' } as any}></div>
+
       <div 
         style={{ WebkitAppRegion: 'no-drag' } as any}
-        className="flex h-full items-stretch"
+        className="flex h-full items-stretch relative z-[1001]"
       >
-        <button onClick={() => windowControls?.minimize?.()} className="flex w-10 items-center justify-center text-slate-800 hover:bg-black/5 transition-colors">
+        <button onClick={() => windowControls?.minimize?.()} className="flex w-10 items-center justify-center text-slate-800 hover:bg-black/5 transition-colors focus:outline-none">
           <Minus size={14} />
         </button>
-        <button onClick={() => windowControls?.toggleMaximize?.()} className="flex w-10 items-center justify-center text-slate-800 hover:bg-black/5 transition-colors">
+        <button onClick={() => windowControls?.toggleMaximize?.()} className="flex w-10 items-center justify-center text-slate-800 hover:bg-black/5 transition-colors focus:outline-none">
           <Square size={12} />
         </button>
-        <button onClick={() => windowControls?.close?.()} className="flex w-12 items-center justify-center text-slate-800 hover:bg-red-600 hover:text-white transition-colors">
+        <button onClick={() => windowControls?.close?.()} className="flex w-12 items-center justify-center text-slate-800 hover:bg-red-600 hover:text-white transition-colors focus:outline-none">
           <X size={18} />
         </button>
       </div>
@@ -61,6 +60,7 @@ const NavigationBar = () => {
   const items = [
     { to: '/', icon: LayoutDashboard, label: 'ГЛАВНОЕ', admin: true },
     { to: '/pos', icon: ShoppingCart, label: 'ПРОДАЖИ (POS)', admin: false },
+    { to: '/sales', icon: Receipt, label: 'ЖУРНАЛ ПРОДАЖ', admin: false },
     { to: '/products', icon: Package, label: 'ТОВАРЫ И СКЛАД', admin: false },
     { to: '/catalog', icon: BookOpen, label: 'РЕФЕРЕНСЫ', admin: false },
     { to: '/customers', icon: Users, label: 'КОНТРАГЕНТЫ', admin: false },
@@ -70,7 +70,7 @@ const NavigationBar = () => {
   ].filter(item => !item.admin || isAdmin);
 
   return (
-    <div className="fixed left-0 right-0 top-9 z-[9999] flex h-10 w-full items-center bg-[#f8f9fb] border-b border-border-base shadow-sm">
+    <div className="flex-none flex h-10 w-full items-center bg-[#f8f9fb] border-b border-border-base shadow-sm">
       <div className="flex h-full overflow-x-auto no-scrollbar">
         {items.map((item) => (
           <NavLink
@@ -108,29 +108,25 @@ const Layout = () => {
       <TitleBar />
       <NavigationBar />
       
-      <main className="flex-1 w-full overflow-hidden pt-[76px]">
-        <div className="h-full w-full overflow-auto custom-scrollbar">
-          <Suspense fallback={
-             <div className="flex h-full items-center justify-center bg-white/50 backdrop-blur-sm">
-                <Loader2 size={32} className="animate-spin text-brand-orange" />
-             </div>
-          }>
-            <motion.div
-               key={location.pathname}
-               initial={{ opacity: 0, x: -10 }}
-               animate={{ opacity: 1, x: 0 }}
-               transition={{ duration: 0.15, ease: "easeOut" }}
-               className="min-h-full w-full p-6 animate-slide-in"
-            >
-               <div className="mx-auto max-w-[1700px]">
-                  <Outlet />
-               </div>
-            </motion.div>
-          </Suspense>
-        </div>
+      <main className="flex-1 w-full overflow-hidden pt-[76px] relative z-0">
+         <Suspense fallback={
+            <div className="flex h-full items-center justify-center bg-white/50 backdrop-blur-sm">
+               <Loader2 size={32} className="animate-spin text-brand-orange" />
+            </div>
+         }>
+           <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="h-full w-full overflow-auto custom-scrollbar p-6"
+           >
+              <Outlet />
+           </motion.div>
+         </Suspense>
       </main>
 
-      <footer className="h-6 w-full flex items-center justify-between bg-[#f8f9fb] px-4 border-t border-border-base text-[9px] font-black text-slate-400 uppercase tracking-widest select-none">
+      <footer className="fixed bottom-0 left-0 right-0 z-50 h-6 w-full flex items-center justify-between bg-[#f8f9fb] px-4 border-t border-border-base text-[9px] font-black text-slate-400 uppercase tracking-widest select-none">
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 text-emerald-600">
                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>

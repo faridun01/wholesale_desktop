@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { clsx } from 'clsx';
 import { Layers, Trash2, X, Info } from 'lucide-react';
@@ -15,7 +15,7 @@ interface ProductBatchesModalProps {
 }
 
 const getQuantityDisplay = (qty: number, product: any) => {
-  return \\ \\;
+  return `${qty} ${product?.baseUnitName || 'шт'}`;
 };
 
 export default function ProductBatchesModal({
