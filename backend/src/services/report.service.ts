@@ -65,7 +65,9 @@ export class ReportService {
           user: { select: { id: true, username: true } },
           items: {
             include: {
-              product: { select: { id: true, name: true } },
+              product: { 
+                include: { category: { select: { id: true, name: true } } }
+              },
               saleAllocations: { include: { batch: { select: { costPrice: true } } } }
             }
           },
@@ -99,6 +101,7 @@ export class ReportService {
     const monthlyData: any = {};
     const warehousePerf: any = {};
     const productPerf: Record<string, any> = {};
+    const categoryPerf: Record<string, any> = {};
     const staffPerf: Record<string, any> = {};
     const customerPerf: Record<string, any> = {};
 
@@ -133,6 +136,7 @@ export class ReportService {
         const lineProfit = lineRev - lineCost;
         const qty = this.getRemainingQuantity(item);
         const prodKey = String(item.product?.id || 0);
+        const catKey = String(item.product?.category?.id || 0);
 
         totalCost += lineCost;
         if (access.isAdmin) {
@@ -146,6 +150,10 @@ export class ReportService {
         productPerf[prodKey].quantity += qty;
         productPerf[prodKey].revenue += lineRev;
         productPerf[prodKey].profit += lineProfit;
+
+        if (!categoryPerf[catKey]) categoryPerf[catKey] = { id: Number(item.product?.category?.id || 0), name: item.product?.category?.name || 'Без категории', revenue: 0, profit: 0 };
+        categoryPerf[catKey].revenue += lineRev;
+        categoryPerf[catKey].profit += lineProfit;
       }
     }
 
@@ -181,6 +189,7 @@ export class ReportService {
       chartData: Object.values(monthlyData),
       warehousePerformance: Object.values(warehousePerf),
       productPerformance: Object.values(productPerf).sort((a: any, b: any) => b.profit - a.profit).slice(0, 20),
+      categoryPerformance: Object.values(categoryPerf).sort((a: any, b: any) => b.revenue - a.revenue),
       staffPerformance: Object.values(staffPerf).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 20),
       customerPerformance: Object.values(customerPerf).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 20),
       customerDebts: Object.values(customerPerf).filter((i: any) => i.debt > this.MONEY_EPSILON).sort((a: any, b: any) => b.debt - a.debt).slice(0, 20),

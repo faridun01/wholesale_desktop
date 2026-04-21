@@ -75,6 +75,7 @@ type AnalyticsPayload = {
   customerPerformance: NamedMetric[];
   customerDebts: NamedMetric[];
   writeoffReasons: NamedMetric[];
+  categoryPerformance: NamedMetric[];
 };
 
 type PeriodMode = 'month' | 'quarter' | 'year';
@@ -345,16 +346,17 @@ export default function AnalyticsView() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <div className="bg-white border border-border-base rounded-[4px] p-6 shadow-sm">
                                 <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2 mb-6">
-                                    <BarChartIcon size={14} className="text-brand-orange" /> Соотношение сбыта по складам
+                                    <BarChartIcon size={14} className="text-brand-orange" /> Продажи по категориям
                                 </h3>
                                 <div className="h-[250px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={data?.warehousePerformance || []}>
+                                        <BarChart data={data?.categoryPerformance || []}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }} />
                                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }} />
                                             <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '4px' }} />
                                             <Bar dataKey="revenue" name="ВЫРУЧКА" fill="#ffda1a" radius={[4, 4, 0, 0]} />
+                                            <Bar dataKey="profit" name="ПРИБЫЛЬ" fill="#10b981" radius={[4, 4, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -461,6 +463,109 @@ export default function AnalyticsView() {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                )}
+
+                {/* PRODUCTS SECTION */}
+                {activeSection === 'products' && (
+                    <div className="bg-white border border-border-base rounded-[4px] overflow-hidden shadow-sm">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between font-black text-[10px] uppercase text-slate-500">
+                             Анализ продаж по номенклатуре
+                        </div>
+                        <table className="table-1c">
+                            <thead>
+                                <tr>
+                                    <th className="w-12 text-center">№</th>
+                                    <th>Наименование товара</th>
+                                    <th className="text-right">Продано (Кол-во)</th>
+                                    <th className="text-right">Выручка</th>
+                                    <th className="text-right">Прибыль</th>
+                                    <th className="text-right">Рентабельность</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data?.productPerformance?.map((p, i) => {
+                                    const margin = p.revenue ? (p.profit! / p.revenue) * 100 : 0;
+                                    return (
+                                        <tr key={p.name} className="hover:bg-slate-50">
+                                            <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
+                                            <td className="font-bold text-slate-700">{p.name}</td>
+                                            <td className="text-right font-black text-slate-600">{formatCount(p.quantity || 0)}</td>
+                                            <td className="text-right font-black text-slate-900">{formatMoney(p.revenue || 0)}</td>
+                                            <td className="text-right font-black text-emerald-600">{formatMoney(p.profit || 0)}</td>
+                                            <td className="text-right font-black text-brand-orange">{formatPercent(margin, 1)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* CUSTOMERS SECTION */}
+                {activeSection === 'customers' && (
+                    <div className="bg-white border border-border-base rounded-[4px] overflow-hidden shadow-sm">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between font-black text-[10px] uppercase text-slate-500">
+                             Эффективность работы с контрагентами
+                        </div>
+                        <table className="table-1c">
+                            <thead>
+                                <tr>
+                                    <th className="w-12 text-center">№</th>
+                                    <th>ФИО / Наименование клиента</th>
+                                    <th className="text-right">Кол-во чеков</th>
+                                    <th className="text-right">Общая закупка</th>
+                                    <th className="text-right">Тек. Задолженность</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data?.customerPerformance?.map((c, i) => {
+                                    const debt = data?.customerDebts?.find(d => d.name === c.name)?.debt || 0;
+                                    return (
+                                        <tr key={c.name} className="hover:bg-slate-50">
+                                            <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
+                                            <td className="font-bold text-slate-700 uppercase">{c.name}</td>
+                                            <td className="text-right font-black text-slate-600">{c.invoices || 0}</td>
+                                            <td className="text-right font-black text-slate-900">{formatMoney(c.revenue || 0)}</td>
+                                            <td className={clsx("text-right font-black", debt > 0 ? "text-rose-600" : "text-slate-400")}>
+                                                {formatMoney(debt)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* STAFF SECTION */}
+                {activeSection === 'staff' && (
+                    <div className="bg-white border border-border-base rounded-[4px] overflow-hidden shadow-sm">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between font-black text-[10px] uppercase text-slate-500">
+                             Показатели эффективности сотрудников (KPI)
+                        </div>
+                        <table className="table-1c">
+                            <thead>
+                                <tr>
+                                    <th className="w-12 text-center">№</th>
+                                    <th>Сотрудник</th>
+                                    <th className="text-right">Операций</th>
+                                    <th className="text-right">Сумма продаж (Выручка)</th>
+                                    <th className="text-right">Принесенная прибыль</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data?.staffPerformance?.map((s, i) => (
+                                    <tr key={s.name} className="hover:bg-slate-50">
+                                        <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
+                                        <td className="font-black text-slate-800 uppercase italic tracking-tighter decoration-brand-yellow/30 underline underline-offset-4">{s.name}</td>
+                                        <td className="text-right font-black text-slate-600">{s.operations || 0}</td>
+                                        <td className="text-right font-black text-slate-900">{formatMoney(s.revenue || 0)}</td>
+                                        <td className="text-right font-black text-emerald-600">{formatMoney(s.profit || 0)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>

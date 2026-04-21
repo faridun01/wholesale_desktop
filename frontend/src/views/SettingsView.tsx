@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import client from '../api/client';
 import { getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse, setDefaultWarehouse } from '../api/warehouses.api';
 import { 
@@ -34,9 +34,10 @@ import UserTwoFactorModal from '../components/settings/UserTwoFactorModal';
 import { invalidateSettingsReferenceCache } from '../api/settings-reference.api';
 import PaginationControls from '../components/common/PaginationControls';
 
+const ConfirmationModal = React.lazy(() => import('../components/common/ConfirmationModal'));
+
 export default function SettingsView() {
   const warehousesPageSize = 8;
-  const ConfirmationModal = React.lazy(() => import('../components/common/ConfirmationModal'));
 
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -46,6 +47,7 @@ export default function SettingsView() {
   
   const [showAddWarehouse, setShowAddWarehouse] = useState(false);
   const [showEditWarehouse, setShowEditWarehouse] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
   const [warehouseForm, setWarehouseForm] = useState({ name: '', city: '', address: '', phone: '' });
 
@@ -94,6 +96,34 @@ export default function SettingsView() {
       fetchData();
     } catch (err) {
       toast.error('Ошибка при создании склада');
+    }
+  };
+
+  const handleEditWarehouse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedWarehouse) return;
+    try {
+      await updateWarehouse(selectedWarehouse.id, warehouseForm);
+      toast.success('Склад успешно обновлен');
+      setShowEditWarehouse(false);
+      setSelectedWarehouse(null);
+      setWarehouseForm({ name: '', city: '', address: '', phone: '' });
+      fetchData();
+    } catch (err) {
+      toast.error('Ошибка при обновлении склада');
+    }
+  };
+
+  const handleDeleteWarehouse = async () => {
+    if (!selectedWarehouse) return;
+    try {
+      await deleteWarehouse(selectedWarehouse.id);
+      toast.success('Склад удален');
+      setShowDeleteConfirm(false);
+      setSelectedWarehouse(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Ошибка при удалении склада. Возможно, на нем есть остатки.');
     }
   };
 
@@ -173,7 +203,7 @@ export default function SettingsView() {
                </div>
             </div>
             {activeTab === 'warehouses' && isAdmin && (
-               <button onClick={() => setShowAddWarehouse(true)} className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2"><Plus size={14} /> ДОБАВИТЬ СКЛАД</button>
+               <button onClick={() => { setWarehouseForm({ name: '', city: '', address: '', phone: '' }); setShowAddWarehouse(true); }} className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2"><Plus size={14} /> ДОБАВИТЬ СКЛАД</button>
             )}
             {activeTab === 'users' && isAdmin && (
                <button onClick={() => setShowAddUser(true)} className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2"><Plus size={14} /> НОВЫЙ ПОЛЬЗОВАТЕЛЬ</button>
@@ -212,8 +242,8 @@ export default function SettingsView() {
                                  </td>
                                  <td className="text-center">
                                     <div className="flex items-center justify-center gap-1">
-                                       <button className="p-1.5 text-slate-400 hover:text-sky-600" onClick={() => { setSelectedWarehouse(w); setWarehouseForm({ ...w }); setShowEditWarehouse(true); }}><Edit size={14} /></button>
-                                       {isAdmin && <button className="p-1.5 text-slate-300 hover:text-rose-500" onClick={() => { setSelectedWarehouse(w); fetchData(); }}><Trash2 size={14} /></button>}
+                                       <button className="p-1.5 text-slate-400 hover:text-sky-600" onClick={() => { setSelectedWarehouse(w); setWarehouseForm({ city: w.city, name: w.name, address: w.address, phone: w.phone }); setShowEditWarehouse(true); }}><Edit size={14} /></button>
+                                       {isAdmin && <button className="p-1.5 text-slate-300 hover:text-rose-500" onClick={() => { setSelectedWarehouse(w); setShowDeleteConfirm(true); }}><Trash2 size={14} /></button>}
                                     </div>
                                  </td>
                               </tr>
@@ -452,11 +482,12 @@ export default function SettingsView() {
          </div>
       </div>
 
-      {/* Warehouse Modal 1C Style */}
+      {/* Warehouse Modal (ADD) */}
+      <AnimatePresence>
       {showAddWarehouse && (
          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAddWarehouse(false)} />
-             <div className="relative bg-white w-full max-w-md rounded-[4px] shadow-2xl border-t-4 border-t-brand-yellow overflow-hidden">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAddWarehouse(false)} />
+             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[4px] shadow-2xl border-t-4 border-t-brand-yellow overflow-hidden">
                  <div className="bg-slate-50 px-5 py-3 border-b border-border-base flex items-center justify-between">
                      <h3 className="text-xs font-black uppercase text-slate-800 flex items-center gap-2 italic">
                         <Warehouse size={14} className="text-brand-orange" /> Регистрация нового склада
@@ -496,9 +527,75 @@ export default function SettingsView() {
                         </div>
                      </form>
                  </div>
-             </div>
+             </motion.div>
          </div>
       )}
+      </AnimatePresence>
+
+      {/* Warehouse Modal (EDIT) */}
+      <AnimatePresence>
+      {showEditWarehouse && (
+         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowEditWarehouse(false)} />
+             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[4px] shadow-2xl border-t-4 border-t-sky-500 overflow-hidden">
+                 <div className="bg-slate-50 px-5 py-3 border-b border-border-base flex items-center justify-between">
+                     <h3 className="text-xs font-black uppercase text-slate-800 flex items-center gap-2 italic">
+                        <Edit size={14} className="text-sky-600" /> Редактирование: {selectedWarehouse?.name}
+                     </h3>
+                     <button onClick={() => setShowEditWarehouse(false)} className="text-slate-300 hover:text-slate-600"><X size={18} /></button>
+                 </div>
+                 <div className="p-6">
+                     <form onSubmit={handleEditWarehouse} className="space-y-4">
+                        <div className="space-y-1">
+                           <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Наименование объекта</label>
+                           <input 
+                             required 
+                             value={warehouseForm.name} 
+                             onChange={e => setWarehouseForm({...warehouseForm, name: e.target.value})} 
+                             className="field-1c w-full font-black text-slate-800"
+                           />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Город</label>
+                              <input required value={warehouseForm.city} onChange={e => setWarehouseForm({...warehouseForm, city: e.target.value})} className="field-1c w-full font-bold" />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Контактный телефон</label>
+                              <input required value={warehouseForm.phone} onChange={e => setWarehouseForm({...warehouseForm, phone: e.target.value})} className="field-1c w-full font-bold" />
+                           </div>
+                        </div>
+                        <div className="space-y-1">
+                           <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Строка адреса</label>
+                           <input required value={warehouseForm.address} onChange={e => setWarehouseForm({...warehouseForm, address: e.target.value})} className="field-1c w-full font-bold h-12" />
+                        </div>
+                        <div className="pt-4 flex gap-3">
+                           <button type="submit" className="flex-1 btn-1c !bg-sky-600 !text-white !border-sky-700 !py-4 font-black tracking-widest uppercase transition-all active:scale-95 flex items-center justify-center gap-2">
+                              <Save size={18} /> СОХРАНИТЬ
+                           </button>
+                           <button type="button" onClick={() => setShowEditWarehouse(false)} className="flex-1 btn-1c !bg-slate-100 !py-4 font-black tracking-widest uppercase">
+                              ОТМЕНА
+                           </button>
+                        </div>
+                     </form>
+                 </div>
+             </motion.div>
+         </div>
+      )}
+      </AnimatePresence>
+
+      <Suspense fallback={null}>
+         <ConfirmationModal 
+            isOpen={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={handleDeleteWarehouse}
+            title="Удаление склада"
+            message={`Вы действительно хотите удалить склад "${selectedWarehouse?.name}"? Это действие невозможно отменить.`}
+            confirmText="УДАЛИТЬ СКЛАД"
+            cancelText="ОТМЕНА"
+            type="danger"
+         />
+      </Suspense>
     </div>
   );
 }
