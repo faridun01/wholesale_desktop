@@ -190,7 +190,7 @@ export default function CustomerView() {
               <th className="w-32 text-center">Категория</th>
               <th className="w-40">Телефон</th>
               <th className="w-48">Адрес</th>
-              <th className="w-32 text-right">Баланс</th>
+              <th className="w-32 text-right">Долг</th>
             </tr>
           </thead>
           <tbody>

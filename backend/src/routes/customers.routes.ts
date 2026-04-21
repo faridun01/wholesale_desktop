@@ -195,6 +195,91 @@ router.get('/:id/returns', async (req: AuthRequest, res, next) => {
   }
 });
 
+router.get('/:id/reconciliation', async (req: AuthRequest, res, next) => {
+  try {
+    const access = await getAccessContext(req);
+    const customerId = Number(req.params.id);
+    
+    await CustomerService.getCustomerAccess(access, customerId);
+
+    const [invoices, payments, returns] = await Promise.all([
+      prisma.invoice.findMany({
+        where: { customerId, cancelled: false },
+        select: { id: true, netAmount: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.payment.findMany({
+        where: { customerId },
+        select: { id: true, amount: true, createdAt: true, method: true, invoiceId: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.return.findMany({
+        where: { customerId },
+        select: { id: true, totalValue: true, createdAt: true, invoiceId: true, reason: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    // Transform into a flat chronological list of events for the ledger
+    const events: any[] = [];
+
+    invoices.forEach(inv => {
+      events.push({
+        type: 'invoice',
+        id: inv.id,
+        date: inv.createdAt,
+        amount: inv.netAmount,
+        side: 'debit', // Customer owes us
+        description: `Накладная №${inv.id}`
+      });
+    });
+
+    payments.forEach(p => {
+      events.push({
+        type: 'payment',
+        id: p.id,
+        date: p.createdAt,
+        amount: p.amount,
+        side: 'credit', // Customer paid us
+        description: p.invoiceId ? `Оплата по накл. №${p.invoiceId}` : 'Оплата (аванс)'
+      });
+    });
+
+    returns.forEach(r => {
+      events.push({
+        type: 'return',
+        id: r.id,
+        date: r.createdAt,
+        amount: r.totalValue,
+        side: 'credit', // Returning item is like paying (reduces debt)
+        description: `Возврат по накл. №${r.invoiceId}`
+      });
+    });
+
+    // Sort by date then by ID
+    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id - b.id);
+
+    // Calculate running balance
+    let runningBalance = 0;
+    const historyWithBalance = events.map(e => {
+      if (e.side === 'debit') {
+        runningBalance += e.amount;
+      } else {
+        runningBalance -= e.amount;
+      }
+      return { ...e, runningBalance };
+    });
+
+    if (access.isAdmin) {
+      return res.json(historyWithBalance);
+    }
+
+    res.json(historyWithBalance.map(e => ({ ...e, amount: 0, runningBalance: 0 })));
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/:id/history', async (req: AuthRequest, res, next) => {
   try {
     const access = await getAccessContext(req);

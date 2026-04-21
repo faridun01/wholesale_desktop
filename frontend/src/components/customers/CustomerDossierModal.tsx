@@ -12,8 +12,9 @@ import {
   Printer,
   ChevronRight
 } from 'lucide-react';
-import { getCustomerHistory } from '../../api/customers.api';
+import { getCustomerHistory, getCustomerReconciliation } from '../../api/customers.api';
 import { formatMoney } from '../../utils/format';
+import { printReconciliation } from '../../utils/printReconciliation';
 import { clsx } from 'clsx';
 
 import SaleDetailModal from '../sales/SaleDetailModal';
@@ -33,30 +34,32 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
   useEffect(() => {
     if (isOpen && customer?.id) {
        setIsLoading(true);
-       getCustomerHistory(customer.id)
+       getCustomerReconciliation(customer.id)
          .then(data => setHistory(Array.isArray(data) ? data : []))
          .finally(() => setIsLoading(false));
     }
   }, [isOpen, customer]);
 
   const summary = useMemo(() => {
-    const revenue = history.reduce((acc, h) => acc + (typeof h.netAmount === 'number' ? h.netAmount : Number(h.totalAmount || 0)), 0);
-    const paid = history.reduce((acc, h) => {
-        const net = typeof h.netAmount === 'number' ? h.netAmount : Number(h.totalAmount || 0);
-        return acc + Math.min(Number(h.paidAmount || 0), net);
-    }, 0);
+    const revenue = history.filter(h => h.side === 'debit').reduce((acc, h) => acc + h.amount, 0);
+    const paid = history.filter(h => h.side === 'credit').reduce((acc, h) => acc + h.amount, 0);
     
     return {
       totalRevenue: revenue,
       totalPaid: paid,
-      balance: Math.max(0, revenue - paid),
-      invoiceCount: history.length
+      balance: revenue - paid,
+      invoiceCount: history.filter(h => h.type === 'invoice').length
     };
   }, [history]);
 
-  const handleShowDetail = (id: number) => {
+  const handleShowDetail = (id: number, type: string) => {
+    if (type !== 'invoice') return;
     setSelectedSaleId(id);
     setIsDetailOpen(true);
+  };
+
+  const handlePrint = () => {
+    printReconciliation(customer, history);
   };
 
   return (
@@ -133,7 +136,7 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                        <h4 className="text-[10px] font-black uppercase text-slate-500 flex items-center gap-2">
                           <History size={14} className="text-brand-orange" /> История операций
                        </h4>
-                       <button className="btn-1c flex items-center gap-1.5 !text-[10px] !py-1">
+                       <button onClick={handlePrint} className="btn-1c flex items-center gap-1.5 !text-[10px] !py-1">
                           <Printer size={12} /> Печать сверки
                        </button>
                     </div>
@@ -149,44 +152,57 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                                 <tr>
                                    <th className="w-12 text-center">№</th>
                                    <th className="w-32">Дата</th>
-                                   <th className="w-24">Документ</th>
+                                   <th className="w-48">Документ / Содержание</th>
                                    <th className="text-right">Сумма</th>
                                    <th className="text-right">Оплата</th>
-                                   <th className="text-right">Долг</th>
-                                   <th className="w-12"></th>
+                                   <th className="text-right w-32">Долг (Сальдо)</th>
+                                   <th className="w-10"></th>
                                 </tr>
                              </thead>
                              <tbody>
                                 {history.map((h, i) => {
-                                   const net = typeof h.netAmount === 'number' ? h.netAmount : Number(h.totalAmount || 0);
-                                   const paid = Number(h.paidAmount || 0);
-                                   const displayPaid = Math.min(paid, net);
-                                   const bal = Math.max(0, net - paid);
+                                   const isDebit = h.side === 'debit';
+                                   const isPayment = h.type === 'payment';
                                    
                                    return (
-                                      <tr key={h.id} className="hover:bg-brand-yellow/5 group cursor-pointer" onClick={() => handleShowDetail(h.id)}>
+                                      <tr 
+                                        key={`${h.type}-${h.id}`} 
+                                        className={clsx("hover:bg-brand-yellow/5 group cursor-pointer", !isDebit && "bg-slate-50/50")} 
+                                        onClick={() => handleShowDetail(h.id, h.type)}
+                                      >
                                          <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
-                                         <td className="font-bold text-slate-600 italic">{new Date(h.createdAt).toLocaleDateString('ru-RU')}</td>
+                                         <td className="font-bold text-slate-600 italic">
+                                            {new Date(h.date).toLocaleDateString('ru-RU')}
+                                         </td>
                                          <td>
-                                           <span className="font-black text-brand-orange text-[10px] hover:underline decoration-brand-orange shadow-[0_1px_0_rgba(255,157,0,0.1)]">
-                                             Че{h.id}
+                                           <span className={clsx(
+                                              "font-black text-[10px]",
+                                              isDebit ? "text-brand-orange hover:underline decoration-brand-orange" : "text-emerald-700 font-bold"
+                                           )}>
+                                              {h.description}
                                            </span>
                                          </td>
-                                         <td className="text-right font-black text-slate-900">{formatMoney(net)}</td>
-                                         <td className="text-right font-black text-emerald-600">{formatMoney(displayPaid)}</td>
-                                         <td className={clsx("text-right font-black", bal > 0 ? "text-rose-600" : "text-slate-300")}>{formatMoney(bal)}</td>
-                                         <td className="text-center">
-                                            <ChevronRight size={14} className="text-slate-200 group-hover:text-brand-orange transition-colors" />
+                                         <td className="text-right font-black text-slate-900">
+                                            {isDebit ? formatMoney(h.amount) : ''}
+                                         </td>
+                                         <td className="text-right font-black text-emerald-600">
+                                            {!isDebit ? formatMoney(h.amount) : ''}
+                                         </td>
+                                         <td className={clsx("text-right font-black", h.runningBalance > 0 ? "text-rose-600" : "text-emerald-700")}>
+                                            {formatMoney(h.runningBalance)}
+                                         </td>
+                                         <td className="text-center text-slate-200 group-hover:text-brand-orange transition-colors">
+                                            {isDebit && <ChevronRight size={14} />}
                                          </td>
                                       </tr>
                                    );
-                                })}
+                                 })}
                              </tbody>
                           </table>
                        ) : (
                           <div className="h-full flex flex-col items-center justify-center py-20 text-slate-300 opacity-50 uppercase font-black text-[10px] tracking-widest gap-2">
                              <Package size={48} strokeWidth={1} />
-                             Нет зафиксированных продаж
+                             Нет зафиксированных операций
                           </div>
                        )}
                     </div>

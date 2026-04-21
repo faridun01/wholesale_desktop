@@ -219,7 +219,10 @@ export class InvoiceService {
 
       totalAmount = roundMoney(totalAmount);
       const netAmount = roundMoney(totalAmount - (totalAmount * normalizedDiscount / 100) + normalizedTax);
-      const status = getInvoiceStatus(normalizedPaidAmount, Number(netAmount));
+      
+      // CAP: Paid amount cannot exceed net amount
+      const finalPaidAmount = Math.min(normalizedPaidAmount, netAmount);
+      const status = getInvoiceStatus(finalPaidAmount, Number(netAmount));
 
       // 2. Create Invoice
       const invoice = await tx.invoice.create({
@@ -231,7 +234,7 @@ export class InvoiceService {
           discount: normalizedDiscount,
           tax: normalizedTax,
           netAmount,
-          paidAmount: normalizedPaidAmount,
+          paidAmount: finalPaidAmount,
           status,
           paymentDueDate: paymentDueDate ? new Date(paymentDueDate) : null,
           companyNameSnapshot: companyProfile?.name || null,
@@ -327,7 +330,7 @@ export class InvoiceService {
             customerId,
             invoiceId: invoice.id,
             userId,
-            amount: roundMoney(normalizedPaidAmount),
+            amount: roundMoney(finalPaidAmount),
             method: paymentMethod,
           },
         });
@@ -649,7 +652,8 @@ export class InvoiceService {
           netAmount,
           returnedAmount: 0,
           cancelled: isAdmin ? false : invoice.cancelled,
-          status: getInvoiceStatus(Number(invoice.paidAmount || 0), Number(netAmount)),
+          paidAmount: Math.min(Number(invoice.paidAmount || 0), Number(netAmount)),
+          status: getInvoiceStatus(Math.min(Number(invoice.paidAmount || 0), Number(netAmount)), Number(netAmount)),
         },
       });
     }, {
@@ -924,8 +928,7 @@ export class InvoiceService {
             invoiceId,
             userId,
             amount: -changeToReturn,
-            method: 'cash',
-            notes: `Возврат сдачи (Накладная #${invoiceId})`
+            method: 'cash'
           }
         });
 

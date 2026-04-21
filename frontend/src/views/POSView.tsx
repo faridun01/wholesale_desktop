@@ -320,7 +320,7 @@ export default function POSView() {
                 discount: item.lineDiscountPercent
             })),
             discount,
-            paidAmount: Number(paidAmount) || 0,
+            paidAmount: Math.min(Number(paidAmount) || 0, total),
             paymentMethod: paymentMethod === 'debt' ? 'cash' : paymentMethod
         });
         toast.success('Продажа успешно завершена');

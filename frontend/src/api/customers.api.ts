@@ -36,3 +36,8 @@ export const getCustomerHistory = async (id: number) => {
   const response = await client.get(`/customers/${id}/history`);
   return response.data;
 };
+
+export const getCustomerReconciliation = async (id: number) => {
+  const response = await client.get(`/customers/${id}/reconciliation`);
+  return response.data;
+};
