@@ -57,11 +57,22 @@ export default function DashboardView() {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(isAdmin ? '' : (getUserWarehouseId(user) ? String(getUserWarehouseId(user)) : ''));
 
+  const fetchDashboardData = async (silent = false) => {
+    if (!silent) setIsLoaded(false);
+    try {
+      const data = await getDashboardSummary(selectedWarehouseId ? Number(selectedWarehouseId) : null);
+      setSummary(data);
+    } finally {
+      if (!silent) setIsLoaded(true);
+    }
+  };
+
   useEffect(() => {
-    setIsLoaded(false);
-    getDashboardSummary(selectedWarehouseId ? Number(selectedWarehouseId) : null)
-      .then(setSummary)
-      .finally(() => setIsLoaded(true));
+    fetchDashboardData();
+
+    const handleRefresh = () => fetchDashboardData(true);
+    window.addEventListener('refresh-data', handleRefresh);
+    return () => window.removeEventListener('refresh-data', handleRefresh);
   }, [selectedWarehouseId]);
 
   useEffect(() => {

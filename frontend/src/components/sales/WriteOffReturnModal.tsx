@@ -34,6 +34,7 @@ export default function WriteOffReturnModal({ isOpen, onClose, transaction, onSu
         reason: reason || 'Отмена/возврат списания'
       });
       toast.success('Товар возвращен на баланс');
+      window.dispatchEvent(new CustomEvent('refresh-data'));
       onSuccess();
       onClose();
     } catch (e: any) {

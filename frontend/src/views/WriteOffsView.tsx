@@ -33,10 +33,14 @@ export default function WriteOffsView() {
   
   useEffect(() => {
     fetchData();
+
+    const handleRefresh = () => fetchData(true);
+    window.addEventListener('refresh-data', handleRefresh);
+    return () => window.removeEventListener('refresh-data', handleRefresh);
   }, [selectedWarehouseId]);
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const w = await getWarehouses();
       setWarehouses(Array.isArray(w) ? w : []);
@@ -46,9 +50,9 @@ export default function WriteOffsView() {
       });
       setTransactions(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      toast.error('Ошибка загрузки данных');
+      if (!silent) toast.error('Ошибка загрузки данных');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -76,7 +80,7 @@ export default function WriteOffsView() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={fetchData} className="btn-1c flex items-center gap-2 !bg-white">
+            <button onClick={() => fetchData()} className="btn-1c flex items-center gap-2 !bg-white">
                <History size={14} className="text-brand-orange" /> Обновить реестр
             </button>
             <button className="btn-1c flex items-center gap-2 !bg-slate-900 !text-white !border-slate-800">

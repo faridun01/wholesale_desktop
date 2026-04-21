@@ -111,7 +111,13 @@ export default function SalesView() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => { fetchInvoices(); }, [selectedWarehouseId]);
+  useEffect(() => { 
+    fetchInvoices();
+
+    const handleRefresh = () => fetchInvoices(true);
+    window.addEventListener('refresh-data', handleRefresh);
+    return () => window.removeEventListener('refresh-data', handleRefresh);
+  }, [selectedWarehouseId]);
   useEffect(() => { 
     getWarehouses().then(d => {
         const f = filterWarehousesForUser(Array.isArray(d) ? d : [], user);
@@ -121,14 +127,18 @@ export default function SalesView() {
     getCustomers().then(d => setCustomers(Array.isArray(d) ? d : []));
   }, []);
 
-  const fetchInvoices = async () => {
-    setIsLoading(true);
+  const fetchInvoices = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const q = selectedWarehouseId ? `?warehouseId=${selectedWarehouseId}` : '';
       const res = await client.get(`/invoices${q}`);
       setInvoices(res.data.filter((i: any) => !i.cancelled));
-    } catch (err) { toast.error('Ошибка загрузки чеков'); }
-    finally { setIsLoading(false); }
+    } catch (err) { 
+      if (!silent) toast.error('Ошибка загрузки чеков'); 
+    }
+    finally { 
+      if (!silent) setIsLoading(false); 
+    }
   };
 
   const fetchInvoiceDetails = async (id: number) => {
@@ -144,6 +154,9 @@ export default function SalesView() {
   const getEffectiveStatus = (inv: any) => {
     const paid = Number(inv.paidAmount || 0);
     const net = Number(inv.netAmount || inv.totalAmount || 0);
+    const returned = Number(inv.returnedAmount || 0);
+
+    if (returned > 0 && net <= 0.01) return 'returned';
     if (paid > 0 && paid >= net - 0.01) return 'paid';
     return paid > 0 ? 'partial' : 'unpaid';
   };
@@ -161,11 +174,22 @@ export default function SalesView() {
 
   const getStatusBadge = (inv: any) => {
     const status = getEffectiveStatus(inv);
-    const label = status === 'paid' ? 'Оплачено' : status === 'partial' ? 'Частично' : 'Долг';
-    const color = status === 'paid' ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 
-                  status === 'partial' ? 'text-brand-orange bg-brand-orange/5 border-brand-orange/20' : 
-                  'text-rose-600 bg-rose-50 border-rose-200';
-    return <span className={clsx("px-2 py-0.5 rounded-[2px] text-[10px] font-black uppercase border", color)}>{label}</span>;
+    const returned = Number(inv.returnedAmount || 0);
+    
+    let label = status === 'paid' ? 'Оплачено' : status === 'partial' ? 'Частично' : status === 'returned' ? 'Возврат' : 'Долг';
+    let color = status === 'paid' ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 
+                status === 'partial' ? 'text-brand-orange bg-brand-orange/5 border-brand-orange/20' : 
+                status === 'returned' ? 'text-rose-600 bg-rose-50 border-rose-200' :
+                'text-slate-500 bg-slate-50 border-slate-200';
+
+    return (
+      <div className="flex flex-col items-center gap-1">
+         <span className={clsx("px-2 py-0.5 rounded-[2px] text-[10px] font-black uppercase border whitespace-nowrap", color)}>{label}</span>
+         {returned > 0 && status !== 'returned' && (
+           <span className="text-[7px] font-black uppercase text-rose-500 bg-rose-50 px-1 border border-rose-100 rounded-[1px] tracking-tighter">Есть возврат</span>
+         )}
+      </div>
+    );
   };
 
   return (

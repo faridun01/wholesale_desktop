@@ -74,6 +74,7 @@ export default function ReturnModal({ isOpen, onClose, invoice, onSuccess }: Ret
         reason: reason || 'Возврат по просьбе клиента'
       });
       toast.success('Возврат успешно оформлен');
+      window.dispatchEvent(new CustomEvent('refresh-data'));
       onSuccess();
       onClose();
     } catch (e: any) {

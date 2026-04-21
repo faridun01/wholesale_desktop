@@ -122,6 +122,7 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
         }))
       });
       toast.success('Накладная обновлена');
+      window.dispatchEvent(new CustomEvent('refresh-data'));
       onSuccess();
       onClose();
     } catch (err: any) {
