@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlertTriangle, BarChart3, FileSpreadsheet, Target, TrendingUp, Warehouse, X } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -213,7 +213,7 @@ function Panel({
     <section className={`overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ${className}`.trim()}>
       {title && (
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+          <h2 className="text-lg font-medium text-slate-900">{title}</h2>
           {headerActions}
         </div>
       )}
@@ -1135,7 +1135,7 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm text-slate-500">{card.label}</p>
-                  <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{card.value}</p>
+                  <p className="mt-2 text-2xl font-medium tracking-tight text-slate-900">{card.value}</p>
                 </div>
                 <div className={`rounded-2xl px-3 py-2 text-sm ${card.tone.badge} ${card.tone.text}`}>{card.meta}</div>
               </div>
@@ -1236,11 +1236,11 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
                     <>
                       <td className="px-5 py-4 text-amber-700">{formatMoney(row.total_value || 0)}</td>
                       <td className="px-5 py-4">
-                        <span className={`rounded-lg px-2 py-1 text-[11px] font-bold ${getWriteoffStatusClassName(row.status)}`}>
+                        <span className={`rounded-lg px-2 py-1 text-[11px] font-medium ${getWriteoffStatusClassName(row.status)}`}>
                           {getWriteoffStatusLabel(row.status)}
                         </span>
                         {Number(row.returned_qty || 0) > 0 && (
-                          <div className="mt-1 text-[11px] font-semibold text-emerald-700">Возвращено: {Number(row.returned_qty || 0)}</div>
+                          <div className="mt-1 text-[11px] font-medium text-emerald-700">Возвращено: {Number(row.returned_qty || 0)}</div>
                         )}
                       </td>
                       <td className="px-5 py-4 italic text-amber-700">{row.reason || '-'}</td>
@@ -1253,7 +1253,7 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
                             <button
                               type="button"
                               onClick={() => openReturnWriteoffModal(row)}
-                              className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-700 transition-colors hover:bg-emerald-100"
+                              className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
                             >
                               Возврат
                             </button>
@@ -1262,7 +1262,7 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
                             <button
                               type="button"
                               onClick={() => openDeleteWriteoffModal(row)}
-                              className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-bold text-rose-700 transition-colors hover:bg-rose-100"
+                              className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-medium text-rose-700 transition-colors hover:bg-rose-100"
                             >
                               Удалить
                             </button>
@@ -1311,7 +1311,7 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
           >
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Возврат списания в склад</h3>
+                <h3 className="text-lg font-medium text-slate-900">Возврат списания в склад</h3>
                 <p className="mt-1 text-sm text-slate-500">{formatProductName(returnWriteoffRow.product_name)}</p>
               </div>
               <button
@@ -1327,22 +1327,22 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
                 Доступно к возврату: {Math.max(0, Number(returnWriteoffRow.quantity || 0) - Number(returnWriteoffRow.returned_qty || 0))}
               </div>
               <div>
-                <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-700">Количество</label>
+                <label className="mb-2 block text-[11px] font-medium uppercase tracking-widest text-slate-700">Количество</label>
                 <input
                   type="number"
                   min="1"
                   value={returnWriteoffQuantity}
                   onChange={(event) => setReturnWriteoffQuantity(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-bold outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-medium outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
                 />
               </div>
               <div>
-                <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-slate-700">Причина возврата</label>
+                <label className="mb-2 block text-[11px] font-medium uppercase tracking-widest text-slate-700">Причина возврата</label>
                 <input
                   type="text"
                   value={returnWriteoffReason}
                   onChange={(event) => setReturnWriteoffReason(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-bold outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-medium outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
                   placeholder="Напр: ошибка ввода"
                 />
               </div>
@@ -1351,7 +1351,7 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
               <button
                 type="button"
                 onClick={closeReturnWriteoffModal}
-                className="rounded-2xl px-5 py-3 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50"
+                className="rounded-2xl px-5 py-3 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-50"
               >
                 Отмена
               </button>
@@ -1359,7 +1359,7 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
                 type="button"
                 onClick={() => void submitReturnWriteoffFromReport()}
                 disabled={isSubmittingWriteoffAction}
-                className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-xl shadow-emerald-600/20 transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-medium text-white shadow-xl shadow-emerald-600/20 transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmittingWriteoffAction ? 'Сохранение...' : 'Вернуть в склад'}
               </button>
@@ -1379,7 +1379,7 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
           >
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Удалить списание</h3>
+                <h3 className="text-lg font-medium text-slate-900">Удалить списание</h3>
                 <p className="mt-1 text-sm text-slate-500">{formatProductName(deleteWriteoffRow.product_name)}</p>
               </div>
               <button
@@ -1402,7 +1402,7 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
               <button
                 type="button"
                 onClick={closeDeleteWriteoffModal}
-                className="rounded-2xl px-5 py-3 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50"
+                className="rounded-2xl px-5 py-3 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-50"
               >
                 Отмена
               </button>
@@ -1410,7 +1410,7 @@ export default function ReportsView({ warehouseId: initialWarehouseId = null }: 
                 type="button"
                 onClick={() => void submitDeleteWriteoffFromReport()}
                 disabled={isSubmittingWriteoffAction}
-                className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-bold text-white shadow-xl shadow-rose-600/20 transition-all hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-medium text-white shadow-xl shadow-rose-600/20 transition-all hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmittingWriteoffAction ? 'Удаление...' : 'Удалить навсегда'}
               </button>
@@ -1479,11 +1479,11 @@ function ProfitAnalyticsModal({
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50/90 px-5 py-4 backdrop-blur">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700">
               <TrendingUp size={14} />
               Превью аналитики
             </div>
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Эффективность товаров по прибыли</h2>
+            <h2 className="text-2xl font-medium tracking-tight text-slate-900">Эффективность товаров по прибыли</h2>
             <p className="text-sm text-slate-500">
               {selectedWarehouseName} · {dateRangeLabel}
             </p>
@@ -1498,7 +1498,7 @@ function ProfitAnalyticsModal({
         <div className="space-y-6 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
           <section className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-lg font-semibold text-slate-900">Общая информация</h3>
+              <h3 className="text-lg font-medium text-slate-900">Общая информация</h3>
               <p className="text-sm text-slate-500">
                 Здесь показана сводка по периоду. Ниже выберите раздел и откройте только ту часть аналитики, которую хотите посмотреть.
               </p>
@@ -1538,7 +1538,7 @@ function ProfitAnalyticsModal({
 
           <section className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-lg font-semibold text-slate-900">Меню аналитики</h3>
+              <h3 className="text-lg font-medium text-slate-900">Меню аналитики</h3>
               <p className="text-sm text-slate-500">
                 Нажмите на нужный раздел: лидеры, количество продаж, доход, рентабельность, эффективность или слабые товары.
               </p>
@@ -1632,7 +1632,7 @@ function ProfitAnalyticsModal({
               <div className="border-b border-rose-100 px-5 py-4">
                 <div className="flex items-center gap-2 text-rose-700">
                   <AlertTriangle size={18} />
-                  <h3 className="text-lg font-semibold">Неэффективные товары</h3>
+                  <h3 className="text-lg font-medium">Неэффективные товары</h3>
                 </div>
                 <p className="mt-1 text-sm text-rose-600">
                   Здесь видно товары, которые занимают продажи, но дают слабую прибыль или работают в минус.
@@ -1645,7 +1645,7 @@ function ProfitAnalyticsModal({
                     <article key={`inefficient-${row.name}`} className="rounded-2xl border border-rose-100 bg-white px-4 py-3 shadow-sm">
                       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                         <div>
-                          <h4 className="text-sm font-semibold text-slate-900">{row.name}</h4>
+                          <h4 className="text-sm font-medium text-slate-900">{row.name}</h4>
                           <p className="mt-1 text-sm text-slate-500">{row.inefficiencyReason}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm md:min-w-[320px]">
@@ -1755,11 +1755,11 @@ function WriteoffAnalyticsModal({
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50/90 px-5 py-4 backdrop-blur">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+            <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-700">
               <AlertTriangle size={14} />
               Аналитика списаний
             </div>
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Разбор списаний</h2>
+            <h2 className="text-2xl font-medium tracking-tight text-slate-900">Разбор списаний</h2>
             <p className="text-sm text-slate-500">
               {selectedWarehouseName} · {dateRangeLabel}
             </p>
@@ -1774,7 +1774,7 @@ function WriteoffAnalyticsModal({
         <div className="space-y-6 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
           <section className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-lg font-semibold text-slate-900">Общая информация</h3>
+              <h3 className="text-lg font-medium text-slate-900">Общая информация</h3>
               <p className="text-sm text-slate-500">
                 Сводка по объёму и сумме списаний за выбранный период.
               </p>
@@ -1814,7 +1814,7 @@ function WriteoffAnalyticsModal({
 
           <section className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-lg font-semibold text-slate-900">Меню аналитики</h3>
+              <h3 className="text-lg font-medium text-slate-900">Меню аналитики</h3>
               <p className="text-sm text-slate-500">
                 Выберите нужный разрез: лидеры, товары, причины, сотрудники или склады.
               </p>
@@ -1906,11 +1906,11 @@ function WriteoffLeaderCard({
 }) {
   return (
     <section className="rounded-3xl border border-amber-100 bg-amber-50 p-4">
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="text-sm font-medium text-slate-900">{title}</p>
       <p className="mt-1 text-sm text-slate-500">{description}</p>
       {row ? (
         <div className="mt-4 space-y-2">
-          <h4 className="text-base font-semibold text-slate-900">{row.name}</h4>
+          <h4 className="text-base font-medium text-slate-900">{row.name}</h4>
           <div className="grid gap-2 text-sm text-slate-600">
             <div className="flex items-center justify-between gap-3">
               <span>Количество</span>
@@ -1947,7 +1947,7 @@ function WriteoffAnalyticsTableCard({
   return (
     <section className="overflow-hidden rounded-3xl border border-amber-100 bg-amber-50/60">
       <div className="border-b border-white/70 px-5 py-4">
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+        <h3 className="text-lg font-medium text-slate-900">{title}</h3>
         <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
       </div>
 
@@ -1956,18 +1956,18 @@ function WriteoffAnalyticsTableCard({
           {rows.length ? (
             rows.map((row, index) => (
               <article key={`${title}-${row.name}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-white/80 bg-white px-3 py-3 shadow-sm">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-medium text-white">
                   {index + 1}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-900">{row.name}</p>
+                  <p className="truncate text-sm font-medium text-slate-900">{row.name}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     Кол-во: {formatCount(row.quantity)} · Операций: {formatCount(row.count)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">Сумма</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">{formatMoney(row.value)}</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">{formatMoney(row.value)}</p>
                 </div>
               </article>
             ))
@@ -2006,9 +2006,9 @@ function AnalyticsMetricCard({
     <section className={`rounded-3xl border px-4 py-4 ${toneClass}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="rounded-2xl bg-white/80 p-2.5 shadow-sm">{icon}</div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">{label}</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em]">{label}</p>
       </div>
-      <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
+      <p className="mt-4 text-2xl font-medium tracking-tight text-slate-900">{value}</p>
       <p className="mt-2 text-sm text-slate-500">{hint}</p>
     </section>
   );
@@ -2038,11 +2038,11 @@ function AnalyticsLeaderCard({
 
   return (
     <section className={`rounded-3xl border p-4 ${toneClass}`}>
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="text-sm font-medium text-slate-900">{title}</p>
       <p className="mt-1 text-sm text-slate-500">{description}</p>
       {row ? (
         <div className="mt-4 space-y-2">
-          <h4 className="text-base font-semibold text-slate-900">{row.name}</h4>
+          <h4 className="text-base font-medium text-slate-900">{row.name}</h4>
           <div className="grid gap-2 text-sm text-slate-600">
             <div className="flex items-center justify-between gap-3">
               <span>Продано</span>
@@ -2094,7 +2094,7 @@ function AnalyticsTableCard({
   return (
     <section className={`overflow-hidden rounded-3xl border ${toneClass}`}>
       <div className="border-b border-white/70 px-5 py-4">
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+        <h3 className="text-lg font-medium text-slate-900">{title}</h3>
         <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
       </div>
 
@@ -2103,18 +2103,18 @@ function AnalyticsTableCard({
           {rows.length ? (
             rows.map((row, index) => (
               <article key={`${title}-${row.name}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-white/80 bg-white px-3 py-3 shadow-sm">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-medium text-white">
                   {index + 1}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-900">{row.name}</p>
+                  <p className="truncate text-sm font-medium text-slate-900">{row.name}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     Продано: {formatCount(row.quantity)} · Прибыль: {formatMoney(row.profit)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{metricLabel}</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">{metricValue(row)}</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">{metricValue(row)}</p>
                 </div>
               </article>
             ))
@@ -2139,7 +2139,7 @@ function AnalyticsMiniStat({
   return (
     <div className="rounded-2xl bg-slate-50 px-3 py-2">
       <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
+      <p className="mt-1 text-sm font-medium text-slate-900">{value}</p>
     </div>
   );
 }

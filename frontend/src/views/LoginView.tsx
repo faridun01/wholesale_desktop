@@ -44,11 +44,13 @@ export default function LoginView() {
       }
 
       setAuthSession(result.token, result.user);
-      const sessionUser = await getSessionUser();
-      setAuthSession(result.token, sessionUser || result.user);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Неверные данные для входа (1С Error 401)');
+      if (!err.response) {
+        setError('Сервер не отвечает. Попробуйте перезагрузить приложение.');
+      } else {
+        setError(err.response?.data?.error || 'Неверные данные для входа');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -62,11 +64,13 @@ export default function LoginView() {
     try {
       const result = await performSetup({ username, password });
       setAuthSession(result.token, result.user);
-      const sessionUser = await getSessionUser();
-      setAuthSession(result.token, sessionUser || result.user);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Ошибка инициализации системы');
+      if (!err.response) {
+        setError('Сервер не отвечает. Убедитесь, что приложение запущено корректно.');
+      } else {
+        setError(err.response?.data?.error || 'Ошибка инициализации системы');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +107,7 @@ export default function LoginView() {
         <div className="bg-brand-yellow px-4 py-2 flex items-center justify-between border-b border-black/10">
           <div className="flex items-center gap-2">
             <Warehouse size={16} className="text-slate-800" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-800">Аутентификация пользователя</span>
+            <span className="text-[10px] font-normal uppercase tracking-widest text-slate-800">Аутентификация пользователя</span>
           </div>
           <X size={14} className="text-slate-500 cursor-pointer hover:text-rose-600" />
         </div>
@@ -113,15 +117,15 @@ export default function LoginView() {
             <div className="bg-slate-50 p-4 rounded-full border border-border-base mb-4">
               <User size={32} className="text-brand-orange" />
             </div>
-            <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest text-center">
+            <h2 className="text-sm font-normal text-slate-800 uppercase tracking-widest text-center">
               {isSetupMode ? 'Начальная настройка' : 'Вход в систему'}
             </h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Wholesale CRM Enterprise</p>
+            <p className="text-[10px] text-slate-400 font-normal uppercase mt-1">1Click Warehouse Enterprise</p>
           </div>
 
           <form onSubmit={isSetupMode ? handleSetup : (twoFactorToken ? handleTwoFactorSubmit : handleLogin)} className="space-y-4">
             {error && (
-              <div className="bg-rose-50 border border-rose-100 p-3 rounded text-[11px] font-bold text-rose-600 text-center uppercase tracking-tighter">
+              <div className="bg-rose-50 border border-rose-100 p-3 rounded text-[11px] font-normal text-rose-600 text-center uppercase tracking-tighter">
                 {error}
               </div>
             )}
@@ -129,7 +133,7 @@ export default function LoginView() {
             {!twoFactorToken ? (
               <>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Имя пользователя</label>
+                  <label className="block text-[10px] font-normal text-slate-400 uppercase mb-1 tracking-widest">Имя пользователя</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                     <input
@@ -143,7 +147,7 @@ export default function LoginView() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Пароль</label>
+                  <label className="block text-[10px] font-normal text-slate-400 uppercase mb-1 tracking-widest">Пароль</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                     <input
@@ -159,7 +163,7 @@ export default function LoginView() {
               </>
             ) : (
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Код безопасности (2FA)</label>
+                <label className="block text-[10px] font-normal text-slate-400 uppercase mb-1 tracking-widest">Код безопасности (2FA)</label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                   <input
@@ -195,7 +199,7 @@ export default function LoginView() {
         </div>
 
         <div className="bg-[#f8f9fb] border-t border-border-base p-3 text-center">
-          <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">IT FORCE BUSINESS SOLUTIONS v4.0.1</span>
+          <span className="text-[9px] font-normal text-slate-300 uppercase tracking-[0.2em]">1CLICK WHOLESALE ENGINE v4.1</span>
         </div>
       </motion.div>
     </div>

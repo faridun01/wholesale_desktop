@@ -177,7 +177,7 @@ export default function CustomerView() {
         <select 
           value={selectedCategory} 
           onChange={e => setSelectedCategory(e.target.value)}
-          className="field-1c py-1 text-xs font-bold"
+          className="field-1c py-1 text-xs font-normal"
         >
           <option value="all">Все категории</option>
           {categories.map(cat => <option key={cat as string} value={cat as string}>{cat as string}</option>)}
@@ -211,18 +211,18 @@ export default function CustomerView() {
                   className={clsx(selectedCustomer?.id === c.id && "selected")}
                 >
                   <td className="text-center font-mono text-[11px] text-slate-400">{(currentPage-1)*pageSize + idx + 1}</td>
-                  <td className="font-bold">{c.name}</td>
+                  <td className="font-normal">{c.name}</td>
                   <td className="text-center italic text-slate-500 uppercase text-[10px]">{c.customerCategory || '—'}</td>
                   <td className="font-mono text-slate-500">{c.phone || '—'}</td>
                   <td className="text-[11px] text-slate-600 truncate max-w-[200px]">{c.address || '—'}</td>
-                  <td className={clsx("text-right font-black", Number(c.balance || 0) > 0 ? "text-rose-600" : "text-emerald-700")}>
+                  <td className={clsx("text-right font-medium", Number(c.balance || 0) > 0 ? "text-rose-600" : "text-emerald-700")}>
                     {formatMoney(c.balance || 0)}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="py-20 text-center bg-white text-slate-300 font-bold uppercase">Список пуст</td>
+                <td colSpan={6} className="py-20 text-center bg-white text-slate-300 font-normal uppercase">Список пуст</td>
               </tr>
             )}
           </tbody>
@@ -231,7 +231,7 @@ export default function CustomerView() {
 
       {/* Footer */}
       <div className="bg-[#fcfcfc] border-t border-border-base p-2 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-6 text-[11px] font-black uppercase text-slate-400 tracking-widest">
+        <div className="flex items-center gap-6 text-[11px] font-medium uppercase text-slate-400 tracking-widest">
           <span>Всего контрагентов: {filteredCustomers.length}</span>
           <span className="text-rose-400">Общий долг: {formatMoney(filteredCustomers.reduce((acc, c) => acc + Math.max(0, c.balance || 0), 0))}</span>
         </div>
@@ -250,29 +250,29 @@ export default function CustomerView() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white border-2 border-brand-orange shadow-2xl rounded w-full max-w-xl overflow-hidden">
                <div className="bg-brand-yellow px-4 py-2 flex items-center justify-between border-b border-black/10">
-                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-800">Карточка контрагента: {selectedCustomer ? 'Редактирование' : 'Регистрация'}</span>
+                 <span className="text-[11px] font-medium uppercase tracking-widest text-slate-800">Карточка контрагента: {selectedCustomer ? 'Редактирование' : 'Регистрация'}</span>
                  <button onClick={() => setIsModalOpen(false)} className="hover:text-rose-600"><X size={18} /></button>
                </div>
                <form onSubmit={handleSave} className="p-6 space-y-4">
                  <div className="grid grid-cols-2 gap-4">
                    <div className="col-span-2">
-                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">ФИО / Наименование организации</label>
+                     <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">ФИО / Наименование организации</label>
                      <input autoFocus type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="field-1c w-full" />
                    </div>
                    <div>
-                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Категория</label>
+                     <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Категория</label>
                      <input type="text" value={formData.customerCategory} onChange={e => setFormData({ ...formData, customerCategory: e.target.value })} className="field-1c w-full" placeholder="Оптовик, VIP..." />
                    </div>
                    <div>
-                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Телефон</label>
+                     <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Телефон</label>
                      <input type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="field-1c w-full" />
                    </div>
                    <div className="col-span-2">
-                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Адрес регистрации / Доставки</label>
+                     <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Адрес регистрации / Доставки</label>
                      <input type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="field-1c w-full" />
                    </div>
                    <div className="col-span-2">
-                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Комментарий</label>
+                     <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Комментарий</label>
                      <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="field-1c w-full h-20 resize-none pt-2" />
                    </div>
                  </div>

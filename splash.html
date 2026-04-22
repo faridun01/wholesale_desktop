@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #0f172a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            -webkit-app-region: drag;
+        }
+        .container {
+            text-align: center;
+            animation: fadeIn 1s ease-out;
+        }
+        img {
+            width: 180px;
+            height: 180px;
+            margin-bottom: 24px;
+            filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.3));
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p {
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+            color: #64748b;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+        }
+        .loader {
+            margin-top: 40px;
+            width: 200px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress {
+            position: absolute;
+            height: 100%;
+            background: #38bdf8;
+            width: 0%;
+            animation: progress 3s linear forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes progress {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="it_force_logo.png" alt="IT Force Logo">
+        <h1>IT FORCE</h1>
+        <p>Business Solutions</p>
+        <div class="loader">
+            <div class="progress"></div>
+        </div>
+    </div>
+</body>
+</html>

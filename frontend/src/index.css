@@ -7,12 +7,18 @@
   --color-bg-base: #f2f3f7;
   --color-border-base: #dcdcdc;
   --color-text-primary: #333333;
+  --font-sans: "Arial", "Verdana", "Helvetica", sans-serif;
 }
 
 @layer base {
   body {
     @apply bg-bg-base text-text-primary font-sans antialiased overflow-hidden;
     font-size: 13px;
+    letter-spacing: -0.01em;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-medium;
   }
 }
 

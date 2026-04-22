@@ -184,9 +184,9 @@ export default function SalesView() {
 
     return (
       <div className="flex flex-col items-center gap-1">
-         <span className={clsx("px-2 py-0.5 rounded-[2px] text-[10px] font-black uppercase border whitespace-nowrap", color)}>{label}</span>
+         <span className={clsx("px-2 py-0.5 rounded-[2px] text-[10px] font-medium uppercase border whitespace-nowrap", color)}>{label}</span>
          {returned > 0 && status !== 'returned' && (
-           <span className="text-[7px] font-black uppercase text-rose-500 bg-rose-50 px-1 border border-rose-100 rounded-[1px] tracking-tighter">Есть возврат</span>
+           <span className="text-[7px] font-medium uppercase text-rose-500 bg-rose-50 px-1 border border-rose-100 rounded-[1px] tracking-tighter">Есть возврат</span>
          )}
       </div>
     );
@@ -202,8 +202,8 @@ export default function SalesView() {
                 <Receipt size={20} className="text-slate-800" />
              </div>
              <div>
-                <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Журнал чеков и продаж</h1>
-                <p className="text-[10px] font-black uppercase text-slate-400">Реестр торговых документов предприятия</p>
+                <h1 className="text-2xl font-medium text-slate-800 uppercase tracking-tighter">Журнал чеков и продаж</h1>
+                <p className="text-[10px] font-medium uppercase text-slate-400">Реестр торговых документов предприятия</p>
              </div>
           </div>
           <button 
@@ -223,7 +223,7 @@ export default function SalesView() {
                value={selectedWarehouseId} 
                onChange={e => setSelectedWarehouseId(e.target.value)}
                disabled={!isAdmin}
-               className="bg-transparent text-[11px] font-black uppercase text-slate-700 outline-none"
+               className="bg-transparent text-[11px] font-medium uppercase text-slate-700 outline-none"
              >
                <option value="">Все склады</option>
                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -232,14 +232,14 @@ export default function SalesView() {
           
           <div className="flex items-center gap-2 px-3 border-r border-border-base">
              <Calendar size={14} className="text-slate-400" />
-             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="field-1c !py-1 !px-2 text-[10px] font-bold" />
+             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="field-1c !py-1 !px-2 text-[10px] font-normal" />
              <span className="text-slate-400">—</span>
-             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="field-1c !py-1 !px-2 text-[10px] font-bold" />
+             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="field-1c !py-1 !px-2 text-[10px] font-normal" />
           </div>
 
           <div className="flex items-center gap-2 px-3 border-r border-border-base">
              <Filter size={14} className="text-slate-400" />
-             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="field-1c !py-1 text-[10px] font-black uppercase">
+             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="field-1c !py-1 text-[10px] font-medium uppercase">
                 <option value="all">Любой статус</option>
                 <option value="paid">Оплачено</option>
                 <option value="partial">Частично</option>
@@ -268,7 +268,7 @@ export default function SalesView() {
          {isLoading ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 py-32 opacity-30">
                 <div className="w-12 h-12 border-4 border-brand-yellow border-t-transparent animate-spin rounded-full mb-4"></div>
-                <span className="font-black uppercase tracking-widest text-[10px]">Загрузка реестра документов...</span>
+                <span className="font-medium uppercase tracking-widest text-[10px]">Загрузка реестра документов...</span>
             </div>
          ) : (
             <table className="table-1c border-separate border-spacing-0">
@@ -297,21 +297,21 @@ export default function SalesView() {
                         <tr key={inv.id} onDoubleClick={() => fetchInvoiceDetails(inv.id)} className="hover:bg-brand-yellow/5 group cursor-pointer">
                             <td className="text-center font-mono text-[10px] text-slate-400">{(currentPage-1)*pageSize+idx+1}</td>
                             <td>
-                               <div className="font-bold text-slate-700">{date.toLocaleDateString('ru-RU')}</div>
-                               <div className="text-[9px] font-black text-slate-400 uppercase italic leading-none mt-0.5">{date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+                               <div className="font-normal text-slate-700">{date.toLocaleDateString('ru-RU')}</div>
+                               <div className="text-[9px] font-medium text-slate-400 uppercase italic leading-none mt-0.5">{date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
                             </td>
                             <td>
-                               <div className="font-black text-brand-orange text-[11px] leading-none mb-1">№ {inv.id}</div>
-                               <div className="text-[8px] font-black uppercase text-slate-400">Продажа</div>
+                               <div className="font-medium text-brand-orange text-[11px] leading-none mb-1">№ {inv.id}</div>
+                               <div className="text-[8px] font-medium uppercase text-slate-400">Продажа</div>
                             </td>
                             <td>
-                               <div className="font-bold text-slate-800">{inv.customer_name || '—'}</div>
+                               <div className="font-normal text-slate-800">{inv.customer_name || '—'}</div>
                                {inv.staff_name && <div className="text-[9px] text-slate-400 flex items-center gap-1 mt-0.5"><UserIcon size={10} /> {inv.staff_name}</div>}
                             </td>
-                            <td><div className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 italic"><WarehouseIcon size={12} className="text-slate-300" /> {inv.warehouse_name || '—'}</div></td>
-                            <td className="text-right font-black text-slate-900">{formatMoney(netAmt)}</td>
-                            <td className="text-right font-black text-emerald-600">{formatMoney(displayPaid)}</td>
-                            <td className={clsx("text-right font-black", balance > 0.01 ? "text-brand-orange" : "text-slate-300")}>{formatMoney(balance)}</td>
+                            <td><div className="flex items-center gap-1.5 text-[10px] font-normal uppercase text-slate-500 italic"><WarehouseIcon size={12} className="text-slate-300" /> {inv.warehouse_name || '—'}</div></td>
+                            <td className="text-right font-medium text-slate-900">{formatMoney(netAmt)}</td>
+                            <td className="text-right font-medium text-emerald-600">{formatMoney(displayPaid)}</td>
+                            <td className={clsx("text-right font-medium", balance > 0.01 ? "text-brand-orange" : "text-slate-300")}>{formatMoney(balance)}</td>
                             <td className="text-center">{getStatusBadge(inv)}</td>
                             <td className="text-center">
                                <button onClick={() => fetchInvoiceDetails(inv.id)} className="p-1.5 text-slate-300 hover:text-slate-600 rounded">
@@ -328,7 +328,7 @@ export default function SalesView() {
          {!isLoading && filteredInvoices.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 py-32 opacity-30">
                 <FileText size={80} strokeWidth={1} />
-                <span className="mt-4 font-black uppercase tracking-widest text-[10px]">В журнале нет подходящих документов</span>
+                <span className="mt-4 font-medium uppercase tracking-widest text-[10px]">В журнале нет подходящих документов</span>
             </div>
          )}
       </div>
@@ -358,12 +358,12 @@ export default function SalesView() {
                          <Receipt size={18} className="text-slate-800" />
                       </div>
                       <div>
-                         <h3 className="text-sm font-black uppercase text-slate-800 flex items-center gap-2">
-                           Продажа № {selectedInvoice.id} <span className="text-slate-400 font-bold">от {new Date(selectedInvoice.createdAt).toLocaleString('ru-RU')}</span>
+                         <h3 className="text-sm font-medium uppercase text-slate-800 flex items-center gap-2">
+                           Продажа № {selectedInvoice.id} <span className="text-slate-400 font-normal">от {new Date(selectedInvoice.createdAt).toLocaleString('ru-RU')}</span>
                          </h3>
                          <div className="flex gap-4 mt-0.5">
-                            <span className="text-[9px] font-black uppercase text-slate-400">Склад: {selectedInvoice.warehouse?.name || '—'}</span>
-                            <span className="text-[9px] font-black uppercase text-slate-400">Оформил: {selectedInvoice.staff_name || selectedInvoice.user?.username || '—'}</span>
+                            <span className="text-[9px] font-medium uppercase text-slate-400">Склад: {selectedInvoice.warehouse?.name || '—'}</span>
+                            <span className="text-[9px] font-medium uppercase text-slate-400">Оформил: {selectedInvoice.staff_name || selectedInvoice.user?.username || '—'}</span>
                          </div>
                       </div>
                    </div>
@@ -380,14 +380,14 @@ export default function SalesView() {
                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       <div className="space-y-4">
                          <div className="bg-slate-50 border border-slate-200 p-4 rounded">
-                            <span className="text-[9px] font-black uppercase text-slate-400 block mb-2 tracking-widest">Контрагент</span>
+                            <span className="text-[9px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">Контрагент</span>
                             <div className="flex items-center gap-3">
                                <div className="w-10 h-10 bg-white border border-slate-200 rounded flex items-center justify-center text-slate-400">
                                   <UserIcon size={20} />
                                </div>
                                <div>
-                                  <div className="text-sm font-black text-slate-900 leading-tight">{selectedInvoice.customer_name || '—'}</div>
-                                  <div className="text-[10px] font-bold text-brand-orange mt-0.5 uppercase tracking-tighter italic">Постоянный покупатель</div>
+                                  <div className="text-sm font-medium text-slate-900 leading-tight">{selectedInvoice.customer_name || '—'}</div>
+                                  <div className="text-[10px] font-normal text-brand-orange mt-0.5 uppercase tracking-tighter italic">Постоянный покупатель</div>
                                </div>
                             </div>
                          </div>
@@ -395,20 +395,20 @@ export default function SalesView() {
 
                       <div className="lg:col-span-2 grid grid-cols-2 lg:grid-cols-4 gap-4">
                          <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-                            <span className="text-[8px] font-black uppercase text-slate-400 block mb-1">Сумма чека</span>
-                            <div className="text-base font-black text-slate-900">{formatMoney(selectedInvoice.totalAmount || 0)}</div>
+                            <span className="text-[8px] font-medium uppercase text-slate-400 block mb-1">Сумма чека</span>
+                            <div className="text-base font-medium text-slate-900">{formatMoney(selectedInvoice.totalAmount || 0)}</div>
                          </div>
                          <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-                            <span className="text-[8px] font-black uppercase text-slate-400 block mb-1">Скидка ({selectedInvoice.discount || 0}%)</span>
-                            <div className="text-base font-black text-brand-orange">-{formatMoney((selectedInvoice.totalAmount || 0) * (selectedInvoice.discount || 0) / 100)}</div>
+                            <span className="text-[8px] font-medium uppercase text-slate-400 block mb-1">Скидка ({selectedInvoice.discount || 0}%)</span>
+                            <div className="text-base font-medium text-brand-orange">-{formatMoney((selectedInvoice.totalAmount || 0) * (selectedInvoice.discount || 0) / 100)}</div>
                          </div>
                          <div className="p-3 bg-slate-900 border border-slate-800 rounded">
-                            <span className="text-[8px] font-black uppercase text-slate-500 block mb-1">К оплате (NET)</span>
-                            <div className="text-base font-black text-brand-yellow">{formatMoney(typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0))}</div>
+                            <span className="text-[8px] font-medium uppercase text-slate-500 block mb-1">К оплате (NET)</span>
+                            <div className="text-base font-medium text-brand-yellow">{formatMoney(typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0))}</div>
                          </div>
                          <div className="p-3 bg-emerald-50 border border-emerald-100 rounded">
-                            <span className="text-[8px] font-black uppercase text-emerald-600 block mb-1">Оплачено</span>
-                            <div className="text-base font-black text-emerald-600">{formatMoney(Math.min(selectedInvoice.paidAmount || 0, typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0)))}</div>
+                            <span className="text-[8px] font-medium uppercase text-emerald-600 block mb-1">Оплачено</span>
+                            <div className="text-base font-medium text-emerald-600">{formatMoney(Math.min(selectedInvoice.paidAmount || 0, typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0)))}</div>
                          </div>
                       </div>
                    </div>
@@ -417,7 +417,7 @@ export default function SalesView() {
                    <div className="px-6 pb-6">
                       <div className="bg-white border border-border-base rounded-[2px] overflow-hidden">
                          <div className="bg-slate-50 px-4 py-2 border-b border-border-base">
-                            <h4 className="text-[10px] font-black uppercase text-slate-500">Спецификация (состав чека)</h4>
+                            <h4 className="text-[10px] font-medium uppercase text-slate-500">Спецификация (состав чека)</h4>
                          </div>
                          <table className="table-1c !text-[11px]">
                             <thead>
@@ -434,11 +434,11 @@ export default function SalesView() {
                                {selectedInvoice.items?.map((item: any, idx: number) => (
                                   <tr key={idx}>
                                      <td className="text-center font-mono text-slate-400">{idx+1}</td>
-                                     <td className="font-bold text-slate-800">{formatProductName(item.product_name)}</td>
-                                     <td className="text-right font-bold text-slate-600">{formatMoney(item.sellingPrice)}</td>
-                                     <td className="text-right font-black italic">{item.quantity}</td>
-                                     <td className="text-right text-slate-400 uppercase font-black text-[9px]">{item.unit || 'шт'}</td>
-                                     <td className="text-right font-black text-slate-900">{formatMoney(item.totalPrice)}</td>
+                                     <td className="font-normal text-slate-800">{formatProductName(item.product_name)}</td>
+                                     <td className="text-right font-normal text-slate-600">{formatMoney(item.sellingPrice)}</td>
+                                     <td className="text-right font-medium italic">{item.quantity}</td>
+                                     <td className="text-right text-slate-400 uppercase font-medium text-[9px]">{item.unit || 'шт'}</td>
+                                     <td className="text-right font-medium text-slate-900">{formatMoney(item.totalPrice)}</td>
                                   </tr>
                                ))}
                             </tbody>
@@ -527,26 +527,26 @@ export default function SalesView() {
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowPaymentModal(false)} />
                 <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-sm rounded-[4px] shadow-2xl border-t-4 border-t-emerald-500 overflow-hidden">
                     <div className="bg-slate-50 px-5 py-3 border-b border-border-base flex items-center justify-between">
-                        <h3 className="text-xs font-black uppercase text-slate-800">Регистрация входящей оплаты</h3>
+                        <h3 className="text-xs font-medium uppercase text-slate-800">Регистрация входящей оплаты</h3>
                         <button onClick={() => setShowPaymentModal(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
                     </div>
                     <div className="p-5 space-y-4">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black uppercase text-slate-400">Накладная № {selectedInvoice.id}</label>
-                            <div className="text-sm font-black text-slate-900 uppercase italic underline decoration-emerald-500 decoration-2 underline-offset-4">{selectedInvoice.customer_name}</div>
+                            <label className="text-[10px] font-medium uppercase text-slate-400">Накладная № {selectedInvoice.id}</label>
+                            <div className="text-sm font-medium text-slate-900 uppercase italic underline decoration-emerald-500 decoration-2 underline-offset-4">{selectedInvoice.customer_name}</div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-2 bg-slate-50 border border-slate-200 rounded">
-                                <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Долг клиента</span>
-                                <span className="text-sm font-black text-rose-600">{formatMoney(Math.max(0, (typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0)) - (selectedInvoice.paidAmount || 0)))}</span>
+                                <span className="text-[9px] font-medium uppercase text-slate-400 block mb-1">Долг клиента</span>
+                                <span className="text-sm font-medium text-rose-600">{formatMoney(Math.max(0, (typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0)) - (selectedInvoice.paidAmount || 0)))}</span>
                             </div>
                             <div className="p-2 bg-emerald-50 border border-emerald-100 rounded">
-                                <span className="text-[9px] font-black uppercase text-emerald-600 block mb-1">Сумма оплаты</span>
+                                <span className="text-[9px] font-medium uppercase text-emerald-600 block mb-1">Сумма оплаты</span>
                                 <input 
                                   type="number" 
                                   value={paymentAmount} 
                                   onChange={e => setPaymentAmount(e.target.value)}
-                                  className="w-full bg-transparent text-sm font-black text-emerald-700 outline-none"
+                                  className="w-full bg-transparent text-sm font-medium text-emerald-700 outline-none"
                                 />
                             </div>
                         </div>
@@ -579,7 +579,7 @@ export default function SalesView() {
                              } catch(e) { toast.error('Ошибка оплаты'); }
                              finally { setIsPaying(false); }
                           }}
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-4 rounded text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2"
                         >
                            {isPaying ? 'ПРОВЕДЕНИЕ...' : 'ПРОВЕСТИ ОПЛАТУ'}
                         </button>

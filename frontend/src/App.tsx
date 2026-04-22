@@ -30,8 +30,8 @@ const TitleBar = () => {
   return (
     <div className="flex-none flex h-9 w-full items-center justify-between bg-[#ffcc00] px-4 shadow-[0_1px_4px_rgba(0,0,0,0.1)] border-b border-black/5 relative z-[1000]">
       <div className="flex items-center gap-3 select-none" style={{ WebkitAppRegion: 'drag' } as any}>
-        <div className="flex h-6 w-6 items-center justify-center rounded bg-red-600 text-white font-black text-[10px]">1S</div>
-        <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">1S: WHOLESALE CRM</span>
+        <div className="flex h-6 w-6 items-center justify-center rounded bg-red-600 text-white font-normal text-[10px]">1C</div>
+        <span className="text-[11px] font-normal text-slate-800 uppercase tracking-widest">1Click: СКЛАД</span>
       </div>
       
       <div className="flex-1 h-full" style={{ WebkitAppRegion: 'drag' } as any}></div>
@@ -79,7 +79,7 @@ const NavigationBar = () => {
             key={item.to}
             to={item.to}
             className={({ isActive }) => `
-              relative flex h-full items-center gap-2 px-6 text-[10px] font-black transition-all border-r border-border-base whitespace-nowrap uppercase tracking-widest
+              relative flex h-full items-center gap-2 px-6 text-[10px] font-normal transition-all border-r border-border-base whitespace-nowrap uppercase tracking-widest
               ${isActive 
                 ? 'bg-white text-red-600 shadow-[inset_0_-3px_0_#ff0000]' 
                 : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}
@@ -93,8 +93,8 @@ const NavigationBar = () => {
       
       <div className="ml-auto flex h-full items-center gap-3 bg-white px-5 border-l border-border-base">
          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">{user.username}</span>
-            <span className="text-[8px] font-black text-red-600 uppercase leading-none tracking-widest">{isAdmin ? 'Администратор' : 'Оператор'}</span>
+            <span className="text-[10px] font-normal text-slate-800 uppercase tracking-tighter">{user.username}</span>
+            <span className="text-[8px] font-normal text-red-600 uppercase leading-none tracking-widest">{isAdmin ? 'Администратор' : 'Оператор'}</span>
          </div>
          <UserCircle size={20} className="text-slate-300" />
       </div>
@@ -128,16 +128,16 @@ const Layout = () => {
          </Suspense>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-50 h-6 w-full flex items-center justify-between bg-[#f8f9fb] px-4 border-t border-border-base text-[9px] font-black text-slate-400 uppercase tracking-widest select-none">
+      <footer className="fixed bottom-0 left-0 right-0 z-50 h-6 w-full flex items-center justify-between bg-[#f8f9fb] px-4 border-t border-border-base text-[9px] font-normal text-slate-400 uppercase tracking-widest select-none">
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 text-emerald-600">
                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-               <span>1S: СИСТЕМА ГОТОВА</span>
+               <span>1C: СИСТЕМА ГОТОВА</span>
             </div>
-            <span>БАЗА: 1S_ENTERPRISE_DB</span>
+            <span>БАЗА: 1CLICK_ENTERPRISE_DB</span>
          </div>
          <div className="flex items-center gap-4 italic font-medium">
-            <span>1S WHOLESALE ENGINE v4.1 (TAXI STYLE)</span>
+            <span>1CLICK WHOLESALE ENGINE v4.1 (TAXI STYLE)</span>
             <span className="text-red-600 border border-red-600/20 px-1.5 rounded-[2px] not-italic">LOCKED</span>
          </div>
       </footer>

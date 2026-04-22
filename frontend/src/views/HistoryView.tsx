@@ -76,7 +76,7 @@ export default function HistoryView() {
         <div className="overflow-x-auto -mx-8">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+              <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-medium uppercase tracking-[0.2em]">
                 <th className="px-8 py-4">Дата</th>
                 <th className="px-8 py-4">Товар</th>
                 <th className="px-8 py-4">Тип</th>
@@ -88,21 +88,21 @@ export default function HistoryView() {
             <tbody className="divide-y divide-slate-50">
               {paginatedTransactions.map((t) => (
                 <tr key={t.id} className="hover:bg-slate-50/30 transition-colors group">
-                  <td className="px-8 py-4 text-slate-500 font-bold">
+                  <td className="px-8 py-4 text-slate-500 font-normal">
                     {new Date(t.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </td>
-                  <td className="px-8 py-4 font-black text-slate-900">{t.product_name}</td>
+                  <td className="px-8 py-4 font-medium text-slate-900">{t.product_name}</td>
                   <td className="px-8 py-4">{getTypeBadge(t.type)}</td>
-                  <td className={`px-8 py-4 font-black ${t.qtyChange > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  <td className={`px-8 py-4 font-medium ${t.qtyChange > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {t.qtyChange > 0 ? `+${t.qtyChange}` : t.qtyChange}
                   </td>
-                  <td className="px-8 py-4 text-slate-600 font-bold">{t.username}</td>
+                  <td className="px-8 py-4 text-slate-600 font-normal">{t.username}</td>
                   <td className="px-8 py-4 text-slate-500 italic text-sm">{t.reason}</td>
                 </tr>
               ))}
               {transactions.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="px-8 py-16 text-center text-slate-400 font-bold">История пуста</td>
+                  <td colSpan={6} className="px-8 py-16 text-center text-slate-400 font-normal">История пуста</td>
                 </tr>
               )}
             </tbody>

@@ -45,8 +45,8 @@
     "wait-on": "^9.0.5"
   },
   "build": {
-    "appId": "com.wholesale.crm",
-    "productName": "Wholesale CRM",
+    "appId": "com.1click.sklad",
+    "productName": "1Click: Склад",
     "directories": {
       "output": "release"
     },
@@ -55,55 +55,33 @@
       "preload.js",
       "backend/dist/**/*",
       "backend/.env",
-      "backend/node_modules/@prisma/client/**/*",
-      "backend/node_modules/.prisma/**/*",
-      "backend/prisma/dev.db",
+      "backend/prisma/prod.db",
       "backend/prisma/schema.prisma",
       "backend/package.json",
       "frontend/dist/**/*",
-      "node_modules/**/*",
-      "node_modules/.prisma/**/*"
+      "node_modules/**/*"
     ],
     "asar": true,
     "asarUnpack": [
       "backend/.env",
       "backend/dist/**",
-      "backend/node_modules/@prisma/client/**",
-      "backend/node_modules/.prisma/**",
-      "backend/package.json",
-      "backend/prisma/**",
-      "node_modules/**",
-      "node_modules/.prisma/**"
-    ],
-    "extraResources": [
-      {
-        "from": "node_modules/.prisma",
-        "to": "app.asar.unpacked/node_modules/.prisma",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "backend/node_modules/@prisma/client",
-        "to": "app.asar.unpacked/backend/node_modules/@prisma/client",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "backend/node_modules/.prisma",
-        "to": "app.asar.unpacked/backend/node_modules/.prisma",
-        "filter": [
-          "**/*"
-        ]
-      }
+      "backend/prisma/prod.db",
+      "node_modules/.prisma/**",
+      "node_modules/@prisma/client/**"
     ],
     "win": {
       "target": "nsis"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "1Click: Склад",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
     }
   }
 }

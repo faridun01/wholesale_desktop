@@ -30,20 +30,20 @@ const DashboardMetric = ({ title, value, delta, deltaValue, icon: Icon, subtitle
   <div className="bg-white border border-border-base rounded-[4px] p-4 relative overflow-hidden group hover:shadow-sm transition-all border-l-4 border-l-brand-yellow">
     <div className="flex items-start justify-between">
       <div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{title}</p>
-        <h3 className="text-xl font-black text-slate-800 tracking-tight">{value}</h3>
-        <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-tighter">{subtitle}</p>
+        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">{title}</p>
+        <h3 className="text-xl font-medium text-slate-800 tracking-tight">{value}</h3>
+        <p className="text-[9px] text-slate-400 font-normal uppercase mt-1 tracking-tighter">{subtitle}</p>
       </div>
       <div className="text-brand-orange bg-slate-50 p-2.5 rounded border border-border-base">
         <Icon size={18} />
       </div>
     </div>
     <div className="mt-3 pt-3 border-t border-[#f0f0f0] flex items-center gap-2">
-      <span className={`text-[11px] font-black flex items-center gap-0.5 ${deltaValue < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+      <span className={`text-[11px] font-medium flex items-center gap-0.5 ${deltaValue < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
         {deltaValue < 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
         {delta}
       </span>
-      <span className="text-[9px] text-slate-400 font-black uppercase tracking-tighter">к прошлому месяцу</span>
+      <span className="text-[9px] text-slate-400 font-medium uppercase tracking-tighter">к прошлому месяцу</span>
     </div>
   </div>
 );
@@ -126,14 +126,14 @@ export default function DashboardView() {
           <div className="bg-brand-yellow p-2 rounded">
              <LayoutDashboard size={20} className="text-slate-800" />
           </div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Информационная панель <span className="text-slate-400 font-normal">| Основной отчет</span></h1>
+          <h1 className="text-2xl font-medium text-slate-800 tracking-tight uppercase">Информационная панель <span className="text-slate-400 font-normal">| Основной отчет</span></h1>
         </div>
         <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-border-base shadow-sm">
            <Store size={14} className="text-slate-400" />
            <select
              value={selectedWarehouseId}
              onChange={(e) => setSelectedWarehouseId(e.target.value)}
-             className="bg-transparent text-[11px] font-black text-slate-700 outline-none uppercase tracking-widest"
+             className="bg-transparent text-[11px] font-medium text-slate-700 outline-none uppercase tracking-widest"
            >
              {isAdmin && <option value="">[Все склады компании]</option>}
              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -150,7 +150,7 @@ export default function DashboardView() {
         {/* Main Log Section */}
         <div className="lg:col-span-8 flex flex-col bg-white border border-border-base rounded-[4px] shadow-sm">
           <div className="bg-[#f8f9fb] border-b border-border-base px-4 py-3 flex items-center justify-between">
-            <h2 className="text-[11px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+            <h2 className="text-[11px] font-medium text-slate-700 uppercase tracking-widest flex items-center gap-2">
                <HistoryIcon size={14} className="text-slate-400" /> Журнал торговых операций
             </h2>
             <button 
@@ -174,19 +174,19 @@ export default function DashboardView() {
                 <tbody>
                    {recentSales.map((sale: any) => (
                       <tr key={sale.id}>
-                         <td className="text-center font-mono font-bold text-slate-400">#{sale.id}</td>
-                         <td className="font-bold">{sale.customer?.name || '<Розничный покупатель>'}</td>
-                         <td className="text-right font-black text-slate-900">{formatMoney(typeof sale.netAmount === 'number' ? sale.netAmount : (sale.totalAmount || 0))}</td>
+                         <td className="text-center font-mono font-normal text-slate-400">#{sale.id}</td>
+                         <td className="font-normal">{sale.customer?.name || '<Розничный покупатель>'}</td>
+                         <td className="text-right font-medium text-slate-900">{formatMoney(typeof sale.netAmount === 'number' ? sale.netAmount : (sale.totalAmount || 0))}</td>
                          <td className="text-center">
                             {(() => {
                                const paid = Number(sale.paidAmount || 0);
                                const net = typeof sale.netAmount === 'number' ? sale.netAmount : Number(sale.totalAmount || 0);
                                const returned = Number(sale.returnedAmount || 0);
                                
-                               if (returned > 0 && net <= 0.01) return <span className="bg-rose-100 text-rose-700 text-[9px] font-black uppercase px-2 py-0.5 rounded">Возврат</span>;
-                               if (paid >= net - 0.01) return <span className="bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase px-2 py-0.5 rounded">Оплачено</span>;
+                               if (returned > 0 && net <= 0.01) return <span className="bg-rose-100 text-rose-700 text-[9px] font-medium uppercase px-2 py-0.5 rounded">Возврат</span>;
+                               if (paid >= net - 0.01) return <span className="bg-emerald-50 text-emerald-600 text-[9px] font-medium uppercase px-2 py-0.5 rounded">Оплачено</span>;
                                return <span className={clsx(
-                                 "text-[9px] font-black uppercase px-2 py-0.5 rounded",
+                                 "text-[9px] font-medium uppercase px-2 py-0.5 rounded",
                                   paid > 0 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'
                                )}>
                                   {paid > 0 ? 'Частично' : 'Задолженность'}
@@ -198,7 +198,7 @@ export default function DashboardView() {
                    ))}
                    {!recentSales.length && (
                       <tr>
-                         <td colSpan={5} className="py-20 text-center text-slate-300 font-bold uppercase text-[10px]">Записей не обнаружено</td>
+                         <td colSpan={5} className="py-20 text-center text-slate-300 font-normal uppercase text-[10px]">Записей не обнаружено</td>
                       </tr>
                    )}
                 </tbody>
@@ -209,11 +209,11 @@ export default function DashboardView() {
         {/* Right Info Panels */}
         <div className="lg:col-span-4 flex flex-col gap-6">
            <div className="bg-white border border-border-base rounded-[4px] p-5 shadow-sm space-y-5">
-              <h2 className="text-[11px] font-black text-slate-800 uppercase tracking-widest border-b border-[#f0f0f0] pb-3">Экономические показатели</h2>
+              <h2 className="text-[11px] font-medium text-slate-800 uppercase tracking-widest border-b border-[#f0f0f0] pb-3">Экономические показатели</h2>
               
               <div className="space-y-4">
                  <div>
-                    <div className="flex justify-between text-[10px] font-black text-slate-400 mb-2 uppercase tracking-tighter">
+                    <div className="flex justify-between text-[10px] font-medium text-slate-400 mb-2 uppercase tracking-tighter">
                        <span>Оценка ТМЦ на складах</span>
                        <span className="text-slate-900">{formatMoney(summary?.inventoryValue || 0)}</span>
                     </div>
@@ -223,9 +223,9 @@ export default function DashboardView() {
                  </div>
                  
                  <div>
-                    <div className="flex justify-between text-[10px] font-black text-slate-400 mb-2 uppercase tracking-tighter">
+                    <div className="flex justify-between text-[10px] font-medium text-slate-400 mb-2 uppercase tracking-tighter">
                        <span>Общий долг клиентов</span>
-                       <span className="text-rose-600 font-black">{formatMoney(summary?.totalDebts || 0)}</span>
+                       <span className="text-rose-600 font-medium">{formatMoney(summary?.totalDebts || 0)}</span>
                     </div>
                     <div className="h-2 w-full bg-slate-100 rounded-px overflow-hidden">
                        <div className="h-full bg-rose-500 w-[40%]" style={{ width: summary?.totalDebts ? '100%' : '0%' }}></div>
@@ -248,12 +248,12 @@ export default function DashboardView() {
            <div className="bg-brand-blue rounded-[4px] p-5 text-white shadow-xl relative overflow-hidden group border-b-4 border-b-brand-yellow">
               <ShoppingCart size={80} className="absolute -right-4 -bottom-4 opacity-10 rotate-12 transition-transform group-hover:scale-110" />
               <div className="relative z-10">
-                <p className="text-[9px] font-black uppercase tracking-[2px] text-white/50 mb-1">Точка продаж</p>
-                <h3 className="text-xl font-black mb-3 italic tracking-tight">Розничная торговля</h3>
+                <p className="text-[9px] font-medium uppercase tracking-[2px] text-white/50 mb-1">Точка продаж</p>
+                <h3 className="text-xl font-medium mb-3 italic tracking-tight">Розничная торговля</h3>
                 <p className="text-[11px] text-white/70 mb-5 leading-relaxed">Быстрое оформление чека, автоматический расчет остатка и печать документов.</p>
                 <button 
                   onClick={() => navigate('/pos')}
-                  className="w-full py-2.5 bg-brand-yellow text-slate-900 font-black rounded text-[11px] uppercase tracking-widest hover:bg-[#ffe04d] active:scale-95 transition-all"
+                  className="w-full py-2.5 bg-brand-yellow text-slate-900 font-medium rounded text-[11px] uppercase tracking-widest hover:bg-[#ffe04d] active:scale-95 transition-all"
                 >
                    Открыть окно POS-терминала
                 </button>
@@ -264,7 +264,7 @@ export default function DashboardView() {
       
       {/* Charts Section */}
       <div className="bg-white border border-border-base rounded-[4px] p-6 shadow-sm min-h-[400px]">
-        <h2 className="text-[11px] font-black text-slate-800 uppercase tracking-widest mb-6 border-b border-[#f0f0f0] pb-3">Графическая аналитика / Сбыт</h2>
+        <h2 className="text-[11px] font-medium text-slate-800 uppercase tracking-widest mb-6 border-b border-[#f0f0f0] pb-3">Графическая аналитика / Сбыт</h2>
         <Suspense fallback={<ChartSkeleton />}>
           <DashboardCharts 
             overviewData={summary?.revenueChartData || []}

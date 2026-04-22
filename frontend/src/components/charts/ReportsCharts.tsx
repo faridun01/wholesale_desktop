@@ -66,7 +66,7 @@ function PieTooltip({
   return (
     <div className="max-w-[min(260px,calc(100vw-32px))] rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
       <p className="break-words text-xs font-medium leading-5 text-slate-700">{label}</p>
-      <p className="mt-1 text-sm font-semibold tabular-nums text-slate-900">
+      <p className="mt-1 text-sm font-medium tabular-nums text-slate-900">
         {reportType === 'returns' ? formatCount(value) : formatMoney(value)}
       </p>
     </div>

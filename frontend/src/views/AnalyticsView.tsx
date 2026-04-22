@@ -117,11 +117,11 @@ const ReportCard = ({ label, value, help, icon: Icon, color }: any) => (
   <div className="bg-white border border-border-base p-4 rounded-[4px] shadow-sm flex flex-col relative overflow-hidden group hover:border-brand-orange/30 transition-colors">
     <div className={clsx("absolute top-0 left-0 w-1 h-full", color || "bg-brand-yellow")}></div>
     <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{label}</span>
+        <span className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">{label}</span>
         <Icon size={16} className="text-slate-300 group-hover:text-brand-orange transition-colors" />
     </div>
-    <div className="text-xl font-black text-slate-900 mb-1">{value}</div>
-    <div className="text-[10px] font-bold text-slate-400 italic">{help}</div>
+    <div className="text-xl font-medium text-slate-900 mb-1">{value}</div>
+    <div className="text-[10px] font-normal text-slate-400 italic">{help}</div>
   </div>
 );
 
@@ -169,8 +169,8 @@ export default function AnalyticsView() {
                 <BarChart3 size={20} className="text-slate-800" />
              </div>
              <div>
-                <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Аналитика и Сбыт</h1>
-                <p className="text-[10px] font-black uppercase text-slate-400">Мониторинг эффективности торговых операций</p>
+                <h1 className="text-2xl font-medium text-slate-800 uppercase tracking-tighter">Аналитика и Сбыт</h1>
+                <p className="text-[10px] font-medium uppercase text-slate-400">Мониторинг эффективности торговых операций</p>
              </div>
           </div>
           
@@ -180,7 +180,7 @@ export default function AnalyticsView() {
                  key={s.key}
                  onClick={() => setActiveSection(s.key)}
                  className={clsx(
-                   "px-4 py-1.5 text-[10px] font-black uppercase rounded transition-all",
+                   "px-4 py-1.5 text-[10px] font-medium uppercase rounded transition-all",
                    activeSection === s.key ? "bg-brand-yellow text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"
                  )}
                >
@@ -194,13 +194,13 @@ export default function AnalyticsView() {
       {/* FILTER BAR 1C */}
       <div className="bg-white border-b border-border-base px-5 py-3 shrink-0 flex flex-wrap items-center gap-6">
          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Период:</span>
+            <span className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Период:</span>
             <div className="flex bg-slate-100 rounded p-1">
                {(['month', 'quarter', 'year'] as PeriodMode[]).map(m => (
                  <button 
                    key={m} 
                    onClick={() => setPeriodMode(m)}
-                   className={clsx("px-3 py-1 text-[9px] font-black uppercase rounded", periodMode === m ? "bg-white text-slate-800 shadow-sm" : "text-slate-500")}
+                   className={clsx("px-3 py-1 text-[9px] font-medium uppercase rounded", periodMode === m ? "bg-white text-slate-800 shadow-sm" : "text-slate-500")}
                  >
                    {m === 'month' ? 'Месяц' : m === 'quarter' ? 'Квартал' : 'Год'}
                  </button>
@@ -210,17 +210,17 @@ export default function AnalyticsView() {
               type="month" 
               value={periodAnchor} 
               onChange={e => setPeriodAnchor(e.target.value)}
-              className="field-1c !py-1 font-bold"
+              className="field-1c !py-1 font-normal"
             />
-            <span className="text-[11px] font-black text-slate-700 italic underline decoration-brand-yellow decoration-2 underline-offset-4">{periodLabel}</span>
+            <span className="text-[11px] font-medium text-slate-700 italic underline decoration-brand-yellow decoration-2 underline-offset-4">{periodLabel}</span>
          </div>
 
          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Склад:</span>
+            <span className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Склад:</span>
             <select 
               value={selectedWarehouseId} 
               onChange={e => setSelectedWarehouseId(e.target.value)}
-              className="field-1c !py-1 font-bold min-w-[180px]"
+              className="field-1c !py-1 font-normal min-w-[180px]"
             >
                <option value="">Все склады</option>
                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -280,7 +280,7 @@ export default function AnalyticsView() {
             <div className="flex h-64 items-center justify-center bg-white border border-border-base rounded">
                <div className="flex flex-col items-center gap-3">
                   <div className="w-10 h-10 border-4 border-brand-yellow border-t-transparent animate-spin rounded-full"></div>
-                  <span className="text-[10px] font-black uppercase text-slate-400">Формирование данных...</span>
+                  <span className="text-[10px] font-medium uppercase text-slate-400">Формирование данных...</span>
                </div>
             </div>
          ) : (
@@ -290,17 +290,17 @@ export default function AnalyticsView() {
                     <div className="grid grid-cols-1 gap-6">
                         <div className="bg-white border border-border-base rounded-[4px] p-6 shadow-sm">
                             <div className="flex items-center justify-between mb-8">
-                                <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                                <h3 className="text-xs font-medium uppercase text-slate-700 flex items-center gap-2">
                                     <LineChartIcon size={14} className="text-brand-orange" /> Динамика выручки и прибыли
                                 </h3>
                                 <div className="flex items-center gap-4">
                                      <div className="flex items-center gap-2">
                                          <div className="w-3 h-3 bg-[#3b82f6] rounded-full"></div>
-                                         <span className="text-[10px] font-black uppercase text-slate-400">Выручка</span>
+                                         <span className="text-[10px] font-medium uppercase text-slate-400">Выручка</span>
                                      </div>
                                      <div className="flex items-center gap-2">
                                          <div className="w-3 h-3 bg-[#10b981] rounded-full"></div>
-                                         <span className="text-[10px] font-black uppercase text-slate-400">Прибыль</span>
+                                         <span className="text-[10px] font-medium uppercase text-slate-400">Прибыль</span>
                                      </div>
                                 </div>
                             </div>
@@ -345,7 +345,7 @@ export default function AnalyticsView() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <div className="bg-white border border-border-base rounded-[4px] p-6 shadow-sm">
-                                <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2 mb-6">
+                                <h3 className="text-xs font-medium uppercase text-slate-700 flex items-center gap-2 mb-6">
                                     <BarChartIcon size={14} className="text-brand-orange" /> Продажи по категориям
                                 </h3>
                                 <div className="h-[250px] w-full">
@@ -363,7 +363,7 @@ export default function AnalyticsView() {
                              </div>
 
                              <div className="bg-white border border-border-base rounded-[4px] p-6 shadow-sm">
-                                <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2 mb-6">
+                                <h3 className="text-xs font-medium uppercase text-slate-700 flex items-center gap-2 mb-6">
                                     <PieChartIcon size={14} className="text-brand-orange" /> Причины списаний (Доля)
                                 </h3>
                                 <div className="h-[250px] w-full">
@@ -388,7 +388,7 @@ export default function AnalyticsView() {
                                              </PieChart>
                                          </ResponsiveContainer>
                                      ) : (
-                                         <div className="h-full flex items-center justify-center text-slate-300 font-black uppercase text-[10px] italic">
+                                         <div className="h-full flex items-center justify-center text-slate-300 font-medium uppercase text-[10px] italic">
                                              Нет данных по списаниям
                                          </div>
                                      )}
@@ -403,7 +403,7 @@ export default function AnalyticsView() {
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                         <div className="bg-white border border-border-base rounded-[4px] overflow-hidden shadow-sm">
                             <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between">
-                                <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                                <h3 className="text-xs font-medium uppercase text-slate-700 flex items-center gap-2">
                                     <TrendingUp size={14} className="text-brand-orange" /> Лидеры продаж (Товары)
                                 </h3>
                             </div>
@@ -421,10 +421,10 @@ export default function AnalyticsView() {
                                     {data?.productPerformance?.slice(0, 10).map((p, i) => (
                                         <tr key={p.name} className="hover:bg-slate-50 transition-colors">
                                             <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
-                                            <td className="font-bold text-slate-700">{p.name}</td>
-                                            <td className="text-right font-black text-slate-600">{p.quantity}</td>
-                                            <td className="text-right font-black text-slate-900">{formatMoney(p.revenue || 0)}</td>
-                                            <td className="text-right font-black text-emerald-600">{formatMoney(p.profit || 0)}</td>
+                                            <td className="font-medium text-slate-700">{p.name}</td>
+                                            <td className="text-right font-medium text-slate-600">{p.quantity}</td>
+                                            <td className="text-right font-medium text-slate-900">{formatMoney(p.revenue || 0)}</td>
+                                            <td className="text-right font-medium text-emerald-600">{formatMoney(p.profit || 0)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -433,7 +433,7 @@ export default function AnalyticsView() {
 
                          <div className="bg-white border border-border-base rounded-[4px] overflow-hidden shadow-sm">
                             <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between">
-                                <h3 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                                <h3 className="text-xs font-medium uppercase text-slate-700 flex items-center gap-2">
                                     <Package size={14} className="text-brand-orange" /> Рейтинг покупателей
                                 </h3>
                             </div>
@@ -452,9 +452,9 @@ export default function AnalyticsView() {
                                         return (
                                             <tr key={c.name} className="hover:bg-slate-50 transition-colors">
                                                 <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
-                                                <td className="font-bold text-slate-700">{c.name}</td>
-                                                <td className="text-right font-black text-slate-900">{formatMoney(c.revenue || 0)}</td>
-                                                <td className={clsx("text-right font-black", debt > 0 ? "text-rose-600" : "text-slate-400")}>
+                                                <td className="font-medium text-slate-700">{c.name}</td>
+                                                <td className="text-right font-medium text-slate-900">{formatMoney(c.revenue || 0)}</td>
+                                                <td className={clsx("text-right font-medium", debt > 0 ? "text-rose-600" : "text-slate-400")}>
                                                     {formatMoney(debt)}
                                                 </td>
                                             </tr>
@@ -469,7 +469,7 @@ export default function AnalyticsView() {
                 {/* PRODUCTS SECTION */}
                 {activeSection === 'products' && (
                     <div className="bg-white border border-border-base rounded-[4px] overflow-hidden shadow-sm">
-                        <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between font-black text-[10px] uppercase text-slate-500">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between font-medium text-[10px] uppercase text-slate-500">
                              Анализ продаж по номенклатуре
                         </div>
                         <table className="table-1c">
@@ -489,11 +489,11 @@ export default function AnalyticsView() {
                                     return (
                                         <tr key={p.name} className="hover:bg-slate-50">
                                             <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
-                                            <td className="font-bold text-slate-700">{p.name}</td>
-                                            <td className="text-right font-black text-slate-600">{formatCount(p.quantity || 0)}</td>
-                                            <td className="text-right font-black text-slate-900">{formatMoney(p.revenue || 0)}</td>
-                                            <td className="text-right font-black text-emerald-600">{formatMoney(p.profit || 0)}</td>
-                                            <td className="text-right font-black text-brand-orange">{formatPercent(margin, 1)}</td>
+                                            <td className="font-medium text-slate-700">{p.name}</td>
+                                            <td className="text-right font-medium text-slate-600">{formatCount(p.quantity || 0)}</td>
+                                            <td className="text-right font-medium text-slate-900">{formatMoney(p.revenue || 0)}</td>
+                                            <td className="text-right font-medium text-emerald-600">{formatMoney(p.profit || 0)}</td>
+                                            <td className="text-right font-medium text-brand-orange">{formatPercent(margin, 1)}</td>
                                         </tr>
                                     );
                                 })}
@@ -505,7 +505,7 @@ export default function AnalyticsView() {
                 {/* CUSTOMERS SECTION */}
                 {activeSection === 'customers' && (
                     <div className="bg-white border border-border-base rounded-[4px] overflow-hidden shadow-sm">
-                        <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between font-black text-[10px] uppercase text-slate-500">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between font-medium text-[10px] uppercase text-slate-500">
                              Эффективность работы с контрагентами
                         </div>
                         <table className="table-1c">
@@ -524,10 +524,10 @@ export default function AnalyticsView() {
                                     return (
                                         <tr key={c.name} className="hover:bg-slate-50">
                                             <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
-                                            <td className="font-bold text-slate-700 uppercase">{c.name}</td>
-                                            <td className="text-right font-black text-slate-600">{c.invoices || 0}</td>
-                                            <td className="text-right font-black text-slate-900">{formatMoney(c.revenue || 0)}</td>
-                                            <td className={clsx("text-right font-black", debt > 0 ? "text-rose-600" : "text-slate-400")}>
+                                            <td className="font-medium text-slate-700 uppercase">{c.name}</td>
+                                            <td className="text-right font-medium text-slate-600">{c.invoices || 0}</td>
+                                            <td className="text-right font-medium text-slate-900">{formatMoney(c.revenue || 0)}</td>
+                                            <td className={clsx("text-right font-medium", debt > 0 ? "text-rose-600" : "text-slate-400")}>
                                                 {formatMoney(debt)}
                                             </td>
                                         </tr>
@@ -541,7 +541,7 @@ export default function AnalyticsView() {
                 {/* STAFF SECTION */}
                 {activeSection === 'staff' && (
                     <div className="bg-white border border-border-base rounded-[4px] overflow-hidden shadow-sm">
-                        <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between font-black text-[10px] uppercase text-slate-500">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-border-base flex items-center justify-between font-medium text-[10px] uppercase text-slate-500">
                              Показатели эффективности сотрудников (KPI)
                         </div>
                         <table className="table-1c">
@@ -558,10 +558,10 @@ export default function AnalyticsView() {
                                 {data?.staffPerformance?.map((s, i) => (
                                     <tr key={s.name} className="hover:bg-slate-50">
                                         <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
-                                        <td className="font-black text-slate-800 uppercase italic tracking-tighter decoration-brand-yellow/30 underline underline-offset-4">{s.name}</td>
-                                        <td className="text-right font-black text-slate-600">{s.operations || 0}</td>
-                                        <td className="text-right font-black text-slate-900">{formatMoney(s.revenue || 0)}</td>
-                                        <td className="text-right font-black text-emerald-600">{formatMoney(s.profit || 0)}</td>
+                                        <td className="font-medium text-slate-800 uppercase italic tracking-tighter decoration-brand-yellow/30 underline underline-offset-4">{s.name}</td>
+                                        <td className="text-right font-medium text-slate-600">{s.operations || 0}</td>
+                                        <td className="text-right font-medium text-slate-900">{formatMoney(s.revenue || 0)}</td>
+                                        <td className="text-right font-medium text-emerald-600">{formatMoney(s.profit || 0)}</td>
                                     </tr>
                                 ))}
                             </tbody>

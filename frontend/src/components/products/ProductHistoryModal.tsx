@@ -27,7 +27,7 @@ const getTypeLabel = (type: string) => {
 
 const getTypeClassName = (type: string) =>
   clsx(
-    'px-2 py-0.5 text-[9px] font-black uppercase border rounded-[2px]',
+    'px-2 py-0.5 text-[9px] font-medium uppercase border rounded-[2px]',
     type === 'incoming'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
       : type === 'outgoing'
@@ -85,7 +85,7 @@ export default function ProductHistoryModal({
                   <div className="bg-white/20 p-1.5 rounded-[4px]">
                      <History size={18} className="text-slate-800" />
                   </div>
-                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-800">
+                  <h3 className="text-sm font-medium uppercase tracking-tight text-slate-800">
                      Карточка движения: <span className="text-slate-900 border-b-2 border-brand-orange">{formatProductName(productName)}</span>
                   </h3>
                </div>
@@ -106,7 +106,7 @@ export default function ProductHistoryModal({
             <div className="bg-[#f2f3f7] border-b border-border-base p-2 flex items-center gap-3 shrink-0 overflow-x-auto">
                <div className="flex items-center gap-1 capitalize">
                   <Filter size={12} className="text-slate-400 ml-2" />
-                  <span className="text-[10px] font-black uppercase text-slate-400 mr-2">Режим:</span>
+                  <span className="text-[10px] font-medium uppercase text-slate-400 mr-2">Режим:</span>
                   {[
                     { key: 'all', label: 'Все движения' },
                     { key: 'incoming', label: 'Только приход' },
@@ -117,7 +117,7 @@ export default function ProductHistoryModal({
                       key={item.key}
                       onClick={() => setHistoryFilter(item.key as any)}
                       className={clsx(
-                        "px-3 py-1 text-[10px] font-black uppercase rounded-[2px] border transition-all",
+                        "px-3 py-1 text-[10px] font-medium uppercase rounded-[2px] border transition-all",
                         historyFilter === item.key 
                           ? "bg-white border-brand-orange text-slate-800 shadow-sm"
                           : "border-transparent text-slate-500 hover:bg-white/50"
@@ -147,18 +147,18 @@ export default function ProductHistoryModal({
                     {filteredHistory.length > 0 ? filteredHistory.map((t, i) => (
                       <tr key={i} className="hover:bg-brand-yellow/5">
                         <td className="text-center font-mono text-[10px] text-slate-400">{i + 1}</td>
-                        <td className="font-bold text-slate-600 italic">{new Date(t.createdAt).toLocaleString('ru-RU')}</td>
+                        <td className="font-normal text-slate-600 italic">{new Date(t.createdAt).toLocaleString('ru-RU')}</td>
                         <td className="text-center">
                            <span className={getTypeClassName(t.type)}>{getTypeLabel(t.type)}</span>
                         </td>
-                        <td className={clsx("text-right font-black", (t.qtyChange || 0) > 0 ? "text-emerald-700" : "text-rose-700")}>
+                        <td className={clsx("text-right font-medium", (t.qtyChange || 0) > 0 ? "text-emerald-700" : "text-rose-700")}>
                            {getQuantityBreakdown(t.qtyChange, product)}
                         </td>
-                        <td className="text-slate-600 font-bold">{t.warehouseName || t.warehouse?.name || '---'}</td>
+                        <td className="text-slate-600 font-normal">{t.warehouseName || t.warehouse?.name || '---'}</td>
                         <td className="text-xs text-slate-500 italic">
                            {t.reason || '---'}
                            {Number(t.returnedQty || 0) > 0 && (
-                             <span className="ml-2 text-[10px] font-black uppercase text-emerald-600">[Возврат: {t.returnedQty}]</span>
+                             <span className="ml-2 text-[10px] font-medium uppercase text-emerald-600">[Возврат: {t.returnedQty}]</span>
                            )}
                         </td>
                         <td className="text-center">
@@ -179,7 +179,7 @@ export default function ProductHistoryModal({
                         <td colSpan={7} className="py-20 text-center bg-white">
                            <div className="flex flex-col items-center gap-2 text-slate-300">
                              <History size={48} strokeWidth={1} />
-                             <span className="text-[10px] font-black uppercase tracking-widest">Нет данных за выбранный период</span>
+                             <span className="text-[10px] font-medium uppercase tracking-widest">Нет данных за выбранный период</span>
                            </div>
                         </td>
                       </tr>
@@ -191,9 +191,9 @@ export default function ProductHistoryModal({
             {/* Footer 1C Style */}
             <div className="bg-[#fcfcfc] border-t border-border-base p-3 px-5 flex items-center justify-between shrink-0">
                <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Итого операций: {filteredHistory.length}</span>
+                  <span className="text-[10px] font-medium uppercase text-slate-400">Итого операций: {filteredHistory.length}</span>
                </div>
-               <button onClick={onClose} className="btn-1c !px-8 font-black uppercase">Закрыть форму</button>
+               <button onClick={onClose} className="btn-1c !px-8 font-medium uppercase">Закрыть форму</button>
             </div>
           </motion.div>
         </div>

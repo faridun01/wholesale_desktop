@@ -210,8 +210,8 @@ export default function SettingsView() {
       {/* Sidebar 1C Style */}
       <div className="w-64 bg-white border-r border-border-base flex flex-col shrink-0 overflow-y-auto">
          <div className="p-5 border-b border-border-base">
-            <h2 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Разделы</h2>
-            <div className="text-sm font-black text-slate-900 uppercase">Настройки системы</div>
+            <h2 className="text-[10px] font-medium uppercase text-slate-400 tracking-widest mb-1">Разделы</h2>
+            <div className="text-sm font-medium text-slate-900 uppercase">Настройки системы</div>
          </div>
          <div className="p-2 space-y-1">
             {tabs.map(tab => {
@@ -227,7 +227,7 @@ export default function SettingsView() {
                     )}
                   >
                     <Icon size={16} />
-                    <span className="text-xs font-black uppercase tracking-tighter">{tab.label}</span>
+                    <span className="text-xs font-medium uppercase tracking-tighter">{tab.label}</span>
                   </button>
                 );
             })}
@@ -235,12 +235,12 @@ export default function SettingsView() {
          
          <div className="mt-auto p-5 border-t border-border-base bg-[#f8f9fb]">
             <div className="flex items-center gap-2 mb-4">
-               <div className="w-8 h-8 rounded-full bg-brand-yellow flex items-center justify-center font-black text-xs">
+               <div className="w-8 h-8 rounded-full bg-brand-yellow flex items-center justify-center font-medium text-xs">
                   {currentUser.username?.[0].toUpperCase()}
                </div>
                <div className="min-w-0">
-                  <div className="text-[11px] font-black text-slate-800 truncate uppercase">{currentUser.username}</div>
-                  <div className="text-[8px] font-black text-slate-400 uppercase">{currentUser.role}</div>
+                  <div className="text-[11px] font-medium text-slate-800 truncate uppercase">{currentUser.username}</div>
+                  <div className="text-[8px] font-medium text-slate-400 uppercase">{currentUser.role}</div>
                </div>
             </div>
             <button className="w-full btn-1c !bg-white !text-rose-500 hover:!bg-rose-50 !py-2 text-[10px]" onClick={() => { localStorage.clear(); window.location.href = '/login'; }}>ВЫЙТИ ИЗ СИСТЕМЫ</button>
@@ -256,8 +256,8 @@ export default function SettingsView() {
                  return <div className="bg-slate-100 p-2 rounded"><TabIcon size={18} className="text-slate-600" /></div>
                })()}
                <div>
-                  <h1 className="text-lg font-black text-slate-800 uppercase tracking-tighter">{tabs.find(t => t.id === activeTab)?.label}</h1>
-                  <p className="text-[9px] font-black uppercase text-slate-400 italic">Код раздела: SETTINGS_{activeTab.toUpperCase()}</p>
+                  <h1 className="text-lg font-medium text-slate-800 uppercase tracking-tighter">{tabs.find(t => t.id === activeTab)?.label}</h1>
+                  <p className="text-[9px] font-medium uppercase text-slate-400 italic">Код раздела: SETTINGS_{activeTab.toUpperCase()}</p>
                </div>
             </div>
             {activeTab === 'warehouses' && isAdmin && (
@@ -288,14 +288,14 @@ export default function SettingsView() {
                            {currentWarehouses.map(w => (
                               <tr key={w.id} className="hover:bg-slate-50 transition-colors">
                                  <td className="text-center font-mono text-[10px] text-slate-400"># {w.id}</td>
-                                 <td className="font-black text-slate-800 uppercase italic tracking-tighter underline decoration-brand-yellow/30 underline-offset-4">{w.name}</td>
-                                 <td className="text-slate-600 font-bold">{w.city}, {w.address}</td>
-                                 <td className="font-mono text-[11px] font-black text-slate-600">{w.phone || '—'}</td>
+                                 <td className="font-medium text-slate-800 uppercase italic tracking-tighter underline decoration-brand-yellow/30 underline-offset-4">{w.name}</td>
+                                 <td className="text-slate-600 font-normal">{w.city}, {w.address}</td>
+                                 <td className="font-mono text-[11px] font-medium text-slate-600">{w.phone || '—'}</td>
                                  <td className="text-center">
                                     {w.isDefault ? (
-                                       <span className="px-2 py-0.5 bg-brand-yellow text-[9px] font-black uppercase rounded shadow-sm">ОСНОВНОЙ</span>
+                                       <span className="px-2 py-0.5 bg-brand-yellow text-[9px] font-medium uppercase rounded shadow-sm">ОСНОВНОЙ</span>
                                     ) : (
-                                       isAdmin && <button onClick={() => handleSetDefaultWarehouse(w.id)} className="text-[9px] font-black uppercase text-slate-300 hover:text-brand-orange transition-colors">Сделать основным</button>
+                                       isAdmin && <button onClick={() => handleSetDefaultWarehouse(w.id)} className="text-[9px] font-medium uppercase text-slate-300 hover:text-brand-orange transition-colors">Сделать основным</button>
                                     )}
                                  </td>
                                  <td className="text-center">
@@ -325,48 +325,48 @@ export default function SettingsView() {
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Company Identity */}
                         <div className="space-y-6">
-                           <h3 className="text-xs font-black uppercase text-brand-orange border-b border-brand-orange/20 pb-2 flex items-center gap-2 italic">
+                           <h3 className="text-xs font-medium uppercase text-brand-orange border-b border-brand-orange/20 pb-2 flex items-center gap-2 italic">
                               <Globe size={14} /> Реквизиты организации
                            </h3>
                            <div className="space-y-4">
                               <div className="space-y-1">
-                                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Наименование фирмы</label>
-                                 <input value={companyProfile.name} onChange={e => setCompanyProfile({...companyProfile, name: e.target.value})} className="field-1c w-full font-black text-base" />
+                                 <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Наименование фирмы</label>
+                                 <input value={companyProfile.name} onChange={e => setCompanyProfile({...companyProfile, name: e.target.value})} className="field-1c w-full font-medium text-base" />
                               </div>
                               <div className="grid grid-cols-2 gap-4">
                                  <div className="space-y-1">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Страна</label>
-                                    <input value={companyProfile.country} onChange={e => setCompanyProfile({...companyProfile, country: e.target.value})} className="field-1c w-full font-bold" />
+                                    <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Страна</label>
+                                    <input value={companyProfile.country} onChange={e => setCompanyProfile({...companyProfile, country: e.target.value})} className="field-1c w-full font-normal" />
                                  </div>
                                  <div className="space-y-1">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Город</label>
-                                    <input value={companyProfile.city} onChange={e => setCompanyProfile({...companyProfile, city: e.target.value})} className="field-1c w-full font-bold" />
+                                    <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Город</label>
+                                    <input value={companyProfile.city} onChange={e => setCompanyProfile({...companyProfile, city: e.target.value})} className="field-1c w-full font-normal" />
                                  </div>
                               </div>
                               <div className="space-y-1">
-                                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Юридический адрес</label>
-                                 <input value={companyProfile.addressLine} onChange={e => setCompanyProfile({...companyProfile, addressLine: e.target.value})} className="field-1c w-full font-bold" />
+                                 <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Юридический адрес</label>
+                                 <input value={companyProfile.addressLine} onChange={e => setCompanyProfile({...companyProfile, addressLine: e.target.value})} className="field-1c w-full font-normal" />
                               </div>
                               <div className="space-y-1">
-                                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Контактный номер</label>
-                                 <input value={companyProfile.phone} onChange={e => setCompanyProfile({...companyProfile, phone: e.target.value})} className="field-1c w-full font-black text-sky-700" />
+                                 <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Контактный номер</label>
+                                 <input value={companyProfile.phone} onChange={e => setCompanyProfile({...companyProfile, phone: e.target.value})} className="field-1c w-full font-medium text-sky-700" />
                               </div>
                            </div>
                         </div>
 
                         {/* System Preferences */}
                         <div className="space-y-6">
-                           <h3 className="text-xs font-black uppercase text-brand-orange border-b border-brand-orange/20 pb-2 flex items-center gap-2 italic">
+                           <h3 className="text-xs font-medium uppercase text-brand-orange border-b border-brand-orange/20 pb-2 flex items-center gap-2 italic">
                               <Settings size={14} /> Константы программы
                            </h3>
                            <div className="space-y-5">
                               <div className="bg-slate-50 border border-slate-200 p-4 rounded-[4px] space-y-3">
                                  <div className="flex items-center justify-between">
-                                    <span className="text-[11px] font-black uppercase text-slate-600">Отображение цен</span>
+                                    <span className="text-[11px] font-medium uppercase text-slate-600">Отображение цен</span>
                                     <select 
                                        value={settings.priceVisibility || 'everyone'} 
                                        onChange={e => handleUpdateSetting('priceVisibility', e.target.value)}
-                                       className="field-1c !py-1 text-[10px] font-bold"
+                                       className="field-1c !py-1 text-[10px] font-normal"
                                     >
                                        <option value="everyone">Для всех</option>
                                        <option value="in_stock">Только в наличии</option>
@@ -374,11 +374,11 @@ export default function SettingsView() {
                                     </select>
                                  </div>
                                  <div className="flex items-center justify-between">
-                                    <span className="text-[11px] font-black uppercase text-slate-600">Валюта системы</span>
+                                    <span className="text-[11px] font-medium uppercase text-slate-600">Валюта системы</span>
                                     <select 
                                        value={settings.currency || 'TJS'} 
                                        onChange={e => handleUpdateSetting('currency', e.target.value)}
-                                       className="field-1c !py-1 text-[10px] font-bold"
+                                       className="field-1c !py-1 text-[10px] font-normal"
                                     >
                                        <option value="TJS">TJS (Сомони)</option>
                                        <option value="USD">USD ($)</option>
@@ -388,10 +388,10 @@ export default function SettingsView() {
                               </div>
                               
                               <div className="bg-amber-50 border border-amber-200 p-4 rounded-[4px]">
-                                 <h4 className="text-[10px] font-black uppercase text-amber-700 flex items-center gap-2 mb-2"><ShieldAlert size={12} /> Безопасность печати</h4>
-                                 <p className="text-[9px] font-bold text-amber-600 italic leading-tight mb-3">Настройка автоматической печати чеков при проведении документа в POS-терминале.</p>
+                                 <h4 className="text-[10px] font-medium uppercase text-amber-700 flex items-center gap-2 mb-2"><ShieldAlert size={12} /> Безопасность печати</h4>
+                                 <p className="text-[9px] font-normal text-amber-600 italic leading-tight mb-3">Настройка автоматической печати чеков при проведении документа в POS-терминале.</p>
                                  <div className="flex items-center justify-between">
-                                    <span className="text-[11px] font-black text-slate-700">Автопечать чека</span>
+                                    <span className="text-[11px] font-medium text-slate-700">Автопечать чека</span>
                                     <button 
                                       type="button"
                                       onClick={() => handleUpdateSetting('autoPrint', settings.autoPrint === 'true' ? 'false' : 'true')}
@@ -408,7 +408,7 @@ export default function SettingsView() {
                         </div>
                      </div>
                      <div className="pt-8 border-t border-slate-100 flex justify-end">
-                        <button type="submit" className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2 font-black tracking-widest uppercase !py-3 !px-12">
+                        <button type="submit" className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2 font-medium tracking-widest uppercase !py-3 !px-12">
                            <Save size={18} /> ЗАПИСАТЬ И ЗАКРЫТЬ
                         </button>
                      </div>
@@ -433,10 +433,10 @@ export default function SettingsView() {
                            {users.map((u, i) => (
                               <tr key={u.id} className="hover:bg-slate-50">
                                  <td className="text-center font-mono text-[10px] text-slate-400">{i+1}</td>
-                                 <td className="font-black text-slate-800 uppercase tracking-tighter underline decoration-brand-yellow/30 underline-offset-4">{u.username}</td>
+                                 <td className="font-medium text-slate-800 uppercase tracking-tighter underline decoration-brand-yellow/30 underline-offset-4">{u.username}</td>
                                  <td className="text-center">
                                     <span className={clsx(
-                                       "px-2 py-0.5 rounded-[2px] text-[9px] font-black border uppercase italic",
+                                       "px-2 py-0.5 rounded-[2px] text-[9px] font-medium border uppercase italic",
                                        u.role === 'ADMIN' ? "bg-rose-50 border-rose-200 text-rose-600" : 
                                        u.role === 'MANAGER' ? "bg-sky-50 border-sky-200 text-sky-600" : 
                                        "bg-slate-50 border-slate-200 text-slate-500"
@@ -444,14 +444,14 @@ export default function SettingsView() {
                                        {u.role === 'ADMIN' ? 'АДМИНИСТРАТОР' : u.role === 'MANAGER' ? 'МЕНЕДЖЕР' : 'ПРОДАВЕЦ'}
                                     </span>
                                  </td>
-                                 <td className="font-bold text-slate-500 uppercase text-[10px] italic">{u.warehouse?.name || 'ВСЕ СКЛАДЫ (ЦО)'}</td>
+                                 <td className="font-normal text-slate-500 uppercase text-[10px] italic">{u.warehouse?.name || 'ВСЕ СКЛАДЫ (ЦО)'}</td>
                                  <td className="text-center">
                                     {u.twoFactorEnabled ? (
-                                       <div className="flex items-center justify-center gap-1.5 text-emerald-600 font-black text-[9px] uppercase tracking-tighter">
+                                       <div className="flex items-center justify-center gap-1.5 text-emerald-600 font-medium text-[9px] uppercase tracking-tighter">
                                           <ShieldCheck size={14} /> ЗАЩИЩЕН (2FA)
                                        </div>
                                     ) : (
-                                       <div className="flex items-center justify-center gap-1.5 text-slate-300 font-black text-[9px] uppercase tracking-tighter">
+                                       <div className="flex items-center justify-center gap-1.5 text-slate-300 font-medium text-[9px] uppercase tracking-tighter">
                                           <Shield size={14} /> БЕЗ ЗАЩИТЫ
                                        </div>
                                     )}
@@ -501,46 +501,46 @@ export default function SettingsView() {
                         <div className="aspect-square bg-slate-100 rounded-3xl flex items-center justify-center text-slate-300 relative border-2 border-dashed border-slate-200 group">
                            <User size={80} strokeWidth={1} />
                            <div className="absolute inset-0 bg-brand-yellow/80 rounded-3xl opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center cursor-pointer">
-                              <span className="text-[10px] font-black uppercase text-slate-900 border-2 border-slate-900 px-3 py-1 rotate-[-10deg]">Сменить фото</span>
+                              <span className="text-[10px] font-medium uppercase text-slate-900 border-2 border-slate-900 px-3 py-1 rotate-[-10deg]">Сменить фото</span>
                            </div>
                         </div>
                         <div className="bg-[#f8f9fb] border border-border-base p-4 rounded-[4px] space-y-2">
-                           <div className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic">Ранг сотрудника</div>
-                           <div className="text-lg font-black text-slate-800 uppercase tracking-tighter leading-tight italic">{currentUser.role === 'ADMIN' ? 'Генеральный директор' : 'Старший менеджер'}</div>
-                           <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-[10px] uppercase">
+                           <div className="text-[9px] font-medium uppercase text-slate-400 tracking-widest italic">Ранг сотрудника</div>
+                           <div className="text-lg font-medium text-slate-800 uppercase tracking-tighter leading-tight italic">{currentUser.role === 'ADMIN' ? 'Генеральный директор' : 'Старший менеджер'}</div>
+                           <div className="flex items-center gap-1.5 text-emerald-600 font-normal text-[10px] uppercase">
                               <CheckCircle2 size={12} /> Система в норме
                            </div>
                         </div>
                      </div>
                      <div className="flex-1 max-w-xl space-y-8">
-                        <h3 className="text-xs font-black uppercase text-brand-orange border-b border-brand-orange/20 pb-2 flex items-center gap-2 italic">
+                        <h3 className="text-xs font-medium uppercase text-brand-orange border-b border-brand-orange/20 pb-2 flex items-center gap-2 italic">
                            <Lock size={14} /> Учетные данные и безопасность
                         </h3>
                         <form className="space-y-5">
                             <div className="space-y-1">
-                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Текущий логин (ID)</label>
-                                <input value={currentUser.username} disabled className="field-1c w-full bg-slate-50 text-slate-400 font-black" />
-                                <p className="text-[9px] font-bold text-slate-400 italic">Смена логина доступна только администратору системы.</p>
+                                <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Текущий логин (ID)</label>
+                                <input value={currentUser.username} disabled className="field-1c w-full bg-slate-50 text-slate-400 font-medium" />
+                                <p className="text-[9px] font-normal text-slate-400 italic">Смена логина доступна только администратору системы.</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4 pt-4">
                                <div className="space-y-1">
-                                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Новый пароль</label>
+                                  <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Новый пароль</label>
                                   <input type="password" placeholder="••••••••" className="field-1c w-full" />
                                </div>
                                <div className="space-y-1">
-                                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Повтор пароля</label>
+                                  <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Повтор пароля</label>
                                   <input type="password" placeholder="••••••••" className="field-1c w-full" />
                                </div>
                             </div>
                             <div className="pt-6">
-                               <button type="button" className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2 font-black tracking-widest uppercase !py-3 !px-8">
+                               <button type="button" className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2 font-medium tracking-widest uppercase !py-3 !px-8">
                                   ОБНОВИТЬ ПАРОЛЬ ВХОДА
                                </button>
                             </div>
                         </form>
 
                         <div className="pt-12">
-                           <h3 className="text-xs font-black uppercase text-brand-orange border-b border-brand-orange/20 pb-2 flex items-center gap-2 italic mb-6">
+                           <h3 className="text-xs font-medium uppercase text-brand-orange border-b border-brand-orange/20 pb-2 flex items-center gap-2 italic mb-6">
                               <ShieldCheck size={14} /> Двухфакторная идентификация (2FA)
                            </h3>
                            <div className="bg-slate-900 rounded-[4px] p-6 text-white flex items-center justify-between shadow-xl">
@@ -549,8 +549,8 @@ export default function SettingsView() {
                                     <ShieldCheck size={32} className="text-brand-yellow" />
                                  </div>
                                  <div className="min-w-0">
-                                    <div className="text-sm font-black uppercase tracking-widest">Защита аккаунта {currentUser.twoFactorEnabled ? 'АКТИВНА' : 'ОТКЛЮЧЕНА'}</div>
-                                    <p className="text-[10px] font-bold text-slate-400 italic mt-1 leading-tight max-w-xs">Используйте Google Authenticator для подтверждения входа. Это гарантирует безопасность ваших данных.</p>
+                                    <div className="text-sm font-medium uppercase tracking-widest">Защита аккаунта {currentUser.twoFactorEnabled ? 'АКТИВНА' : 'ОТКЛЮЧЕНА'}</div>
+                                    <p className="text-[10px] font-normal text-slate-400 italic mt-1 leading-tight max-w-xs">Используйте Google Authenticator для подтверждения входа. Это гарантирует безопасность ваших данных.</p>
                                  </div>
                               </div>
                               <button className="btn-1c !bg-brand-yellow !text-slate-900 border-none !py-2 !px-6 shadow-lg shadow-brand-yellow/20">
@@ -572,7 +572,7 @@ export default function SettingsView() {
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAddWarehouse(false)} />
              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[4px] shadow-2xl border-t-4 border-t-brand-yellow overflow-hidden">
                  <div className="bg-slate-50 px-5 py-3 border-b border-border-base flex items-center justify-between">
-                     <h3 className="text-xs font-black uppercase text-slate-800 flex items-center gap-2 italic">
+                     <h3 className="text-xs font-medium uppercase text-slate-800 flex items-center gap-2 italic">
                         <Warehouse size={14} className="text-brand-orange" /> Регистрация нового склада
                      </h3>
                      <button onClick={() => setShowAddWarehouse(false)} className="text-slate-300 hover:text-slate-600"><X size={18} /></button>
@@ -580,31 +580,31 @@ export default function SettingsView() {
                  <div className="p-6">
                      <form onSubmit={handleAddWarehouse} className="space-y-4">
                         <div className="space-y-1">
-                           <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Наименование объекта</label>
+                           <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Наименование объекта</label>
                            <input 
                              required 
                              value={warehouseForm.name} 
                              onChange={e => setWarehouseForm({...warehouseForm, name: e.target.value})} 
-                             className="field-1c w-full font-black text-slate-800"
+                             className="field-1c w-full font-medium text-slate-800"
                              placeholder="Напр: Склад №3 (Южный)"
                            />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                            <div className="space-y-1">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Город</label>
-                              <input required value={warehouseForm.city} onChange={e => setWarehouseForm({...warehouseForm, city: e.target.value})} className="field-1c w-full font-bold" />
+                              <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Город</label>
+                              <input required value={warehouseForm.city} onChange={e => setWarehouseForm({...warehouseForm, city: e.target.value})} className="field-1c w-full font-normal" />
                            </div>
                            <div className="space-y-1">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Контактный телефон</label>
-                              <input required value={warehouseForm.phone} onChange={e => setWarehouseForm({...warehouseForm, phone: e.target.value})} className="field-1c w-full font-bold" />
+                              <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Контактный телефон</label>
+                              <input required value={warehouseForm.phone} onChange={e => setWarehouseForm({...warehouseForm, phone: e.target.value})} className="field-1c w-full font-normal" />
                            </div>
                         </div>
                         <div className="space-y-1">
-                           <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Строка адреса</label>
-                           <input required value={warehouseForm.address} onChange={e => setWarehouseForm({...warehouseForm, address: e.target.value})} className="field-1c w-full font-bold h-12" />
+                           <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Строка адреса</label>
+                           <input required value={warehouseForm.address} onChange={e => setWarehouseForm({...warehouseForm, address: e.target.value})} className="field-1c w-full font-normal h-12" />
                         </div>
                         <div className="pt-4">
-                           <button type="submit" className="w-full btn-1c !bg-brand-yellow !border-brand-orange/30 !py-4 font-black tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3">
+                           <button type="submit" className="w-full btn-1c !bg-brand-yellow !border-brand-orange/30 !py-4 font-medium tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3">
                               <Save size={18} /> ЗАПИСАТЬ СКЛАД
                            </button>
                         </div>
@@ -622,7 +622,7 @@ export default function SettingsView() {
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowEditWarehouse(false)} />
              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[4px] shadow-2xl border-t-4 border-t-sky-500 overflow-hidden">
                  <div className="bg-slate-50 px-5 py-3 border-b border-border-base flex items-center justify-between">
-                     <h3 className="text-xs font-black uppercase text-slate-800 flex items-center gap-2 italic">
+                     <h3 className="text-xs font-medium uppercase text-slate-800 flex items-center gap-2 italic">
                         <Edit size={14} className="text-sky-600" /> Редактирование: {selectedWarehouse?.name}
                      </h3>
                      <button onClick={() => setShowEditWarehouse(false)} className="text-slate-300 hover:text-slate-600"><X size={18} /></button>
@@ -630,33 +630,33 @@ export default function SettingsView() {
                  <div className="p-6">
                      <form onSubmit={handleEditWarehouse} className="space-y-4">
                         <div className="space-y-1">
-                           <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Наименование объекта</label>
+                           <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Наименование объекта</label>
                            <input 
                              required 
                              value={warehouseForm.name} 
                              onChange={e => setWarehouseForm({...warehouseForm, name: e.target.value})} 
-                             className="field-1c w-full font-black text-slate-800"
+                             className="field-1c w-full font-medium text-slate-800"
                            />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                            <div className="space-y-1">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Город</label>
-                              <input required value={warehouseForm.city} onChange={e => setWarehouseForm({...warehouseForm, city: e.target.value})} className="field-1c w-full font-bold" />
+                              <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Город</label>
+                              <input required value={warehouseForm.city} onChange={e => setWarehouseForm({...warehouseForm, city: e.target.value})} className="field-1c w-full font-normal" />
                            </div>
                            <div className="space-y-1">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Контактный телефон</label>
-                              <input required value={warehouseForm.phone} onChange={e => setWarehouseForm({...warehouseForm, phone: e.target.value})} className="field-1c w-full font-bold" />
+                              <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Контактный телефон</label>
+                              <input required value={warehouseForm.phone} onChange={e => setWarehouseForm({...warehouseForm, phone: e.target.value})} className="field-1c w-full font-normal" />
                            </div>
                         </div>
                         <div className="space-y-1">
-                           <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Строка адреса</label>
-                           <input required value={warehouseForm.address} onChange={e => setWarehouseForm({...warehouseForm, address: e.target.value})} className="field-1c w-full font-bold h-12" />
+                           <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Строка адреса</label>
+                           <input required value={warehouseForm.address} onChange={e => setWarehouseForm({...warehouseForm, address: e.target.value})} className="field-1c w-full font-normal h-12" />
                         </div>
                         <div className="pt-4 flex gap-3">
-                           <button type="submit" className="flex-1 btn-1c !bg-sky-600 !text-white !border-sky-700 !py-4 font-black tracking-widest uppercase transition-all active:scale-95 flex items-center justify-center gap-2">
+                           <button type="submit" className="flex-1 btn-1c !bg-sky-600 !text-white !border-sky-700 !py-4 font-medium tracking-widest uppercase transition-all active:scale-95 flex items-center justify-center gap-2">
                               <Save size={18} /> СОХРАНИТЬ
                            </button>
-                           <button type="button" onClick={() => setShowEditWarehouse(false)} className="flex-1 btn-1c !bg-slate-100 !py-4 font-black tracking-widest uppercase">
+                           <button type="button" onClick={() => setShowEditWarehouse(false)} className="flex-1 btn-1c !bg-slate-100 !py-4 font-medium tracking-widest uppercase">
                               ОТМЕНА
                            </button>
                         </div>
@@ -697,62 +697,62 @@ export default function SettingsView() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAddUser(false)} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-lg rounded-[4px] shadow-2xl border-t-4 border-t-brand-yellow overflow-hidden">
               <div className="bg-slate-50 px-5 py-3 border-b border-border-base flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase text-slate-800 flex items-center gap-2 italic">
+                <h3 className="text-xs font-medium uppercase text-slate-800 flex items-center gap-2 italic">
                   <Users size={14} className="text-brand-orange" /> Новый пользователь системы
                 </h3>
                 <button onClick={() => setShowAddUser(false)} className="text-slate-300 hover:text-slate-600"><X size={18} /></button>
               </div>
               <form onSubmit={handleAddUser} className="p-6 space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Логин для входа</label>
-                  <input required value={userForm.username} onChange={e => setUserForm({ ...userForm, username: e.target.value })} className="field-1c w-full font-black uppercase" />
+                  <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Логин для входа</label>
+                  <input required value={userForm.username} onChange={e => setUserForm({ ...userForm, username: e.target.value })} className="field-1c w-full font-medium uppercase" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Пароль</label>
+                    <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Пароль</label>
                     <input required type="password" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} className="field-1c w-full" />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Подтверждение</label>
+                    <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Подтверждение</label>
                     <input required type="password" value={userForm.confirmPassword} onChange={e => setUserForm({ ...userForm, confirmPassword: e.target.value })} className="field-1c w-full" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Роль (Доступ)</label>
-                    <select value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} className="field-1c w-full font-bold">
+                    <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Роль (Доступ)</label>
+                    <select value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} className="field-1c w-full font-normal">
                       <option value="SELLER">Продавец</option>
                       <option value="MANAGER">Менеджер</option>
                       <option value="ADMIN">Администратор</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Привязка к складу</label>
-                    <select value={userForm.warehouseId} onChange={e => setUserForm({ ...userForm, warehouseId: e.target.value })} className="field-1c w-full font-bold">
+                    <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Привязка к складу</label>
+                    <select value={userForm.warehouseId} onChange={e => setUserForm({ ...userForm, warehouseId: e.target.value })} className="field-1c w-full font-normal">
                       <option value="">Все склады (ЦО)</option>
                       {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                     </select>
                   </div>
                 </div>
                 <div className="bg-slate-50 p-4 rounded border border-slate-200 space-y-3 mt-4">
-                   <p className="text-[9px] font-black uppercase text-slate-400 mb-2">Дополнительные привилегии</p>
+                   <p className="text-[9px] font-medium uppercase text-slate-400 mb-2">Дополнительные привилегии</p>
                    <label className="flex items-center gap-3 cursor-pointer">
                       <input type="checkbox" checked={userForm.canCancelInvoices} onChange={e => setUserForm({...userForm, canCancelInvoices: e.target.checked})} className="sr-only peer" />
                       <div className="w-10 h-5 bg-slate-200 peer-checked:bg-emerald-500 rounded-full transition-all relative">
                          <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
                       </div>
-                      <span className="text-[10px] font-black uppercase text-slate-600">Разрешить отмену накладных</span>
+                      <span className="text-[10px] font-medium uppercase text-slate-600">Разрешить отмену накладных</span>
                    </label>
                    <label className="flex items-center gap-3 cursor-pointer">
                       <input type="checkbox" checked={userForm.canDeleteData} onChange={e => setUserForm({...userForm, canDeleteData: e.target.checked})} className="sr-only peer" />
                       <div className="w-10 h-5 bg-slate-200 peer-checked:bg-rose-500 rounded-full transition-all relative">
                          <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
                       </div>
-                      <span className="text-[10px] font-black uppercase text-slate-600">Разрешить удаление данных</span>
+                      <span className="text-[10px] font-medium uppercase text-slate-600">Разрешить удаление данных</span>
                    </label>
                 </div>
                 <div className="pt-4">
-                   <button type="submit" className="w-full btn-1c !bg-brand-yellow !border-brand-orange/30 !py-4 font-black tracking-widest uppercase">ЗАРЕГИСТРИРОВАТЬ</button>
+                   <button type="submit" className="w-full btn-1c !bg-brand-yellow !border-brand-orange/30 !py-4 font-medium tracking-widest uppercase">ЗАРЕГИСТРИРОВАТЬ</button>
                 </div>
               </form>
             </motion.div>
@@ -767,7 +767,7 @@ export default function SettingsView() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowEditUser(false)} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-lg rounded-[4px] shadow-2xl border-t-4 border-t-sky-500 overflow-hidden">
               <div className="bg-slate-50 px-5 py-3 border-b border-border-base flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase text-slate-800 flex items-center gap-2 italic">
+                <h3 className="text-xs font-medium uppercase text-slate-800 flex items-center gap-2 italic">
                   <Edit size={14} className="text-sky-600" /> Редактирование: {selectedUser?.username}
                 </h3>
                 <button onClick={() => setShowEditUser(false)} className="text-slate-300 hover:text-slate-600"><X size={18} /></button>
@@ -775,16 +775,16 @@ export default function SettingsView() {
               <form onSubmit={handleUpdateUser} className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Роль (Доступ)</label>
-                    <select value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} className="field-1c w-full font-bold">
+                    <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Роль (Доступ)</label>
+                    <select value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} className="field-1c w-full font-normal">
                       <option value="SELLER">Продавец</option>
                       <option value="MANAGER">Менеджер</option>
                       <option value="ADMIN">Администратор</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Склад</label>
-                    <select value={userForm.warehouseId} onChange={e => setUserForm({ ...userForm, warehouseId: e.target.value })} className="field-1c w-full font-bold">
+                    <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Склад</label>
+                    <select value={userForm.warehouseId} onChange={e => setUserForm({ ...userForm, warehouseId: e.target.value })} className="field-1c w-full font-normal">
                       <option value="">Все склады (ЦО)</option>
                       {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                     </select>
@@ -792,7 +792,7 @@ export default function SettingsView() {
                 </div>
                 <div className="bg-slate-50 p-4 rounded border border-slate-200 mt-4 space-y-4">
                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Смена пароля (оставьте пустым если не меняется)</label>
+                      <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Смена пароля (оставьте пустым если не меняется)</label>
                       <div className="grid grid-cols-2 gap-2">
                          <input type="password" placeholder="Новый пароль" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} className="field-1c w-full" />
                          <input type="password" placeholder="Повтор" value={userForm.confirmPassword} onChange={e => setUserForm({...userForm, confirmPassword: e.target.value})} className="field-1c w-full" />
@@ -805,19 +805,19 @@ export default function SettingsView() {
                       <div className="w-10 h-5 bg-slate-200 peer-checked:bg-emerald-500 rounded-full transition-all relative">
                          <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
                       </div>
-                      <span className="text-[10px] font-black uppercase text-slate-600">Разрешить отмену накладных</span>
+                      <span className="text-[10px] font-medium uppercase text-slate-600">Разрешить отмену накладных</span>
                    </label>
                    <label className="flex items-center gap-3 cursor-pointer">
                       <input type="checkbox" checked={userForm.canDeleteData} onChange={e => setUserForm({...userForm, canDeleteData: e.target.checked})} className="sr-only peer" />
                       <div className="w-10 h-5 bg-slate-200 peer-checked:bg-rose-500 rounded-full transition-all relative">
                          <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
                       </div>
-                      <span className="text-[10px] font-black uppercase text-slate-600">Разрешить удаление данных</span>
+                      <span className="text-[10px] font-medium uppercase text-slate-600">Разрешить удаление данных</span>
                    </label>
                 </div>
                 <div className="pt-4 flex gap-2">
-                   <button type="submit" className="flex-1 btn-1c !bg-sky-600 !text-white border-none !py-4 font-black tracking-widest uppercase">СОХРАНИТЬ</button>
-                   <button type="button" onClick={() => setShowEditUser(false)} className="flex-1 btn-1c !bg-slate-100 !py-4 font-black tracking-widest uppercase">ОТМЕНА</button>
+                   <button type="submit" className="flex-1 btn-1c !bg-sky-600 !text-white border-none !py-4 font-medium tracking-widest uppercase">СОХРАНИТЬ</button>
+                   <button type="button" onClick={() => setShowEditUser(false)} className="flex-1 btn-1c !bg-slate-100 !py-4 font-medium tracking-widest uppercase">ОТМЕНА</button>
                 </div>
               </form>
             </motion.div>

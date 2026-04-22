@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Printer, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -554,8 +554,8 @@ export default function CustomerDebtsView() {
                   <span
                     className={
                       statusFilter === tab.key
-                        ? 'rounded-full bg-white/15 px-1.5 py-0.5 text-[11px] font-semibold text-white'
-                        : 'rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500'
+                        ? 'rounded-full bg-white/15 px-1.5 py-0.5 text-[11px] font-medium text-white'
+                        : 'rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-500'
                     }
                   >
                     {formatCount(filterCounts[tab.key])}

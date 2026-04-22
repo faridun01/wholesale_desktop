@@ -127,14 +127,14 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse
         )}
       >
         <div className="flex h-16 items-center px-4 pt-4 mb-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ffcc00] text-red-600 shadow-lg shadow-yellow-500/20 border-2 border-red-600 font-black text-xl">
-            1S
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ffcc00] text-red-600 shadow-lg shadow-yellow-500/20 border-2 border-red-600 font-normal text-xl">
+            1C
           </div>
           {!sidebarCollapsed && (
             <div className="ml-3 flex flex-1 items-center justify-between">
               <div>
-                <p className="text-sm font-black text-slate-900 tracking-tight leading-none">1S: WHOLESALE</p>
-                <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest mt-1">Enterprise CRM</p>
+                <p className="text-sm font-normal text-slate-900 tracking-tight leading-none">1CLICK: СКЛАД</p>
+                <p className="text-[10px] font-normal text-red-600 uppercase tracking-widest mt-1">Enterprise CRM</p>
               </div>
               <button
                 onClick={onToggleCollapse}
@@ -158,7 +158,7 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse
           {Object.entries(navSections).map(([section, items]) => (
             <div key={section} className="space-y-1">
               {!sidebarCollapsed && (
-                <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                <p className="px-3 text-[10px] font-normal uppercase tracking-widest text-slate-400 mb-2">
                   {section}
                 </p>
               )}
@@ -179,7 +179,7 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse
                   <item.icon size={20} className={clsx('transition-colors', sidebarCollapsed ? '' : 'group-hover:scale-110')} />
                   {!sidebarCollapsed && <span className="text-[13.5px] font-medium">{item.label}</span>}
                   {item.to === '/reminders' && remindersCount > 0 && !sidebarCollapsed && (
-                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-lg bg-red-100 text-[10px] font-bold text-red-600">
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-lg bg-red-100 text-[10px] font-normal text-red-600">
                       {remindersCount}
                     </span>
                   )}
@@ -191,18 +191,18 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse
 
         <div className="p-4 mt-auto">
           <div className={clsx('flex items-center gap-3 p-2 rounded-2xl bg-slate-50 border border-slate-100', sidebarCollapsed ? 'justify-center' : '')}>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm text-sm font-black text-red-600 border border-red-100">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm text-sm font-normal text-red-600 border border-red-100">
                {user.username?.[0]?.toUpperCase()}
             </div>
             {!sidebarCollapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-slate-900">{user.username}</p>
-                <p className="truncate text-[10px] text-red-600/70 font-black uppercase tracking-tighter">{user.role}</p>
+                <p className="truncate text-sm font-normal text-slate-900">{user.username}</p>
+                <p className="truncate text-[10px] text-red-600/70 font-normal uppercase tracking-tighter">{user.role}</p>
               </div>
             )}
           </div>
           {!sidebarCollapsed && (
-            <button onClick={handleLogout} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors">
+            <button onClick={handleLogout} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-2 text-[10px] font-normal uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors">
               <LogOut size={14} />
               <span>Выход</span>
             </button>

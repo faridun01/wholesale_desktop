@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Bell,
   Calendar,
@@ -375,7 +375,7 @@ export default function RemindersView() {
                           type="button"
                           onClick={() => setFilterTab(tab.key as typeof filterTab)}
                           className={clsx(
-                            'inline-flex min-h-[40px] min-w-0 items-center justify-center gap-1 rounded-[15px] px-2 py-1.5 text-center text-[10px] font-bold leading-none transition-all',
+                            'inline-flex min-h-[40px] min-w-0 items-center justify-center gap-1 rounded-[15px] px-2 py-1.5 text-center text-[10px] font-normal leading-none transition-all',
                             filterTab === tab.key
                               ? 'bg-white text-slate-900 shadow-[0_10px_24px_rgba(15,23,42,0.08)] ring-1 ring-[#dfe5ff]'
                               : 'text-[#5d7190] hover:bg-white/80 hover:text-slate-900',
@@ -384,7 +384,7 @@ export default function RemindersView() {
                           <span className="min-w-0 whitespace-nowrap">{tab.label}</span>
                           <span
                             className={clsx(
-                              'inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1 py-0.5 text-[9px] font-black leading-none',
+                              'inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1 py-0.5 text-[9px] font-medium leading-none',
                               filterTab === tab.key ? 'bg-[#eef2ff] text-slate-900' : 'bg-white text-[#5d7190]',
                             )}
                           >
@@ -420,7 +420,7 @@ export default function RemindersView() {
                     <div key={section.key} className="space-y-3">
                       {section.items.length > 0 && (
                         <div className="flex items-center gap-2 px-1">
-                          <span className={clsx('text-xs font-black uppercase tracking-[0.16em]', section.accent)}>
+                          <span className={clsx('text-xs font-medium uppercase tracking-[0.16em]', section.accent)}>
                             {section.title}
                           </span>
                         </div>

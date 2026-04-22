@@ -151,8 +151,8 @@ export default function CatalogView() {
       <div className="bg-white border-b border-border-base p-4 shrink-0">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Каталог товаров</h1>
-            <p className="text-[10px] font-black uppercase text-slate-400 mt-1">Витрина и быстрый подбор продукции</p>
+            <h1 className="text-2xl font-medium text-slate-800 uppercase tracking-tight">Каталог товаров</h1>
+            <p className="text-[10px] font-medium uppercase text-slate-400 mt-1">Витрина и быстрый подбор продукции</p>
           </div>
           {isAdmin && (
             <button 
@@ -184,7 +184,7 @@ export default function CatalogView() {
             value={selectedWarehouseId} 
             onChange={(e) => setSelectedWarehouseId(e.target.value)}
             disabled={!isAdmin}
-            className="bg-transparent text-[11px] font-bold outline-none"
+            className="bg-transparent text-[11px] font-normal outline-none"
           >
             <option value="">Все склады</option>
             {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -196,7 +196,7 @@ export default function CatalogView() {
           <select 
             value={selectedCategory} 
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-transparent text-[11px] font-bold outline-none"
+            className="bg-transparent text-[11px] font-normal outline-none"
           >
             <option value="">Все категории</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -213,7 +213,7 @@ export default function CatalogView() {
               key={opt.id}
               onClick={() => setStockFilter(opt.id as any)}
               className={clsx(
-                "px-3 py-1 text-[10px] font-black uppercase rounded transition-all",
+                "px-3 py-1 text-[10px] font-medium uppercase rounded transition-all",
                 stockFilter === opt.id ? "bg-brand-yellow text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"
               )}
             >
@@ -251,7 +251,7 @@ export default function CatalogView() {
                                     <Package size={48} className="text-slate-200" strokeWidth={1} />
                                 )}
                                 <div className="absolute top-2 right-2 flex flex-col gap-1">
-                                    <span className="bg-slate-800/80 text-white text-[9px] font-black uppercase px-2 py-1 rounded backdrop-blur">
+                                    <span className="bg-slate-800/80 text-white text-[9px] font-medium uppercase px-2 py-1 rounded backdrop-blur">
                                         ID: {p.id}
                                     </span>
                                 </div>
@@ -259,22 +259,22 @@ export default function CatalogView() {
 
                             {/* Info */}
                             <div className="p-3 flex-1 flex flex-col">
-                                <span className="text-[9px] font-black uppercase text-brand-orange mb-1 truncate">{p.category?.name || 'БЕЗ КАТЕГОРИИ'}</span>
-                                <h3 className="text-xs font-black text-slate-800 leading-tight line-clamp-2 h-8">
+                                <span className="text-[9px] font-medium uppercase text-brand-orange mb-1 truncate">{p.category?.name || 'БЕЗ КАТЕГОРИИ'}</span>
+                                <h3 className="text-xs font-medium text-slate-800 leading-tight line-clamp-2 h-8">
                                     {formatProductName(p.name)}
                                 </h3>
                                 
                                 <div className="mt-auto pt-3 flex flex-col gap-2">
                                     <div className="flex items-center justify-between">
                                         <div className="flex flex-col">
-                                            <span className="text-[8px] font-black uppercase text-slate-400">В наличии</span>
-                                            <span className={clsx("text-[11px] font-black", stock.isOutOfStock ? "text-rose-500" : "text-emerald-600")}>
+                                            <span className="text-[8px] font-medium uppercase text-slate-400">В наличии</span>
+                                            <span className={clsx("text-[11px] font-medium", stock.isOutOfStock ? "text-rose-500" : "text-emerald-600")}>
                                               {stock.primary}
                                             </span>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-[8px] font-black uppercase text-slate-400">Цена</span>
-                                            <div className="text-sm font-black text-slate-900">{formatMoney(p.sellingPrice)}</div>
+                                            <span className="text-[8px] font-medium uppercase text-slate-400">Цена</span>
+                                            <div className="text-sm font-medium text-slate-900">{formatMoney(p.sellingPrice)}</div>
                                         </div>
                                     </div>
 
@@ -304,7 +304,7 @@ export default function CatalogView() {
         {!loading && filteredProducts.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 py-32 opacity-30">
                 <Package size={80} strokeWidth={1} />
-                <span className="mt-4 font-black uppercase tracking-widest">Ничего не найдено</span>
+                <span className="mt-4 font-medium uppercase tracking-widest">Ничего не найдено</span>
             </div>
         )}
 
@@ -326,8 +326,8 @@ export default function CatalogView() {
                 <ShoppingCart size={20} className="text-brand-orange" />
              </div>
              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black uppercase text-slate-700">Товар добавлен (x{cartNotice.count})</p>
-                <p className="text-xs font-black text-slate-900 truncate">{cartNotice.productName}</p>
+                <p className="text-[10px] font-medium uppercase text-slate-700">Товар добавлен (x{cartNotice.count})</p>
+                <p className="text-xs font-medium text-slate-900 truncate">{cartNotice.productName}</p>
              </div>
              <button onClick={() => navigate('/pos')} className="bg-slate-900 text-white p-2 rounded hover:bg-slate-800 transition-colors">
                 <ArrowRight size={16} />
@@ -368,8 +368,8 @@ export default function CatalogView() {
                     <div className="md:w-1/2 p-6 flex flex-col">
                         <div className="flex items-start justify-between">
                             <div>
-                                <span className="text-[10px] font-black uppercase text-brand-orange">{selectedProduct.category?.name || 'БЕЗ КАТЕГОРИИ'}</span>
-                                <h2 className="text-xl font-black text-slate-900 mt-1">{formatProductName(selectedProduct.name)}</h2>
+                                <span className="text-[10px] font-medium uppercase text-brand-orange">{selectedProduct.category?.name || 'БЕЗ КАТЕГОРИИ'}</span>
+                                <h2 className="text-xl font-medium text-slate-900 mt-1">{formatProductName(selectedProduct.name)}</h2>
                             </div>
                             <button onClick={() => setShowDetails(false)} className="text-slate-300 hover:text-slate-600">
                                 <X size={24} />
@@ -378,27 +378,27 @@ export default function CatalogView() {
 
                         <div className="grid grid-cols-2 gap-4 mt-8">
                             <div className="p-3 bg-slate-50 border border-border-base rounded">
-                                <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Розничная цена</span>
-                                <span className="text-2xl font-black text-slate-900">{formatMoney(selectedProduct.sellingPrice)}</span>
+                                <span className="text-[9px] font-medium uppercase text-slate-400 block mb-1">Розничная цена</span>
+                                <span className="text-2xl font-medium text-slate-900">{formatMoney(selectedProduct.sellingPrice)}</span>
                             </div>
                             <div className="p-3 bg-slate-50 border border-border-base rounded">
-                                <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">В наличии</span>
-                                <span className="text-2xl font-black text-emerald-600">{getProductStockParts(selectedProduct).primary}</span>
+                                <span className="text-[9px] font-medium uppercase text-slate-400 block mb-1">В наличии</span>
+                                <span className="text-2xl font-medium text-emerald-600">{getProductStockParts(selectedProduct).primary}</span>
                             </div>
                         </div>
 
                         <div className="mt-8 space-y-4 flex-1">
                             <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
-                                <span className="text-slate-400 font-bold uppercase text-[10px]">Единица измерения</span>
-                                <span className="font-black text-slate-800 uppercase">{selectedProduct.unit}</span>
+                                <span className="text-slate-400 font-normal uppercase text-[10px]">Единица измерения</span>
+                                <span className="font-medium text-slate-800 uppercase">{selectedProduct.unit}</span>
                             </div>
                             <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
-                                <span className="text-slate-400 font-bold uppercase text-[10px]">Код товара (ID)</span>
-                                <span className="font-black text-slate-800"># {selectedProduct.id}</span>
+                                <span className="text-slate-400 font-normal uppercase text-[10px]">Код товара (ID)</span>
+                                <span className="font-medium text-slate-800"># {selectedProduct.id}</span>
                             </div>
                             <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
-                                <span className="text-slate-400 font-bold uppercase text-[10px]">Склад</span>
-                                <span className="font-black text-slate-800 uppercase italic">{selectedProduct.warehouse?.name || 'Основной склад'}</span>
+                                <span className="text-slate-400 font-normal uppercase text-[10px]">Склад</span>
+                                <span className="font-medium text-slate-800 uppercase italic">{selectedProduct.warehouse?.name || 'Основной склад'}</span>
                             </div>
                         </div>
 
@@ -406,13 +406,13 @@ export default function CatalogView() {
                              <button 
                                onClick={() => { handleAddToSale(selectedProduct); setShowDetails(false); }}
                                disabled={selectedProduct.stock <= 0 || !selectedWarehouseId}
-                               className="w-full bg-brand-yellow border-2 border-brand-orange py-4 rounded font-black text-slate-900 uppercase tracking-widest hover:bg-brand-orange transition-all disabled:grayscale disabled:opacity-50"
+                               className="w-full bg-brand-yellow border-2 border-brand-orange py-4 rounded font-medium text-slate-900 uppercase tracking-widest hover:bg-brand-orange transition-all disabled:grayscale disabled:opacity-50"
                              >
                                 Добавить в чек
                              </button>
                              <button 
                                onClick={() => setShowDetails(false)}
-                               className="w-full py-3 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600"
+                               className="w-full py-3 text-[10px] font-medium uppercase text-slate-400 hover:text-slate-600"
                              >
                                 Закрыть окно
                              </button>

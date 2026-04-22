@@ -66,14 +66,24 @@ function isDatabaseValid(pathToCheck) {
  * Ensures the database exists and is valid in the userData directory.
  */
 function ensureDatabase() {
-  if (isDev) return;
+  const isValid = isDatabaseValid(dbPath);
+  
+  if (isDev && isValid) {
+    log('Development mode: Using existing valid database at ' + dbPath);
+    return;
+  }
 
-  log('Initializing database check...');
+  if (isValid) {
+    log('Database is valid, skipping initialization.');
+    return;
+  }
+
+  log(`Initializing/Repairing database... (Mode: ${isDev ? 'Development' : 'Production'})`);
   if (!fs.existsSync(userDataPath)) {
     fs.mkdirSync(userDataPath, { recursive: true });
   }
 
-  const templateDbPath = path.join(unpackedAppPath, 'backend/prisma/dev.db');
+  const templateDbPath = path.join(unpackedAppPath, 'backend/prisma/prod.db');
   
   const copyTemplate = (reason) => {
     log(`Action: Copying template database. Reason: ${reason}`);
@@ -135,10 +145,10 @@ function startBackend() {
     ? path.join(process.cwd(), 'backend/dist/server.js')
     : path.join(unpackedAppPath, 'backend/dist/server.js');
   
-  const command = isDev ? 'npm.cmd' : process.execPath;
+  const command = isDev ? 'npm.cmd' : `"${process.execPath}"`;
   const args = isDev 
     ? ['run', 'dev:backend'] 
-    : [serverPath];
+    : [`"${serverPath}"`];
 
   const childEnv = {
     ...process.env,
@@ -166,31 +176,14 @@ function startBackend() {
   backendProcess.on('close', (code) => log(`Backend exited with code ${code}`));
 }
 
-app.whenReady().then(() => {
-  log(`App started. Version: ${app.getVersion()}`);
-  log(`UserData path: ${userDataPath}`);
-
-  try {
-    ensureDatabase();
-    startBackend();
-  } catch (e) {
-    log(`Critical startup error: ${e.message}`);
-  }
-
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
-
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     frame: false,
+    show: true,
     autoHideMenuBar: true,
-    title: '1S: Wholesale CRM',
+    title: '1Click: Склад',
     backgroundColor: '#111927',
     webPreferences: {
       nodeIntegration: false,
@@ -217,6 +210,24 @@ function createWindow() {
   });
 }
 
+app.whenReady().then(async () => {
+  log(`App started. Version: ${app.getVersion()}`);
+  log(`UserData path: ${userDataPath}`);
+
+  try {
+    ensureDatabase();
+    startBackend();
+  } catch (e) {
+    log(`Critical startup error: ${e.message}`);
+  }
+
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
 function killBackend() {
   if (backendProcess) {
     if (process.platform === 'win32') {
@@ -235,9 +246,12 @@ function killBackend() {
 }
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    killBackend();
-    app.quit();
+  // If there are still windows (like the main window being shown), don't quit
+  if (BrowserWindow.getAllWindows().length === 0) {
+    if (process.platform !== 'darwin') {
+      killBackend();
+      app.quit();
+    }
   }
 });
 

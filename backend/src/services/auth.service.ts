@@ -59,14 +59,14 @@ const toPublicUser = (user: any): PublicUser => ({
     : null,
 });
 
-const INVALID_CREDENTIALS_ERROR = 'Invalid credentials 0';
+const INVALID_CREDENTIALS_ERROR = 'Неверные учетные данные';
 const BACKUP_CODE_PEPPER = process.env.TWO_FACTOR_BACKUP_PEPPER || JWT_SECRET;
 const TWO_FACTOR_TOKEN_AUDIENCE = `${securityConfig.auth.tokenAudience}:2fa`;
 
 const createHttpError = (message: string, status: number) =>
   Object.assign(new Error(message), { status });
 
-const normalizeUsername = (username: string) => username.trim();
+const normalizeUsername = (username: string) => username.trim().toLowerCase();
 
 const validatePasswordStrength = (password: string) => {
   if (password.length < 4) {
@@ -175,7 +175,7 @@ export class AuthService {
     });
 
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-      throw createHttpError('Invalid credentials 1', 401);
+      throw createHttpError(INVALID_CREDENTIALS_ERROR, 401);
     }
 
     if (user.twoFactorEnabled && user.twoFactorSecret) {
@@ -235,12 +235,12 @@ export class AuthService {
   static async changePassword(userId: number, currentPassword: string, newPassword: string) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user || !user.active) {
-      throw createHttpError('Invalid credentials 2', 401);
+      throw createHttpError(INVALID_CREDENTIALS_ERROR, 401);
     }
 
     const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!isPasswordValid) {
-      throw createHttpError('Invalid credentials 3', 401);
+      throw createHttpError(INVALID_CREDENTIALS_ERROR, 401);
     }
 
     validatePasswordStrength(newPassword);
@@ -384,7 +384,7 @@ export class AuthService {
     });
 
     if (!user || !user.active || !user.twoFactorEnabled || !user.twoFactorSecret) {
-      throw createHttpError('Invalid credentials 4', 401);
+      throw createHttpError(INVALID_CREDENTIALS_ERROR, 401);
     }
 
     const verification = verifyTwoFactorInput({
@@ -421,7 +421,7 @@ export class AuthService {
     }
 
     if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
-      throw createHttpError('Invalid credentials 5', 401);
+      throw createHttpError(INVALID_CREDENTIALS_ERROR, 401);
     }
 
     if (!user.twoFactorEnabled || !user.twoFactorSecret) {

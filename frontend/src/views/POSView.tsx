@@ -351,7 +351,7 @@ export default function POSView() {
           <div className="bg-white/20 p-1 rounded">
             <ShoppingCart size={16} className="text-slate-800" />
           </div>
-          <h1 className="text-xs font-black uppercase tracking-widest text-slate-800">Рабочее место кассира (РМК)</h1>
+          <h1 className="text-xs font-medium uppercase tracking-widest text-slate-800">Рабочее место кассира (РМК)</h1>
         </div>
         <div className="flex items-center gap-2">
            <div className="h-4 w-[1px] bg-black/10 mx-1"></div>
@@ -371,12 +371,12 @@ export default function POSView() {
 
         {deferredChecks.length > 0 && (
            <div className="flex items-center gap-1 ml-4 border-l pl-4 border-slate-200">
-             <span className="text-[10px] font-black uppercase text-slate-400 mr-2">Отложенные:</span>
+             <span className="text-[10px] font-medium uppercase text-slate-400 mr-2">Отложенные:</span>
              {deferredChecks.map((check, i) => (
                <button 
                 key={check.id}
                 onClick={() => handleRestoreCheck(check)}
-                className="bg-brand-orange/10 hover:bg-brand-orange/20 text-brand-orange text-[9px] font-black px-2 py-1 rounded transition-all border border-brand-orange/30"
+                className="bg-brand-orange/10 hover:bg-brand-orange/20 text-brand-orange text-[9px] font-medium px-2 py-1 rounded transition-all border border-brand-orange/30"
                >
                  #{i + 1} {check.customerName || 'Без имени'}
                </button>
@@ -390,7 +390,7 @@ export default function POSView() {
            <select 
              value={warehouseId} 
              onChange={e => setWarehouseId(e.target.value)}
-             className="bg-transparent text-[9px] font-black uppercase text-slate-700 outline-none"
+             className="bg-transparent text-[9px] font-medium uppercase text-slate-700 outline-none"
              disabled={!isAdmin}
            >
              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -409,7 +409,7 @@ export default function POSView() {
                 placeholder="Поиск товара (F7)..." 
                 value={productSearch}
                 onChange={e => setProductSearch(e.target.value)}
-                className="field-1c w-full pl-8 py-1.5 font-bold text-xs"
+                className="field-1c w-full pl-8 py-1.5 font-normal text-xs"
                 autoFocus
               />
             </div>
@@ -434,10 +434,10 @@ export default function POSView() {
                     className="hover:bg-brand-yellow/5"
                   >
                     <td className="text-center font-mono text-[10px] text-slate-400">{idx + 1}</td>
-                    <td className="font-bold py-1.5 text-[11px]">{p.name}</td>
+                    <td className="font-normal py-1.5 text-[11px]">{p.name}</td>
                     <td className="text-center text-slate-500 uppercase text-[9px]">{p.unit}</td>
-                    <td className="text-right font-mono font-bold text-slate-600 italic text-[10px]">{p.stock}</td>
-                    <td className="text-right font-black text-slate-900 text-[11px]">{formatMoney(p.sellingPrice)}</td>
+                    <td className="text-right font-mono font-normal text-slate-600 italic text-[10px]">{p.stock}</td>
+                    <td className="text-right font-medium text-slate-900 text-[11px]">{formatMoney(p.sellingPrice)}</td>
                     <td className="text-center">
                       <button onClick={() => addToCart(p)} className="text-brand-orange hover:text-brand-yellow p-1 transition-colors">
                         <Plus size={16} strokeWidth={3} />
@@ -453,10 +453,10 @@ export default function POSView() {
         <div className="w-96 flex flex-col bg-[#f0f1f4] shrink-0">
           <div className="p-3 bg-white border-b border-border-base relative">
              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                <label className="text-[10px] font-medium uppercase text-slate-400 flex items-center gap-1">
                    <User size={12} /> Контрагент
                 </label>
-                {customerId && <span className="text-[8px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase">ОК</span>}
+                {customerId && <span className="text-[8px] font-medium bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase">ОК</span>}
              </div>
              <div className="relative">
                <input 
@@ -466,7 +466,7 @@ export default function POSView() {
                  value={customerSearch}
                  onChange={e => { setCustomerSearch(e.target.value); setIsCustomerDropdownOpen(true); }}
                  onFocus={() => setIsCustomerDropdownOpen(true)}
-                 className="field-1c w-full py-1.5 font-bold text-[11px] !bg-slate-50"
+                 className="field-1c w-full py-1.5 font-normal text-[11px] !bg-slate-50"
                />
                {isCustomerDropdownOpen && (
                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border-2 border-brand-orange shadow-2xl rounded max-h-48 overflow-auto">
@@ -474,7 +474,7 @@ export default function POSView() {
                       <div 
                         key={c.id} 
                         onClick={() => { setCustomerId(c.id); setCustomerSearch(c.name); setIsCustomerDropdownOpen(false); }}
-                        className="px-3 py-2 text-[11px] font-bold hover:bg-brand-yellow/10 cursor-pointer border-b border-slate-50 last:border-0"
+                        className="px-3 py-2 text-[11px] font-normal hover:bg-brand-yellow/10 cursor-pointer border-b border-slate-50 last:border-0"
                       >
                         {c.name}
                       </div>
@@ -489,8 +489,8 @@ export default function POSView() {
                 <div key={item.id} className="bg-white border-l-4 border-l-brand-orange p-2 rounded shadow-sm border border-border-base relative">
                    <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black text-slate-900 truncate leading-tight mb-1">{item.name}</p>
-                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 italic">
+                        <p className="text-[10px] font-medium text-slate-900 truncate leading-tight mb-1">{item.name}</p>
+                        <div className="flex items-center gap-1.5 text-[9px] font-normal text-slate-400 italic">
                           <span>{item.quantity} {item.unit}</span>
                           <span className="text-slate-200">|</span>
                           <span>{formatMoney(item.sellingPrice)}</span>
@@ -505,7 +505,7 @@ export default function POSView() {
                                  value={item.packageQuantity || ''}
                                  onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { packageQuantity: Number(e.target.value) }) : c))}
                                  title="Упаковок"
-                                 className="w-10 h-6 text-center font-black text-[11px] bg-brand-yellow/10 border-r border-slate-200 outline-none"
+                                 className="w-10 h-6 text-center font-medium text-[11px] bg-brand-yellow/10 border-r border-slate-200 outline-none"
                                />
                             )}
                             <input 
@@ -513,7 +513,7 @@ export default function POSView() {
                               value={item.extraUnitQuantity || ''}
                               onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { extraUnitQuantity: Number(e.target.value) }) : c))}
                               title={item.selectedPackagingId ? 'Штук (доп)' : 'Количество'}
-                              className="w-12 h-6 text-center font-black text-[11px] outline-none"
+                              className="w-12 h-6 text-center font-medium text-[11px] outline-none"
                             />
                          </div>
 
@@ -528,7 +528,7 @@ export default function POSView() {
                          <select 
                            value={item.selectedPackagingId || ''}
                            onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { selectedPackagingId: Number(e.target.value) }) : c))}
-                           className="w-full text-[9px] font-black uppercase bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 outline-none hover:border-brand-orange transition-colors"
+                           className="w-full text-[9px] font-medium uppercase bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 outline-none hover:border-brand-orange transition-colors"
                          >
                            <option value="">Без упаковки</option>
                            {item.packagings.map(pkg => (
@@ -539,14 +539,14 @@ export default function POSView() {
                    )}
 
                    <div className="flex items-center justify-end border-t border-slate-50 pt-1.5">
-                      <div className="text-right font-black text-slate-800 text-[11px] tracking-tight">{formatMoney(getLineTotal(item))}</div>
+                      <div className="text-right font-medium text-slate-800 text-[11px] tracking-tight">{formatMoney(getLineTotal(item))}</div>
                    </div>
                 </div>
               ))}
               {cart.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-20 py-10">
                    <Package size={48} strokeWidth={1} />
-                   <span className="text-[10px] font-black uppercase tracking-widest mt-2">Пусто</span>
+                   <span className="text-[10px] font-medium uppercase tracking-widest mt-2">Пусто</span>
                 </div>
               )}
           </div>
@@ -554,12 +554,12 @@ export default function POSView() {
           <div className="bg-slate-900 text-white p-4 shrink-0 shadow-2xl relative overflow-hidden border-t-2 border-t-brand-yellow">
              <div className="flex items-end justify-between mb-3">
                 <div>
-                  <p className="text-[9px] font-black uppercase text-white/50 tracking-widest leading-none mb-1">Итого к оплате:</p>
-                  <h2 className="text-3xl font-black italic tracking-tighter text-brand-yellow leading-none">{formatMoney(total)}</h2>
+                  <p className="text-[9px] font-medium uppercase text-white/50 tracking-widest leading-none mb-1">Итого к оплате:</p>
+                  <h2 className="text-3xl font-medium italic tracking-tighter text-brand-yellow leading-none">{formatMoney(total)}</h2>
                 </div>
                 <div className="text-right">
-                  <p className="text-[9px] font-black uppercase text-white/50 tracking-widest leading-none mb-1">Сдача:</p>
-                  <h3 className={clsx("text-lg font-black leading-none", balance >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                  <p className="text-[9px] font-medium uppercase text-white/50 tracking-widest leading-none mb-1">Сдача:</p>
+                  <h3 className={clsx("text-lg font-medium leading-none", balance >= 0 ? "text-emerald-400" : "text-rose-400")}>
                     {formatMoney(Math.abs(balance))}
                   </h3>
                 </div>
@@ -567,22 +567,22 @@ export default function POSView() {
 
              <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="space-y-1">
-                   <label className="text-[8px] font-black uppercase text-white/40 tracking-widest block">Скидка (%)</label>
+                   <label className="text-[8px] font-medium uppercase text-white/40 tracking-widest block">Скидка (%)</label>
                    <input 
                      type="number" 
                      value={discount || ''} 
                      onChange={e => setDiscount(clampDiscountPercent(e.target.value))}
-                     className="w-full bg-white/5 border border-white/10 rounded h-8 px-2 text-white font-black text-sm outline-none focus:border-brand-yellow"
+                     className="w-full bg-white/5 border border-white/10 rounded h-8 px-2 text-white font-medium text-sm outline-none focus:border-brand-yellow"
                      placeholder="0"
                    />
                 </div>
                 <div className="space-y-1">
-                   <label className="text-[8px] font-black uppercase text-white/40 tracking-widest block">Оплата (Принято)</label>
+                   <label className="text-[8px] font-medium uppercase text-white/40 tracking-widest block">Оплата (Принято)</label>
                    <input 
                      type="number" 
                      value={paidAmount} 
                      onChange={e => setPaidAmount(e.target.value)}
-                     className="w-full bg-white/10 border border-white/20 rounded h-8 px-2 text-brand-yellow font-black text-lg outline-none focus:border-brand-yellow"
+                     className="w-full bg-white/10 border border-white/20 rounded h-8 px-2 text-brand-yellow font-medium text-lg outline-none focus:border-brand-yellow"
                      placeholder="0.00"
                    />
                 </div>
@@ -597,7 +597,7 @@ export default function POSView() {
                   )}
                 >
                    <Banknote size={14} />
-                   <span className="text-[8px] font-black uppercase">Наличные</span>
+                   <span className="text-[8px] font-medium uppercase">Наличные</span>
                 </button>
                 <button 
                   onClick={() => setPaymentMethod('transfer')}
@@ -607,7 +607,7 @@ export default function POSView() {
                   )}
                 >
                    <RefreshCw size={14} />
-                   <span className="text-[8px] font-black uppercase">Перевод</span>
+                   <span className="text-[8px] font-medium uppercase">Перевод</span>
                 </button>
                 <button 
                   onClick={() => { setPaymentMethod('debt'); setPaidAmount('0'); }}
@@ -617,14 +617,14 @@ export default function POSView() {
                   )}
                 >
                    <AlertCircle size={14} />
-                   <span className="text-[8px] font-black uppercase">Долг</span>
+                   <span className="text-[8px] font-medium uppercase">Долг</span>
                 </button>
              </div>
 
              <button 
                onClick={handleCheckout}
                disabled={isSubmitting || cart.length === 0 || !customerId}
-               className="w-full bg-brand-orange hover:bg-[#ff8c00] disabled:opacity-30 disabled:grayscale py-3 rounded font-black text-white uppercase tracking-[3px] shadow-lg active:scale-95 transition-all text-xs"
+               className="w-full bg-brand-orange hover:bg-[#ff8c00] disabled:opacity-30 disabled:grayscale py-3 rounded font-medium text-white uppercase tracking-[3px] shadow-lg active:scale-95 transition-all text-xs"
              >
                {isSubmitting ? 'Проведение...' : 'ПРОБИТЬ ЧЕК (Alt+S)'}
              </button>

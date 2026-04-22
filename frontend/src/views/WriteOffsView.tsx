@@ -75,8 +75,8 @@ export default function WriteOffsView() {
                <TrendingDown size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none">Журнал списаний товара</h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest italic">Контроль складских потерь и порчи имущества</p>
+              <h1 className="text-2xl font-medium text-slate-800 tracking-tighter uppercase leading-none">Журнал списаний товара</h1>
+              <p className="text-[10px] font-medium text-slate-400 uppercase mt-1 tracking-widest italic">Контроль складских потерь и порчи имущества</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -105,11 +105,11 @@ export default function WriteOffsView() {
           <div className="h-6 w-[1px] bg-slate-200"></div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-black uppercase text-slate-400">Склад:</span>
+            <span className="text-[9px] font-medium uppercase text-slate-400">Склад:</span>
             <select 
               value={selectedWarehouseId}
               onChange={e => setSelectedWarehouseId(e.target.value)}
-              className="bg-white border border-slate-200 rounded px-3 py-1.5 text-[11px] font-black uppercase outline-none focus:ring-1 focus:ring-brand-orange min-w-[200px]"
+              className="bg-white border border-slate-200 rounded px-3 py-1.5 text-[11px] font-medium uppercase outline-none focus:ring-1 focus:ring-brand-orange min-w-[200px]"
             >
               <option value="">[Все склады предприятия]</option>
               {warehouses.map(w => <option key={w.id} value={String(w.id)}>{w.name}</option>)}
@@ -140,7 +140,7 @@ export default function WriteOffsView() {
               <tr>
                 <td colSpan={10} className="py-32 text-center">
                    <div className="w-10 h-10 border-4 border-rose-600 border-t-transparent animate-spin rounded-full mx-auto mb-4"></div>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Синхронизация данных...</span>
+                   <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400">Синхронизация данных...</span>
                 </td>
               </tr>
             ) : filteredTransactions.length > 0 ? (
@@ -153,40 +153,40 @@ export default function WriteOffsView() {
                     className="hover:bg-rose-50/30 transition-colors group cursor-pointer"
                   >
                     <td className="text-center font-mono text-[10px] text-slate-300">{idx + 1}</td>
-                    <td className="text-center font-bold text-slate-500 italic text-[11px]">
+                    <td className="text-center font-normal text-slate-500 italic text-[11px]">
                       {t.date}
                     </td>
                     <td>
                       <div className="flex flex-col">
-                        <span className="font-black text-slate-800 text-[11px] uppercase">{formatProductName(t.product_name)}</span>
+                        <span className="font-medium text-slate-800 text-[11px] uppercase">{formatProductName(t.product_name)}</span>
                         <div className="flex items-center gap-2 mt-0.5">
-                           <span className="text-[9px] text-slate-400 font-bold italic truncate max-w-[200px]">{t.reason}</span>
+                           <span className="text-[9px] text-slate-400 font-normal italic truncate max-w-[200px]">{t.reason}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="font-black text-slate-500 uppercase text-[9px] italic">
+                    <td className="font-medium text-slate-500 uppercase text-[9px] italic">
                        {t.warehouse_name}
                     </td>
-                    <td className="text-right font-black text-rose-600 text-[13px]">
+                    <td className="text-right font-medium text-rose-600 text-[13px]">
                       -{Math.abs(t.quantity)}
                     </td>
-                    <td className="text-right font-black text-emerald-600 text-[11px]">
+                    <td className="text-right font-medium text-emerald-600 text-[11px]">
                       {t.returned_qty > 0 ? `+${t.returned_qty}` : '—'}
                     </td>
-                    <td className="text-center text-[9px] font-black text-slate-400 uppercase">
+                    <td className="text-center text-[9px] font-medium text-slate-400 uppercase">
                       {t.unit}
                     </td>
                     <td className="text-right">
-                       <div className="font-black text-slate-900 text-[11px]">{formatMoney(t.total_value)}</div>
-                       <div className="text-[8px] font-black text-slate-400 uppercase">По {formatMoney(t.cost_price)}</div>
+                       <div className="font-medium text-slate-900 text-[11px]">{formatMoney(t.total_value)}</div>
+                       <div className="text-[8px] font-medium text-slate-400 uppercase">По {formatMoney(t.cost_price)}</div>
                     </td>
                     <td className="text-center">
                        {t.status === 'full_return' ? (
-                          <span className="bg-emerald-100 text-emerald-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase">Аннулиро.</span>
+                          <span className="bg-emerald-100 text-emerald-700 text-[8px] font-medium px-1.5 py-0.5 rounded uppercase">Аннулиро.</span>
                        ) : t.returned_qty > 0 ? (
-                          <span className="bg-orange-100 text-orange-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase">Частично</span>
+                          <span className="bg-orange-100 text-orange-700 text-[8px] font-medium px-1.5 py-0.5 rounded uppercase">Частично</span>
                        ) : (
-                          <span className="bg-rose-100 text-rose-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase">Списано</span>
+                          <span className="bg-rose-100 text-rose-700 text-[8px] font-medium px-1.5 py-0.5 rounded uppercase">Списано</span>
                        )}
                     </td>
                     <td className="text-center">
@@ -208,8 +208,8 @@ export default function WriteOffsView() {
                    <div className="flex flex-col items-center gap-4 text-slate-200">
                      <Scissors size={80} strokeWidth={1} />
                      <div className="space-y-1">
-                        <span className="text-sm font-black uppercase tracking-widest block text-slate-300">Реестр списаний пуст</span>
-                        <span className="text-[10px] font-bold uppercase italic text-slate-300">Все складские остатки в полном порядке</span>
+                        <span className="text-sm font-medium uppercase tracking-widest block text-slate-300">Реестр списаний пуст</span>
+                        <span className="text-[10px] font-normal uppercase italic text-slate-300">Все складские остатки в полном порядке</span>
                      </div>
                    </div>
                 </td>
@@ -227,18 +227,18 @@ export default function WriteOffsView() {
          
          <div className="flex gap-12 relative z-10">
             <div>
-               <p className="text-[9px] font-black uppercase text-white/40 tracking-widest mb-1">Всего актов</p>
-               <p className="text-2xl font-black text-white">{filteredTransactions.length}</p>
+               <p className="text-[9px] font-medium uppercase text-white/40 tracking-widest mb-1">Всего актов</p>
+               <p className="text-2xl font-medium text-white">{filteredTransactions.length}</p>
             </div>
             <div>
-               <p className="text-[9px] font-black uppercase text-white/40 tracking-widest mb-1">Общая сумма потерь</p>
-               <p className="text-2xl font-black text-rose-400">
+               <p className="text-[9px] font-medium uppercase text-white/40 tracking-widest mb-1">Общая сумма потерь</p>
+               <p className="text-2xl font-medium text-rose-400">
                   {formatMoney(filteredTransactions.reduce((acc, t) => acc + (t.status !== 'full_return' ? Number(t.total_value) : 0), 0))}
                </p>
             </div>
             <div>
-               <p className="text-[9px] font-black uppercase text-white/40 tracking-widest mb-1">Количество единиц</p>
-               <p className="text-2xl font-black text-brand-yellow">
+               <p className="text-[9px] font-medium uppercase text-white/40 tracking-widest mb-1">Количество единиц</p>
+               <p className="text-2xl font-medium text-brand-yellow">
                   {filteredTransactions.reduce((acc, t) => acc + (t.status !== 'full_return' ? Math.abs(t.quantity) : 0), 0)} <span className="text-sm">шт.</span>
                </p>
             </div>
@@ -246,7 +246,7 @@ export default function WriteOffsView() {
 
          <div className="bg-white/5 border border-white/10 p-3 px-6 rounded-sm flex items-center gap-4 relative z-10 backdrop-blur-sm">
             <AlertCircle size={20} className="text-emerald-400" />
-            <div className="text-[10px] font-bold text-white/70 leading-tight uppercase">
+            <div className="text-[10px] font-normal text-white/70 leading-tight uppercase">
                Все операции списания и возврата <br /> фиксируются в истории движения товара
             </div>
          </div>

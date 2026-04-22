@@ -448,11 +448,11 @@ export default function ProductsView() {
         <div className="h-6 w-[1px] bg-slate-300"></div>
 
         <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase text-slate-400">Группа:</span>
+            <span className="text-[10px] font-medium uppercase text-slate-400">Группа:</span>
             <select 
                 value={selectedCategoryId} 
                 onChange={e => setSelectedCategoryId(e.target.value)}
-                className="bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-bold outline-none focus:ring-1 focus:ring-brand-orange min-w-[120px]"
+                className="bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-normal outline-none focus:ring-1 focus:ring-brand-orange min-w-[120px]"
             >
                 <option value="all">Все группы</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -460,11 +460,11 @@ export default function ProductsView() {
         </div>
 
         <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase text-slate-400">Сортировка:</span>
+            <span className="text-[10px] font-medium uppercase text-slate-400">Сортировка:</span>
             <select 
                 value={sortBy} 
                 onChange={e => setSortBy(e.target.value)}
-                className="bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-bold outline-none focus:ring-1 focus:ring-brand-orange"
+                className="bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-normal outline-none focus:ring-1 focus:ring-brand-orange"
             >
                 <option value="name">По имени</option>
                 <option value="stock">По остатку</option>
@@ -479,11 +479,11 @@ export default function ProductsView() {
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-            <span className="text-[10px] font-black uppercase text-slate-400">Склад:</span>
+            <span className="text-[10px] font-medium uppercase text-slate-400">Склад:</span>
             <select 
               value={selectedWarehouseId} 
               onChange={e => setSelectedWarehouseId(e.target.value)}
-              className="bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-bold outline-none focus:ring-1 focus:ring-brand-orange"
+              className="bg-white border border-slate-200 rounded px-2 py-1 text-[11px] font-normal outline-none focus:ring-1 focus:ring-brand-orange"
             >
               {isAdmin && <option value="">Все склады</option>}
               {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -514,7 +514,7 @@ export default function ProductsView() {
                 <td colSpan={7} className="py-20 text-center bg-white">
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 size={32} className="animate-spin text-brand-orange" />
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Загрузка...</span>
+                    <span className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Загрузка...</span>
                   </div>
                 </td>
               </tr>
@@ -527,14 +527,14 @@ export default function ProductsView() {
                   className={clsx(selectedProduct?.id === p.id && "selected")}
                 >
                   <td className="text-center font-mono text-[11px] text-slate-400">{(currentPage-1)*pageSize + idx + 1}</td>
-                  <td className="font-bold">{formatProductName(p.name)}</td>
+                  <td className="font-normal">{formatProductName(p.name)}</td>
                   <td className="text-[11px] font-mono text-slate-500 italic">#{p.id}</td>
-                  <td className={clsx("text-right font-black", p.stock <= (p.minStock || 0) ? "text-rose-600" : "text-slate-800")}>
+                  <td className={clsx("text-right font-medium", p.stock <= (p.minStock || 0) ? "text-rose-600" : "text-slate-800")}>
                     {p.stock}
                   </td>
-                  <td className="text-center text-slate-500 uppercase text-[10px] font-black">{p.unit || 'шт'}</td>
+                  <td className="text-center text-slate-500 uppercase text-[10px] font-medium">{p.unit || 'шт'}</td>
                   <td className="text-right text-slate-500 italic">{formatMoney(p.costPrice)}</td>
-                  <td className="text-right font-black text-slate-900">{formatMoney(p.sellingPrice)}</td>
+                  <td className="text-right font-medium text-slate-900">{formatMoney(p.sellingPrice)}</td>
                 </tr>
               ))
             ) : (
@@ -542,7 +542,7 @@ export default function ProductsView() {
                 <td colSpan={7} className="py-20 text-center bg-white">
                   <div className="flex flex-col items-center gap-2 text-slate-300">
                     <Package size={48} />
-                    <span className="text-sm font-bold">Товары не найдены</span>
+                    <span className="text-sm font-normal">Товары не найдены</span>
                   </div>
                 </td>
               </tr>
@@ -553,7 +553,7 @@ export default function ProductsView() {
 
       {/* Footer Info & Pagination */}
       <div className="bg-[#fcfcfc] border-t border-border-base p-2 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-6 text-[11px] font-black uppercase text-slate-400 tracking-widest">
+        <div className="flex items-center gap-6 text-[11px] font-medium uppercase text-slate-400 tracking-widest">
           <span>Всего: {filteredProducts.length}</span>
           <span>На сумму: {formatMoney(filteredProducts.reduce((acc, p) => acc + (p.stock * p.sellingPrice), 0))}</span>
         </div>
@@ -577,7 +577,7 @@ export default function ProductsView() {
               className="bg-white border-2 border-brand-orange shadow-2xl rounded w-full max-w-2xl overflow-hidden"
             >
               <div className="bg-brand-yellow px-4 py-2 flex items-center justify-between border-b border-black/10">
-                <span className="text-[11px] font-black uppercase tracking-widest text-slate-800">
+                <span className="text-[11px] font-medium uppercase tracking-widest text-slate-800">
                   {showEditModal ? 'Карточка товара: Редактирование' : 'Карточка товара: Создание'}
                 </span>
                 <button onClick={() => { setShowAddModal(false); setShowEditModal(false); }} className="hover:text-rose-600"><X size={18} /></button>
@@ -585,16 +585,16 @@ export default function ProductsView() {
               <form onSubmit={showEditModal ? handleUpdate : handleCreate} className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Наименование</label>
+                    <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Наименование</label>
                     <input autoFocus type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="field-1c w-full" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Категория</label>
+                    <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Категория</label>
                     <input list="cats" value={categoryInput} onChange={e => { setCategoryInput(e.target.value); const found = categories.find(c => c.name === e.target.value); if (found) setFormData({ ...formData, categoryId: found.id }); }} className="field-1c w-full" />
                     <datalist id="cats">{categories.map(c => <option key={c.id} value={c.name} />)}</datalist>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Ед. изм.</label>
+                    <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Ед. изм.</label>
                     <select value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} className="field-1c w-full">
                       <option value="шт">Штука (шт)</option>
                       <option value="кг">Килограмм (кг)</option>
@@ -604,11 +604,11 @@ export default function ProductsView() {
                   {isAdmin && (
                     <>
                       <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Себестоимость</label>
+                        <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Себестоимость</label>
                         <input type="number" step="0.01" value={formData.costPrice} onChange={e => setFormData({ ...formData, costPrice: e.target.value })} className="field-1c w-full" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Цена продажи</label>
+                        <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Цена продажи</label>
                         <input type="number" step="0.01" value={formData.sellingPrice} onChange={e => setFormData({ ...formData, sellingPrice: e.target.value })} className="field-1c w-full" />
                       </div>
                     </>
@@ -626,18 +626,18 @@ export default function ProductsView() {
         {showRestockModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="bg-white border rounded shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-brand-blue text-white px-4 py-2 flex justify-between uppercase text-[10px] font-black tracking-widest">
+              <div className="bg-brand-blue text-white px-4 py-2 flex justify-between uppercase text-[10px] font-medium tracking-widest">
                 <span>Оформление прихода</span>
                 <button onClick={() => setShowRestockModal(false)}><X size={16}/></button>
               </div>
               <form onSubmit={handleRestock} className="p-4 space-y-4">
-                <p className="text-xs font-bold">Товар: {selectedProduct?.name}</p>
+                <p className="text-xs font-normal">Товар: {selectedProduct?.name}</p>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Количество</label>
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Количество</label>
                   <input autoFocus required type="number" value={restockData.quantity} onChange={e => setRestockData({ ...restockData, quantity: e.target.value })} className="field-1c w-full" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Цена закупа (нового)</label>
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Цена закупа (нового)</label>
                   <input required type="number" value={restockData.costPrice} onChange={e => setRestockData({ ...restockData, costPrice: e.target.value })} className="field-1c w-full" />
                 </div>
                 <button type="submit" className="btn-1c btn-1c-primary w-full py-2">Выполнить приход</button>
@@ -649,20 +649,20 @@ export default function ProductsView() {
         {showTransferModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="bg-white border rounded shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-brand-blue text-white px-4 py-2 flex items-center justify-between uppercase text-[10px] font-black tracking-widest">
+              <div className="bg-brand-blue text-white px-4 py-2 flex items-center justify-between uppercase text-[10px] font-medium tracking-widest">
                 <span>Перемещение товара</span>
                 <button onClick={() => setShowTransferModal(false)}><X size={16}/></button>
               </div>
               <form onSubmit={handleTransfer} className="p-4 space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Куда (Склад)</label>
-                  <select required value={transferData.toWarehouseId} onChange={e => setTransferData({ ...transferData, toWarehouseId: e.target.value })} className="field-1c w-full font-bold">
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Куда (Склад)</label>
+                  <select required value={transferData.toWarehouseId} onChange={e => setTransferData({ ...transferData, toWarehouseId: e.target.value })} className="field-1c w-full font-normal">
                     <option value="">Выберите склад...</option>
                     {warehouses.filter(w => String(w.id) !== selectedWarehouseId).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Количество</label>
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Количество</label>
                   <input autoFocus required type="number" value={transferData.quantity} onChange={e => setTransferData({ ...transferData, quantity: e.target.value })} className="field-1c w-full" />
                 </div>
                 <button type="submit" className="btn-1c btn-1c-primary w-full py-2">Выполнить перемещение</button>
@@ -697,45 +697,45 @@ export default function ProductsView() {
                <div className="bg-brand-orange text-white px-4 py-2 flex items-center justify-between border-b border-black/10">
                  <div className="flex items-center gap-2">
                     <Scissors size={14} />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Списание со склада</span>
+                    <span className="text-[10px] font-medium uppercase tracking-widest text-white">Списание со склада</span>
                  </div>
                  <button onClick={() => setShowWriteOffModal(false)}><X size={18} /></button>
                </div>
                <form onSubmit={handleWriteOff} className="p-6 space-y-4">
                  <div className="bg-slate-50 p-3 rounded border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase leading-none mb-1">Товар</p>
-                    <p className="text-xs font-black text-slate-800">{selectedProduct?.name}</p>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase leading-none mb-1">Товар</p>
+                    <p className="text-xs font-medium text-slate-800">{selectedProduct?.name}</p>
                  </div>
 
                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Количество для списания</label>
+                    <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Количество для списания</label>
                     <div className="flex items-center gap-2">
                        <input 
                          required 
                          type="number" 
                          value={writeOffData.quantity} 
                          onChange={e => setWriteOffData({ ...writeOffData, quantity: e.target.value })} 
-                         className="field-1c w-full text-center text-lg font-black" 
+                         className="field-1c w-full text-center text-lg font-medium" 
                          placeholder="0"
                        />
-                       <span className="text-xs font-bold text-slate-400 uppercase">{selectedProduct?.unit}</span>
+                       <span className="text-xs font-normal text-slate-400 uppercase">{selectedProduct?.unit}</span>
                     </div>
                  </div>
 
                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Причина списания</label>
+                    <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Причина списания</label>
                     <textarea 
                       required
                       value={writeOffData.reason}
                       onChange={e => setWriteOffData({ ...writeOffData, reason: e.target.value })}
-                      className="field-1c w-full min-h-[80px] text-xs font-bold"
+                      className="field-1c w-full min-h-[80px] text-xs font-normal"
                       placeholder="Например: Брак, Просрочено, Порча..."
                     />
                  </div>
 
                  <button 
                    type="submit"
-                   className="w-full bg-brand-orange text-white font-black py-3 rounded shadow-lg hover:bg-[#ff8c00] active:scale-95 transition-all text-xs uppercase tracking-widest"
+                   className="w-full bg-brand-orange text-white font-medium py-3 rounded shadow-lg hover:bg-[#ff8c00] active:scale-95 transition-all text-xs uppercase tracking-widest"
                  >
                    ПОДТВЕРДИТЬ СПИСАНИЕ
                  </button>
