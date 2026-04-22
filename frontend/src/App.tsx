@@ -28,10 +28,10 @@ const TitleBar = () => {
   const windowControls = (window as any).electron?.windowControls;
   
   return (
-    <div className="flex-none flex h-9 w-full items-center justify-between bg-brand-yellow px-4 shadow-[0_1px_4px_rgba(0,0,0,0.1)] border-b border-black/5 relative z-[1000]">
+    <div className="flex-none flex h-9 w-full items-center justify-between bg-[#ffcc00] px-4 shadow-[0_1px_4px_rgba(0,0,0,0.1)] border-b border-black/5 relative z-[1000]">
       <div className="flex items-center gap-3 select-none" style={{ WebkitAppRegion: 'drag' } as any}>
-        <Warehouse size={16} className="text-slate-800" />
-        <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Мой Склад</span>
+        <div className="flex h-6 w-6 items-center justify-center rounded bg-red-600 text-white font-black text-[10px]">1S</div>
+        <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">1S: WHOLESALE CRM</span>
       </div>
       
       <div className="flex-1 h-full" style={{ WebkitAppRegion: 'drag' } as any}></div>
@@ -81,7 +81,7 @@ const NavigationBar = () => {
             className={({ isActive }) => `
               relative flex h-full items-center gap-2 px-6 text-[10px] font-black transition-all border-r border-border-base whitespace-nowrap uppercase tracking-widest
               ${isActive 
-                ? 'bg-white text-brand-orange shadow-[inset_0_-3px_0_#ff9d00]' 
+                ? 'bg-white text-red-600 shadow-[inset_0_-3px_0_#ff0000]' 
                 : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}
             `}
           >
@@ -94,7 +94,7 @@ const NavigationBar = () => {
       <div className="ml-auto flex h-full items-center gap-3 bg-white px-5 border-l border-border-base">
          <div className="flex flex-col items-end">
             <span className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">{user.username}</span>
-            <span className="text-[8px] font-bold text-brand-orange uppercase leading-none">{isAdmin ? 'Администратор' : 'Оператор'}</span>
+            <span className="text-[8px] font-black text-red-600 uppercase leading-none tracking-widest">{isAdmin ? 'Администратор' : 'Оператор'}</span>
          </div>
          <UserCircle size={20} className="text-slate-300" />
       </div>
@@ -132,13 +132,13 @@ const Layout = () => {
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 text-emerald-600">
                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-               <span>СИСТЕМА ГОТОВА</span>
+               <span>1S: СИСТЕМА ГОТОВА</span>
             </div>
-            <span>БАЗА: ENTERPRISE_DB</span>
+            <span>БАЗА: 1S_ENTERPRISE_DB</span>
          </div>
          <div className="flex items-center gap-4 italic font-medium">
-            <span>WHOLESALE ENGINE v4.0 (TAXI INTERFACE)</span>
-            <span className="text-brand-orange border border-brand-orange/20 px-1.5 rounded-[2px] not-italic">LOCKED</span>
+            <span>1S WHOLESALE ENGINE v4.1 (TAXI STYLE)</span>
+            <span className="text-red-600 border border-red-600/20 px-1.5 rounded-[2px] not-italic">LOCKED</span>
          </div>
       </footer>
     </div>
@@ -161,7 +161,9 @@ export default function App() {
       }
       try {
         const user = await getSessionUser();
-        if (isMounted) setAuthSession(getAuthToken(), user);
+        if (isMounted) {
+           setAuthSession(getAuthToken(), user);
+        }
       } catch {
         if (isMounted) clearAuthSession();
       } finally {
@@ -186,7 +188,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginView />} />
         <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
-          <Route path="/" element={isAdminUser(getCurrentUser()) ? <DashboardView /> : <Navigate to="/pos" />} />
+          <Route path="/" element={<DashboardView />} />
           <Route path="/products" element={<ProductsView />} />
           <Route path="/write-offs" element={<WriteOffsView />} />
           <Route path="/catalog" element={<CatalogView />} />

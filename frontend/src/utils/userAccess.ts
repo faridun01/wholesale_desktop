@@ -15,7 +15,9 @@ export type AppUser = {
 
 export function getCurrentUser(): AppUser {
   try {
-    return JSON.parse(getStoredUser() || '{}');
+    const stored = getStoredUser();
+    if (!stored) return {};
+    return typeof stored === 'string' ? JSON.parse(stored) : stored;
   } catch {
     return {};
   }
