@@ -39,18 +39,18 @@ function isDatabaseValid(pathToCheck) {
     if (!fs.existsSync(pathToCheck)) return false;
 
     const stats = fs.statSync(pathToCheck);
-    // If the file is extremely small (e.g. < 20KB), it's likely empty or corrupted
-    if (stats.size < 20000) {
+    // SQLite empty DB with schema is usually around 12KB. 
+    // We'll set a more reasonable minimum of 8KB.
+    if (stats.size < 8192) {
       log(`Database file is too small (${stats.size} bytes). Marking as invalid.`);
       return false;
     }
 
     // Heuristic: Search for the 'User' or 'users' schema definition in the SQLite binary
-    // SQLite stores its schema in plain text within the database file.
     const buffer = fs.readFileSync(pathToCheck, { encoding: null, flag: 'r' });
     const content = buffer.toString('binary');
     
-    // Heuristic: Search for critical tables like 'User' and 'Product'
+    // Heuristic: Search for critical tables
     if (!content.includes('CREATE TABLE "User"') && !content.includes('CREATE TABLE "users"')) {
       log('Database integrity check failed: "User" table definition not found.');
       return false;
