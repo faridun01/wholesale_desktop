@@ -280,6 +280,7 @@ export default function SalesView() {
                      <th>Контрагент (Покупатель)</th>
                      <th className="w-48">Склад отгрузки</th>
                      <th className="w-32 text-right">Сумма</th>
+                     {isAdmin && <th className="w-24 text-right text-emerald-600">Прибыль</th>}
                      <th className="w-32 text-right">Оплачено</th>
                      <th className="w-32 text-right">Остаток</th>
                      <th className="w-24 text-center">Статус</th>
@@ -310,6 +311,11 @@ export default function SalesView() {
                             </td>
                             <td><div className="flex items-center gap-1.5 text-[10px] font-normal uppercase text-slate-500 italic"><WarehouseIcon size={12} className="text-slate-300" /> {inv.warehouse_name || '—'}</div></td>
                             <td className="text-right font-medium text-slate-900">{formatMoney(netAmt)}</td>
+                            {isAdmin && (
+                               <td className="text-right font-medium text-emerald-600 bg-emerald-50/30">
+                                 {formatMoney(inv.totalProfit || 0)}
+                               </td>
+                             )}
                             <td className="text-right font-medium text-emerald-600">{formatMoney(displayPaid)}</td>
                             <td className={clsx("text-right font-medium", balance > 0.01 ? "text-brand-orange" : "text-slate-300")}>{formatMoney(balance)}</td>
                             <td className="text-center">{getStatusBadge(inv)}</td>
@@ -410,6 +416,12 @@ export default function SalesView() {
                             <span className="text-[8px] font-medium uppercase text-emerald-600 block mb-1">Оплачено</span>
                             <div className="text-base font-medium text-emerald-600">{formatMoney(Math.min(selectedInvoice.paidAmount || 0, typeof selectedInvoice.netAmount === 'number' ? selectedInvoice.netAmount : (selectedInvoice.totalAmount || 0)))}</div>
                          </div>
+                         {isAdmin && (
+                             <div className="p-3 bg-indigo-50 border border-indigo-100 rounded">
+                                <span className="text-[8px] font-medium uppercase text-indigo-600 block mb-1">Чистая прибыль</span>
+                                <div className="text-base font-medium text-indigo-600">{formatMoney(selectedInvoice.totalProfit || 0)}</div>
+                             </div>
+                          )}
                       </div>
                    </div>
 

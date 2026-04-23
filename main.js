@@ -30,43 +30,24 @@ function log(msg) {
 
 /**
  * Checks if the existing SQLite database is valid and contains the necessary tables.
- * Since we don't have a sqlite3 library in the main process, we use a heuristic:
- * 1. Check file size (it should be comparable to our template).
- * 2. Scan the file for the 'users' table definition.
+ * Checks if the existing SQLite database is valid.
+ * 1. Check file existence.
+ * 2. Check that the file is not empty.
  */
 function isDatabaseValid(pathToCheck) {
   try {
-    if (!fs.existsSync(pathToCheck)) return false;
+    if (!fs.existsSync(pathToCheck)) {
+      log(`Database file does not exist at ${pathToCheck}`);
+      return false;
+    }
 
     const stats = fs.statSync(pathToCheck);
-    // SQLite empty DB with schema is usually around 12KB. 
-    // We'll set a more reasonable minimum of 8KB.
-    if (stats.size < 8192) {
-      log(`Database file is too small (${stats.size} bytes). Marking as invalid.`);
+    if (stats.size === 0) {
+      log(`Database file is empty (0 bytes). Marking as invalid.`);
       return false;
     }
 
-    // Heuristic: Search for the 'User' or 'users' schema definition in the SQLite binary
-    const buffer = fs.readFileSync(pathToCheck, { encoding: null, flag: 'r' });
-    const content = buffer.toString('binary');
-    
-    // Heuristic: Search for critical tables
-    if (!content.includes('CREATE TABLE "User"') && !content.includes('CREATE TABLE "users"')) {
-      log('Database integrity check failed: "User" table definition not found.');
-      return false;
-    }
-
-    if (!content.includes('CREATE TABLE "Product"')) {
-      log('Database integrity check failed: "Product" table definition not found.');
-      return false;
-    }
-
-    // Check for specific columns added in recent updates
-    if (!content.includes('units_per_box')) {
-      log('Database integrity check failed: "units_per_box" column not found in Product table.');
-      return false;
-    }
-
+    log(`Database found at ${pathToCheck} (Size: ${stats.size} bytes). Using existing file.`);
     return true;
   } catch (err) {
     log(`Error checking database integrity: ${err.message}`);

@@ -792,6 +792,10 @@ export class InvoiceService {
       staff_name: itemReturn.user.username
     }));
 
+    const totalProfit = invoiceItems.reduce((sum: number, item: any) => {
+      return sum + (item.sellingPrice - (item.costPrice || 0)) * (item.quantity - (item.returnedQty || 0));
+    }, 0);
+
     return {
       ...invoice,
       customer_name: invoice.customerNameSnapshot || invoice.customer.name,
@@ -805,6 +809,7 @@ export class InvoiceService {
       company_phone: companyProfile?.phone || null,
       company_note: companyProfile?.note || null,
       staff_name: invoice.user.username,
+      totalProfit,
       items: normalizedItems,
       payments: normalizedPayments,
       returns: normalizedReturns
