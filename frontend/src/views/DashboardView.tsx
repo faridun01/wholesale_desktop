@@ -22,10 +22,7 @@ import { getDashboardSummary } from '../api/dashboard.api';
 import { getWarehouses } from '../api/warehouses.api';
 import { formatCount, formatMoney, formatPercent } from '../utils/format';
 import { filterWarehousesForUser, getCurrentUser, getUserWarehouseId, isAdminUser } from '../utils/userAccess';
-import ChartSkeleton from '../components/charts/ChartSkeleton';
 import { clsx } from 'clsx';
-
-const DashboardCharts = React.lazy(() => import('../components/charts/DashboardCharts'));
 
 const DashboardMetric = ({ title, value, delta, deltaValue, icon: Icon, subtitle }: any) => (
   <div className="bg-white border border-border-base rounded-[4px] p-4 relative overflow-hidden group hover:shadow-sm transition-all border-l-4 border-l-brand-yellow">
@@ -267,18 +264,6 @@ export default function DashboardView() {
         </div>
       </div>
       
-      {/* Charts Section */}
-      <div className="bg-white border border-border-base rounded-[4px] p-6 shadow-sm min-h-[400px]">
-        <h2 className="text-[11px] font-medium text-slate-800 uppercase tracking-widest mb-6 border-b border-[#f0f0f0] pb-3">Графическая аналитика / Сбыт</h2>
-        <Suspense fallback={<ChartSkeleton />}>
-          <DashboardCharts 
-            overviewData={summary?.revenueChartData || []}
-            categoryData={summary?.categoryData || []}
-            totalRevenue={summary?.totalRevenue || 0}
-            ringColors={['#5b8def', '#ff9d00', '#10b981', '#f59e0b', '#6366f1']}
-          />
-        </Suspense>
-      </div>
     </div>
   );
 }
