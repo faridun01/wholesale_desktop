@@ -15,7 +15,8 @@ import {
   TrendingUp,
   ShoppingBag,
   History as HistoryIcon,
-  Loader2
+  Loader2,
+  FileSpreadsheet
 } from 'lucide-react';
 import { getDashboardSummary } from '../api/dashboard.api';
 import { getWarehouses } from '../api/warehouses.api';
@@ -241,6 +242,10 @@ export default function DashboardView() {
                  <button onClick={() => navigate('/customers')} className="btn-1c w-full text-left flex items-center justify-between group">
                     <span>Список задолженностей</span>
                     <Wallet size={14} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                 </button>
+                 <button onClick={() => navigate('/analytics')} className="btn-1c btn-1c-primary w-full text-left flex items-center justify-between group">
+                    <span className="text-slate-800 font-bold">ОТЧЕТ ЗА МЕСЯЦ (EXCEL)</span>
+                    <FileSpreadsheet size={14} className="text-red-600" />
                  </button>
               </div>
            </div>

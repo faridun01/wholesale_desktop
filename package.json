@@ -45,8 +45,8 @@
     "wait-on": "^9.0.5"
   },
   "build": {
-    "appId": "com.1click.sklad",
-    "productName": "1Click: Склад",
+    "appId": "com.3click.sklad",
+    "productName": "3Click: Склад",
     "directories": {
       "output": "release"
     },
@@ -78,7 +78,7 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "1Click: Склад",
+      "shortcutName": "3Click: Склад",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico"

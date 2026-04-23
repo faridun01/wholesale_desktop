@@ -13,22 +13,8 @@ type StockReportOptions = {
   rows: StockReportRow[];
 };
 
-const PDF_TEXT = {
-  title: 'ОТЧЕТ ПО ОСТАТКАМ ТОВАРОВ',
-  number: '№',
-  item: 'Товары',
-  stock: 'Остаток',
-  warehouse: 'Склад',
-  generatedAt: 'Дата',
-  positions: 'Позиций',
-  shortTitle: 'Остатки товаров',
-  page: 'Стр.',
-} as const;
-
-const PDF_FONT_FILE = 'arial.ttf';
 const PDF_FONT_NAME = 'ArialUnicode';
 const PDF_FONT_URL = '/fonts/arial.ttf';
-const PDF_FONT_LOAD_ERROR = 'Не удалось загрузить PDF-шрифт';
 
 let fontBase64Promise: Promise<string> | null = null;
 
@@ -53,39 +39,30 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
   let binary = '';
-
   for (let index = 0; index < bytes.length; index += chunkSize) {
     const chunk = bytes.subarray(index, index + chunkSize);
     binary += String.fromCharCode(...chunk);
   }
-
   return btoa(binary);
 };
 
 const loadPdfFontBase64 = async () => {
   if (!fontBase64Promise) {
     fontBase64Promise = fetch(PDF_FONT_URL).then(async (response) => {
-      if (!response.ok) {
-        throw new Error(PDF_FONT_LOAD_ERROR);
-      }
-
+      if (!response.ok) throw new Error('Font load error');
       return arrayBufferToBase64(await response.arrayBuffer());
     });
   }
-
   return fontBase64Promise;
 };
 
 const ensurePdfFont = async (doc: jsPDF) => {
   const fonts = doc.getFontList();
-  if (fonts[PDF_FONT_NAME]) {
-    return;
-  }
-
+  if (fonts[PDF_FONT_NAME]) return;
   const base64Font = await loadPdfFontBase64();
-  doc.addFileToVFS(PDF_FONT_FILE, base64Font);
-  doc.addFont(PDF_FONT_FILE, PDF_FONT_NAME, 'normal');
-  doc.addFont(PDF_FONT_FILE, PDF_FONT_NAME, 'bold');
+  doc.addFileToVFS('arial.ttf', base64Font);
+  doc.addFont('arial.ttf', PDF_FONT_NAME, 'normal');
+  doc.addFont('arial.ttf', PDF_FONT_NAME, 'bold');
 };
 
 export async function downloadStockReportPdf({
@@ -97,81 +74,59 @@ export async function downloadStockReportPdf({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
-    compress: true,
   });
 
   await ensurePdfFont(doc);
-
   const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 8;
+  const margin = 10;
   const fileDate = formatDateForFile(generatedAt);
   const safeWarehouse = buildSafeFilePart(warehouseName);
-  const generatedAtLabel = formatDateTime(generatedAt);
 
-  doc.setFillColor(15, 23, 42);
-  doc.roundedRect(margin, margin, pageWidth - margin * 2, 16, 3, 3, 'F');
-
-  doc.setTextColor(255, 255, 255);
+  // 1C STYLE HEADER
   doc.setFont(PDF_FONT_NAME, 'bold');
-  doc.setFontSize(12.5);
-  doc.text(PDF_TEXT.title, margin + 3, 14.2);
-
+  doc.setFontSize(14);
+  doc.text('Ведомость по остаткам товаров на складах', margin, 15);
+  
   doc.setFont(PDF_FONT_NAME, 'normal');
-  doc.setFontSize(7);
-  doc.text(`${PDF_TEXT.warehouse}: ${warehouseName}`, margin + 3, 19.3);
-  doc.text(`${PDF_TEXT.generatedAt}: ${generatedAtLabel}`, pageWidth - margin - 3, 19.3, { align: 'right' });
-
-  doc.setTextColor(15, 23, 42);
-  doc.setFillColor(241, 245, 249);
-  doc.roundedRect(margin, 28, pageWidth - margin * 2, 8, 2.5, 2.5, 'F');
-  doc.setFont(PDF_FONT_NAME, 'bold');
-  doc.setFontSize(7.1);
-  doc.text(`${PDF_TEXT.positions}: ${rows.length}`, margin + 3, 33.2);
+  doc.setFontSize(9);
+  doc.text(`Склад: ${warehouseName}`, margin, 22);
+  doc.text(`Дата отчета: ${formatDateTime(generatedAt)}`, margin, 27);
+  
+  doc.setLineWidth(0.5);
+  doc.line(margin, 30, pageWidth - margin, 30);
 
   autoTable(doc, {
-    startY: 40,
-    margin: { left: margin, right: margin, bottom: 10 },
-    head: [[PDF_TEXT.number, PDF_TEXT.item, PDF_TEXT.stock]],
+    startY: 35,
+    margin: { left: margin, right: margin },
+    head: [['№', 'Номенклатура', 'Остаток']],
     body: rows.map((row) => [String(row.index), row.name, row.stock]),
     theme: 'grid',
     styles: {
       font: PDF_FONT_NAME,
-      fontSize: 7,
-      lineColor: [203, 213, 225],
-      lineWidth: 0.12,
-      cellPadding: { top: 1.2, right: 1.5, bottom: 1.2, left: 1.5 },
-      textColor: [15, 23, 42],
-      valign: 'middle',
-      overflow: 'linebreak',
+      fontSize: 8,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.1,
+      textColor: [0, 0, 0],
     },
     headStyles: {
-      font: PDF_FONT_NAME,
-      fillColor: [30, 41, 59],
-      textColor: [255, 255, 255],
+      fillColor: [230, 230, 230],
+      textColor: [0, 0, 0],
       fontStyle: 'bold',
-      fontSize: 7.2,
       halign: 'center',
-      cellPadding: { top: 1.5, right: 1.5, bottom: 1.5, left: 1.5 },
-    },
-    alternateRowStyles: {
-      fillColor: [248, 250, 252],
     },
     columnStyles: {
-      0: { cellWidth: 12, halign: 'center' },
-      1: { cellWidth: 142, fontStyle: 'bold' },
-      2: { cellWidth: 32, halign: 'center' },
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 40, halign: 'center' },
     },
     didDrawPage: () => {
-      const pageNumber = doc.getNumberOfPages();
-
-      doc.setDrawColor(226, 232, 240);
-      doc.line(margin, pageHeight - 7.5, pageWidth - margin, pageHeight - 7.5);
-      doc.setTextColor(100, 116, 139);
-      doc.setFont(PDF_FONT_NAME, 'normal');
-      doc.setFontSize(6.2);
-      doc.text(`${PDF_TEXT.shortTitle} - ${warehouseName}`, margin, pageHeight - 4);
-      doc.text(`${PDF_TEXT.page} ${pageNumber}`, pageWidth - margin, pageHeight - 4, { align: 'right' });
+      doc.setFontSize(7);
+      doc.text(
+        `Страница ${doc.getNumberOfPages()}`,
+        pageWidth - margin,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'right' }
+      );
     },
   });
 

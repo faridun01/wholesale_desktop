@@ -120,7 +120,7 @@ export default function LoginView() {
             <h2 className="text-sm font-normal text-slate-800 uppercase tracking-widest text-center">
               {isSetupMode ? 'Начальная настройка' : 'Вход в систему'}
             </h2>
-            <p className="text-[10px] text-slate-400 font-normal uppercase mt-1">1Click Warehouse Enterprise</p>
+            <p className="text-[10px] text-slate-400 font-normal uppercase mt-1">3Click Warehouse Enterprise</p>
           </div>
 
           <form onSubmit={isSetupMode ? handleSetup : (twoFactorToken ? handleTwoFactorSubmit : handleLogin)} className="space-y-4">
@@ -199,7 +199,7 @@ export default function LoginView() {
         </div>
 
         <div className="bg-[#f8f9fb] border-t border-border-base p-3 text-center">
-          <span className="text-[9px] font-normal text-slate-300 uppercase tracking-[0.2em]">1CLICK WHOLESALE ENGINE v4.1</span>
+          <span className="text-[9px] font-normal text-slate-300 uppercase tracking-[0.2em]">3CLICK WHOLESALE ENGINE v4.1</span>
         </div>
       </motion.div>
     </div>

@@ -15,8 +15,10 @@ import {
   BarChart as BarChartIcon,
   LineChart as LineChartIcon,
   ArrowRight,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  FileSpreadsheet
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { 
   BarChart, 
   Bar, 
@@ -126,6 +128,7 @@ const ReportCard = ({ label, value, help, icon: Icon, color }: any) => (
 );
 
 export default function AnalyticsView() {
+  const navigate = useNavigate();
   const today = new Date();
   const user = useMemo(() => getCurrentUser(), []);
   const [activeSection, setActiveSection] = useState<SectionKey>('overview');
@@ -135,6 +138,7 @@ export default function AnalyticsView() {
   const [periodAnchor, setPeriodAnchor] = useState(formatDateInputValue(today).slice(0, 7));
   const [data, setData] = useState<AnalyticsPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   const dateRange = useMemo(() => getRangeFromAnchor(periodAnchor, periodMode), [periodAnchor, periodMode]);
   const periodLabel = useMemo(() => getPeriodLabel(periodAnchor, periodMode), [periodAnchor, periodMode]);
@@ -150,6 +154,93 @@ export default function AnalyticsView() {
       .catch(() => toast.error('Ошибка загрузки данных'))
       .finally(() => setIsLoading(false));
   }, [dateRange, selectedWarehouseId]);
+
+  const handleExportExcel = async () => {
+    if (!data) return;
+    try {
+      setIsExporting(true);
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.utils.book_new();
+
+      // 1. Summary Sheet
+      const summaryRows = [
+        ['АНАЛИТИЧЕСКИЙ ОТЧЕТ'],
+        ['Организация:', '3CLICK: СКЛАД'],
+        ['Период:', periodLabel],
+        ['Склад:', selectedWarehouseId ? warehouses.find(w => String(w.id) === selectedWarehouseId)?.name : 'Все склады'],
+        [],
+        ['ПОКАЗАТЕЛЬ', 'ЗНАЧЕНИЕ'],
+        ['Выручка', data.summary.totalRevenue],
+        ['Валовая прибыль', data.summary.totalProfit || 0],
+        ['Чистая прибыль', data.summary.netProfit || 0],
+        ['Расходы', data.summary.totalExpenses || 0],
+        ['Общий долг клиентов', data.summary.totalDebts || 0],
+        ['Рентабельность (%)', (data.summary.margin || 0).toFixed(2)],
+        ['Кол-во продаж', data.summary.totalSalesCount],
+        ['Активных клиентов', data.summary.totalCustomers],
+      ];
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Сводка');
+
+      // 2. Products Sheet
+      const productRows = [
+        ['РЕЙТИНГ ТОВАРОВ'],
+        ['№', 'Наименование', 'Продано (шт)', 'Выручка', 'Прибыль', 'Рентабельность (%)'],
+        ...data.productPerformance.map((p, i) => [
+          i + 1,
+          p.name,
+          p.quantity || 0,
+          p.revenue || 0,
+          p.profit || 0,
+          p.revenue ? ((p.profit! / p.revenue) * 100).toFixed(2) : '0'
+        ])
+      ];
+      const productSheet = XLSX.utils.aoa_to_sheet(productRows);
+      XLSX.utils.book_append_sheet(workbook, productSheet, 'Товары');
+
+      // 3. Customers Sheet
+      const customerRows = [
+          ['РЕЙТИНГ ПОКУПАТЕЛЕЙ'],
+          ['№', 'Контрагент', 'Кол-во чеков', 'Сумма закупок', 'Текущий долг'],
+          ...data.customerPerformance.map((c, i) => {
+              const debt = data.customerDebts.find(d => d.name === c.name)?.debt || 0;
+              return [
+                  i + 1,
+                  c.name,
+                  c.invoices || 0,
+                  c.revenue || 0,
+                  debt
+              ];
+          })
+      ];
+      const customerSheet = XLSX.utils.aoa_to_sheet(customerRows);
+      XLSX.utils.book_append_sheet(workbook, customerSheet, 'Контрагенты');
+
+      // 4. Staff Sheet
+      const staffRows = [
+          ['ЭФФЕКТИВНОСТЬ СОТРУДНИКОВ'],
+          ['№', 'Сотрудник', 'Кол-во операций', 'Выручка', 'Прибыль'],
+          ...data.staffPerformance.map((s, i) => [
+              i + 1,
+              s.name,
+              s.operations || 0,
+              s.revenue || 0,
+              s.profit || 0
+          ])
+      ];
+      const staffSheet = XLSX.utils.aoa_to_sheet(staffRows);
+      XLSX.utils.book_append_sheet(workbook, staffSheet, 'Сотрудники');
+
+      const fileName = `analytics_${periodAnchor}_${selectedWarehouseId || 'all'}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      toast.success('Отчет сформирован');
+    } catch (err) {
+      console.error(err);
+      toast.error('Ошибка при экспорте');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const sections: { key: SectionKey; label: string }[] = [
     { key: 'overview', label: 'Сводные данные' },
@@ -188,6 +279,16 @@ export default function AnalyticsView() {
                </button>
              ))}
           </div>
+          <button 
+            onClick={handleExportExcel}
+            disabled={isExporting || !data}
+            className="btn-1c btn-1c-primary flex items-center gap-2 px-4 py-2 disabled:opacity-50"
+          >
+            <FileSpreadsheet size={16} className="text-red-600" />
+            <span className="text-slate-800 font-bold text-[11px] uppercase">
+              {isExporting ? 'ФОРМИРОВАНИЕ...' : 'СКАЧАТЬ ОТЧЕТ (EXCEL)'}
+            </span>
+          </button>
         </div>
       </div>
 

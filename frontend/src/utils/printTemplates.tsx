@@ -7,6 +7,12 @@ export const generateTorg12Html = (invoice: any) => {
   
   const totalQty = items.reduce((sum: number, i: any) => sum + Number(i.quantity), 0);
   const totalAmount = Number(invoice.netAmount || 0);
+  const totalBeforeGlobalDiscount = items.reduce((sum: number, i: any) => sum + Number(i.totalPrice || i.sellingPrice * i.quantity), 0);
+  const globalDiscountAmount = totalBeforeGlobalDiscount - totalAmount;
+
+  const hasItemDiscounts = items.some((i: any) => i.discount > 0);
+  const hasGlobalDiscount = Number(invoice.discount || 0) > 0;
+  const hasAnyDiscount = hasItemDiscounts || hasGlobalDiscount;
 
   return `
     <!DOCTYPE html>
@@ -24,6 +30,7 @@ export const generateTorg12Html = (invoice: any) => {
         .header-table td { border: none; padding: 2px; }
         .title { font-size: 14px; font-weight: bold; border-bottom: 2px solid black; margin-bottom: 10px; padding-bottom: 5px; }
         .stamp-box { height: 60px; border: 1px solid #ccc; margin-top: 10px; }
+        .discount-text { color: #d32f2f; font-weight: bold; }
       </style>
     </head>
     <body>
@@ -55,34 +62,49 @@ export const generateTorg12Html = (invoice: any) => {
       <table>
         <thead>
           <tr>
-            <th rowspan="2" class="text-center">№</th>
-            <th rowspan="2" class="text-center">Наименование, характеристика, сорт, артикул товара</th>
-            <th rowspan="2" class="text-center">Единица измерения</th>
-            <th rowspan="2" class="text-center">Количество</th>
-            <th rowspan="2" class="text-center">Цена, руб. коп.</th>
-            <th rowspan="2" class="text-center">Сумма</th>
-          </tr>
-          <tr>
-            <th class="text-center"> </th>
+            <th class="text-center">№</th>
+            <th class="text-center">Наименование, характеристика, сорт, артикул товара</th>
+            <th class="text-center">Единица измерения</th>
+            <th class="text-center">Количество</th>
+            <th class="text-center">Цена, руб. коп.</th>
+            ${hasItemDiscounts ? '<th class="text-center">Скидка</th>' : ''}
+            <th class="text-center">Сумма</th>
           </tr>
         </thead>
         <tbody>
-          ${items.map((item: any, i: number) => `
-            <tr>
-              <td class="text-center">${i + 1}</td>
-              <td>${item.productNameSnapshot || item.product?.name}</td>
-              <td class="text-center">${item.baseUnitNameSnapshot || item.unit || 'шт'}</td>
-              <td class="text-right">${item.quantity}</td>
-              <td class="text-right">${formatMoney(item.sellingPrice)}</td>
-              <td class="text-right">${formatMoney(item.totalPrice || item.sellingPrice * item.quantity)}</td>
-            </tr>
-          `).join('')}
+          ${items.map((item: any, i: number) => {
+            const itemPrice = Number(item.totalPrice || item.sellingPrice * item.quantity);
+            const discountPercent = Number(item.discount || 0);
+            
+            return `
+              <tr>
+                <td class="text-center">${i + 1}</td>
+                <td>${item.productNameSnapshot || item.product?.name}</td>
+                <td class="text-center">${item.baseUnitNameSnapshot || item.unit || 'шт'}</td>
+                <td class="text-right">${item.quantity}</td>
+                <td class="text-right">${formatMoney(item.sellingPrice)}</td>
+                ${hasItemDiscounts ? `<td class="text-right">${discountPercent > 0 ? `${discountPercent}%` : '-'}</td>` : ''}
+                <td class="text-right">${formatMoney(itemPrice)}</td>
+              </tr>
+            `;
+          }).join('')}
           <tr class="font-bold">
             <td colspan="3" class="text-right">Итого</td>
             <td class="text-right">${totalQty}</td>
             <td>X</td>
-            <td class="text-right">${formatMoney(totalAmount)}</td>
+            ${hasItemDiscounts ? '<td>X</td>' : ''}
+            <td class="text-right">${formatMoney(totalBeforeGlobalDiscount)}</td>
           </tr>
+          ${hasGlobalDiscount ? `
+            <tr class="font-bold">
+              <td colspan="${hasItemDiscounts ? 6 : 5}" class="text-right">Общая скидка на накладную (${invoice.discount}%)</td>
+              <td class="text-right discount-text">-${formatMoney(globalDiscountAmount)}</td>
+            </tr>
+            <tr class="font-bold" style="background: #f9f9f9;">
+              <td colspan="${hasItemDiscounts ? 6 : 5}" class="text-right">ИТОГО К ОПЛАТЕ</td>
+              <td class="text-right">${formatMoney(totalAmount)}</td>
+            </tr>
+          ` : ''}
         </tbody>
       </table>
 
@@ -114,6 +136,10 @@ export const generateReceiptHtml = (invoice: any) => {
   const totalAmount = Number(invoice.netAmount || 0);
   const paidAmount = Number(invoice.paidAmount || 0);
   const change = Math.max(0, paidAmount - totalAmount);
+  
+  const totalBeforeGlobalDiscount = items.reduce((sum: number, i: any) => sum + Number(i.totalPrice || i.sellingPrice * i.quantity), 0);
+  const globalDiscountAmount = totalBeforeGlobalDiscount - totalAmount;
+  const hasGlobalDiscount = Number(invoice.discount || 0) > 0;
 
   return `
     <!DOCTYPE html>
@@ -127,6 +153,7 @@ export const generateReceiptHtml = (invoice: any) => {
         .dashed { border-top: 1px dashed black; margin: 5px 0; }
         .bold { font-weight: bold; }
         table { width: 100%; border-collapse: collapse; }
+        .discount-row { font-size: 10px; color: #444; font-style: italic; }
       </style>
     </head>
     <body>
@@ -138,18 +165,40 @@ export const generateReceiptHtml = (invoice: any) => {
       <div class="dashed"></div>
       
       <table>
-        ${items.map((item: any) => `
-          <tr>
-            <td colspan="2">${item.productNameSnapshot || item.product?.name}</td>
-          </tr>
-          <tr>
-            <td style="font-size: 10px;">${item.quantity} x ${formatMoney(item.sellingPrice)}</td>
-            <td class="text-right bold">${formatMoney(item.totalPrice || item.sellingPrice * item.quantity)}</td>
-          </tr>
-        `).join('')}
+        ${items.map((item: any) => {
+          const itemTotal = Number(item.totalPrice || item.sellingPrice * item.quantity);
+          const discountPercent = Number(item.discount || 0);
+          
+          return `
+            <tr>
+              <td colspan="2">${item.productNameSnapshot || item.product?.name}</td>
+            </tr>
+            <tr>
+              <td style="font-size: 10px;">${item.quantity} x ${formatMoney(item.sellingPrice)}</td>
+              <td class="text-right bold">${formatMoney(itemTotal)}</td>
+            </tr>
+            ${discountPercent > 0 ? `
+              <tr class="discount-row">
+                <td colspan="2" class="text-right">Скидка: ${discountPercent}%</td>
+              </tr>
+            ` : ''}
+          `;
+        }).join('')}
       </table>
 
       <div class="dashed"></div>
+      
+      ${hasGlobalDiscount ? `
+        <div style="display: flex; justify-content: space-between; font-size: 11px;">
+          <span>СУММА БЕЗ СКИДКИ:</span>
+          <span>${formatMoney(totalBeforeGlobalDiscount)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px;">
+          <span>СКИДКА (${invoice.discount}%):</span>
+          <span>-${formatMoney(globalDiscountAmount)}</span>
+        </div>
+      ` : ''}
+
       <div class="bold" style="font-size: 16px; display: flex; justify-content: space-between;">
         <span>ИТОГО:</span>
         <span>${formatMoney(totalAmount)}</span>

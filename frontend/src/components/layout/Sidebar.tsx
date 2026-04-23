@@ -126,19 +126,19 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
       >
-        <div className="flex h-16 items-center px-4 pt-4 mb-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ffcc00] text-red-600 shadow-lg shadow-yellow-500/20 border-2 border-red-600 font-normal text-xl">
-            1C
+        <div className="flex h-16 items-center px-4 mb-4 bg-[#ffcc00] border-b border-yellow-600/20">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#e51a1a] text-white shadow-md font-bold text-xl tracking-tighter">
+            3C
           </div>
           {!sidebarCollapsed && (
             <div className="ml-3 flex flex-1 items-center justify-between">
               <div>
-                <p className="text-sm font-normal text-slate-900 tracking-tight leading-none">1CLICK: СКЛАД</p>
-                <p className="text-[10px] font-normal text-red-600 uppercase tracking-widest mt-1">Enterprise CRM</p>
+                <p className="text-[15px] font-bold text-slate-900 tracking-tighter leading-none">3CLICK: СКЛАД</p>
+                <p className="text-[9px] font-bold text-red-700 uppercase tracking-widest mt-1">Enterprise CRM</p>
               </div>
               <button
                 onClick={onToggleCollapse}
-                className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-slate-50 text-slate-400 transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-yellow-500/20 text-slate-700 transition-colors"
               >
                 <ChevronLeft size={16} />
               </button>

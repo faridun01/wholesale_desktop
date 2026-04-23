@@ -145,10 +145,11 @@ function startBackend() {
     ? path.join(process.cwd(), 'backend/dist/server.js')
     : path.join(unpackedAppPath, 'backend/dist/server.js');
   
-  const command = isDev ? 'npm.cmd' : `"${process.execPath}"`;
+  // Important: No manual quotes here. spawn handles spaces automatically if shell is configured correctly.
+  const command = isDev ? 'npm.cmd' : process.execPath;
   const args = isDev 
     ? ['run', 'dev:backend'] 
-    : [`"${serverPath}"`];
+    : [serverPath];
 
   const childEnv = {
     ...process.env,
@@ -162,8 +163,11 @@ function startBackend() {
     childEnv.ELECTRON_RUN_AS_NODE = '1';
   }
 
+  log(`Spawn command: ${command}`);
+  log(`Spawn args: ${JSON.stringify(args)}`);
+
   backendProcess = spawn(command, args, {
-    shell: true, 
+    shell: isDev, // Only use shell in dev mode for npm.cmd
     env: childEnv,
     cwd: isDev ? process.cwd() : unpackedAppPath,
     windowsHide: true
@@ -183,7 +187,7 @@ function createWindow() {
     frame: false,
     show: true,
     autoHideMenuBar: true,
-    title: '1Click: Склад',
+    title: '3Click: Склад',
     backgroundColor: '#111927',
     webPreferences: {
       nodeIntegration: false,

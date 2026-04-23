@@ -18,6 +18,8 @@ import {
   RefreshCw,
   ArrowUp,
   ArrowDown,
+  FileSpreadsheet,
+  TrendingUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx } from 'clsx';
@@ -34,6 +36,8 @@ import { formatProductName } from '../utils/productName';
 import { getDefaultWarehouseId } from '../utils/warehouse';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import PaginationControls from '../components/common/PaginationControls';
+import { downloadStockReportPdf } from '../utils/print/stockReportPdf';
+import { downloadPriceListPdf } from '../utils/print/priceListPdf';
 
 // Lazy load modals to keep the bundle clean and avoid circular potential issues
 const ProductHistoryModal = lazy(() => import('../components/products/ProductHistoryModal'));
@@ -314,6 +318,54 @@ export default function ProductsView() {
     } catch { toast.error('Ошибка отмены'); }
   };
 
+  const handleDownloadStock = async () => {
+    try {
+      const rows = filteredProducts.map((p, idx) => {
+        let stockStr = `${p.stock} ${p.unit || 'шт'}`;
+        if (p.unitsPerBox > 1) {
+          const boxes = Math.floor(p.stock / p.unitsPerBox);
+          const units = p.stock % p.unitsPerBox;
+          stockStr = `${boxes} кор${units > 0 ? ` + ${units} ${p.unit || 'шт'}` : ''}`;
+        }
+        return {
+          index: idx + 1,
+          name: formatProductName(p.name),
+          stock: stockStr
+        };
+      });
+
+      const warehouseName = warehouses.find(w => String(w.id) === selectedWarehouseId)?.name || 'Все склады';
+      await downloadStockReportPdf({
+        warehouseName,
+        rows
+      });
+      toast.success('Отчет загружен');
+    } catch (err) {
+      toast.error('Ошибка при загрузке отчета');
+    }
+  };
+
+  const handleDownloadPriceList = async () => {
+    try {
+      const rows = filteredProducts.map((p, idx) => ({
+        index: idx + 1,
+        name: formatProductName(p.name),
+        pricePerUnit: formatMoney(p.sellingPrice),
+        unitsPerPackage: p.unitsPerBox > 1 ? `${p.unitsPerBox} шт/кор` : '1 шт',
+        pricePerPackage: p.unitsPerBox > 1 ? formatMoney(p.sellingPrice * p.unitsPerBox) : formatMoney(p.sellingPrice)
+      }));
+
+      const warehouseName = warehouses.find(w => String(w.id) === selectedWarehouseId)?.name || 'Все склады';
+      await downloadPriceListPdf({
+        warehouseName,
+        rows
+      });
+      toast.success('Прайс-лист загружен');
+    } catch (err) {
+      toast.error('Ошибка при загрузке прайс-листа');
+    }
+  };
+
   // --- Computed ---
 
   const filteredProducts = useMemo(() => {
@@ -435,6 +487,21 @@ export default function ProductsView() {
           className="btn-1c flex items-center gap-1.5"
         >
           <Layers size={14} /> Партии
+        </button>
+
+        <div className="w-[1px] h-6 bg-slate-200 mx-1"></div>
+
+        <button 
+          onClick={handleDownloadStock}
+          className="btn-1c flex items-center gap-1.5 text-blue-600"
+        >
+          <FileSpreadsheet size={14} /> Остатки (PDF)
+        </button>
+        <button 
+          onClick={handleDownloadPriceList}
+          className="btn-1c flex items-center gap-1.5 text-emerald-600"
+        >
+          <TrendingUp size={14} /> Прайс-лист
         </button>
       </div>
 

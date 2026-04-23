@@ -30,8 +30,8 @@ const TitleBar = () => {
   return (
     <div className="flex-none flex h-9 w-full items-center justify-between bg-[#ffcc00] px-4 shadow-[0_1px_4px_rgba(0,0,0,0.1)] border-b border-black/5 relative z-[1000]">
       <div className="flex items-center gap-3 select-none" style={{ WebkitAppRegion: 'drag' } as any}>
-        <div className="flex h-6 w-6 items-center justify-center rounded bg-red-600 text-white font-normal text-[10px]">1C</div>
-        <span className="text-[11px] font-normal text-slate-800 uppercase tracking-widest">1Click: СКЛАД</span>
+        <div className="flex h-6 w-6 items-center justify-center rounded bg-red-600 text-white font-normal text-[10px]">3C</div>
+        <span className="text-[11px] font-normal text-slate-800 uppercase tracking-widest">3Click: СКЛАД</span>
       </div>
       
       <div className="flex-1 h-full" style={{ WebkitAppRegion: 'drag' } as any}></div>
@@ -134,10 +134,10 @@ const Layout = () => {
                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
                <span>1C: СИСТЕМА ГОТОВА</span>
             </div>
-            <span>БАЗА: 1CLICK_ENTERPRISE_DB</span>
+            <span>БАЗА: 3CLICK_ENTERPRISE_DB</span>
          </div>
          <div className="flex items-center gap-4 italic font-medium">
-            <span>1CLICK WHOLESALE ENGINE v4.1 (TAXI STYLE)</span>
+            <span>3CLICK WHOLESALE ENGINE v4.1 (TAXI STYLE)</span>
             <span className="text-red-600 border border-red-600/20 px-1.5 rounded-[2px] not-italic">LOCKED</span>
          </div>
       </footer>
