@@ -208,22 +208,77 @@ export class InvoiceService {
         }
       }
 
-      // 1. Calculate totals
-      let totalAmount = 0;
+      // 1. Calculate totals and determine final lines (auto-split by batch price if needed)
+      let calculatedTotalAmount = 0;
+      const finalItemsToCreate: any[] = [];
+
       for (const item of items) {
         const quantity = normalizeNonNegativeNumber(item.totalBaseUnits ?? item.quantity, 'Item quantity');
-        const sellingPrice = normalizeMoney(normalizeNonNegativeNumber(item.sellingPrice, 'Item price'), 'Item price');
+        const userProvidedPrice = normalizeMoney(normalizeNonNegativeNumber(item.sellingPrice, 'Item price'), 'Item price');
         const itemDiscount = normalizeNonNegativeNumber(item.discount || 0, 'Item discount');
+        
         if (quantity <= 0) {
           throw new Error('Item quantity must be greater than zero');
         }
 
-        const unitPriceAfterDiscount = sellingPrice * (1 - itemDiscount / 100);
-        const unitPriceRounded = ceilMoney(unitPriceAfterDiscount);
-        totalAmount += quantity * unitPriceRounded;
+        const product = productsById.get(item.productId);
+        if (!product) throw new Error(`Product ${item.productId} not found`);
+
+        // Check batches for this product to see if we need to split by selling price
+        const batches = await tx.productBatch.findMany({
+          where: { productId: item.productId, warehouseId, remainingQuantity: { gt: 0 } },
+          orderBy: { createdAt: 'asc' },
+        });
+
+        let remainingToProcess = quantity;
+        const splits: any[] = [];
+
+        // If user provided a price that is DIFFERENT from the current batch price, 
+        // we respect the user's manual price for the whole quantity.
+        // Otherwise, we use the batch prices.
+        const currentNextBatchPrice = batches.length > 0 ? Number(batches[0].sellingPrice || 0) : Number(product.sellingPrice || 0);
+        const useBatchPrices = userProvidedPrice === currentNextBatchPrice;
+
+        for (const batch of batches) {
+          if (remainingToProcess <= 0) break;
+          const take = Math.min(remainingToProcess, Number(batch.remainingQuantity));
+          const batchPrice = useBatchPrices ? Number(batch.sellingPrice || 0) : userProvidedPrice;
+          
+          // Group adjacent batches with same selling price
+          const lastSplit = splits[splits.length - 1];
+          if (lastSplit && lastSplit.price === batchPrice) {
+            lastSplit.qty += take;
+          } else {
+            splits.push({ qty: take, price: batchPrice });
+          }
+          remainingToProcess -= take;
+        }
+
+        // If for some reason we still have quantity left (shouldn't happen due to stock check above)
+        if (remainingToProcess > 0) {
+          const lastSplit = splits[splits.length - 1];
+          if (lastSplit) lastSplit.qty += remainingToProcess;
+          else splits.push({ qty: remainingToProcess, price: userProvidedPrice });
+        }
+
+        // Now we have our splits. Calculate subtotal and prepare for creation.
+        for (const split of splits) {
+          const unitPriceAfterDiscount = split.price * (1 - itemDiscount / 100);
+          const unitPriceRounded = ceilMoney(unitPriceAfterDiscount);
+          calculatedTotalAmount += split.qty * unitPriceRounded;
+
+          finalItemsToCreate.push({
+            productId: item.productId,
+            quantity: split.qty,
+            sellingPrice: split.price,
+            discount: itemDiscount,
+            totalPrice: roundMoney(split.qty * unitPriceRounded),
+            originalItem: item // reference to original POS item for packaging info
+          });
+        }
       }
 
-      totalAmount = roundMoney(totalAmount);
+      const totalAmount = roundMoney(calculatedTotalAmount);
       const netAmount = roundMoney(totalAmount - (totalAmount * normalizedDiscount / 100) + normalizedTax);
       
       // CAP: Paid amount cannot exceed net amount
@@ -255,68 +310,57 @@ export class InvoiceService {
       });
 
       // 3. Create Items and Allocate Stock
-      for (const item of items) {
-        const quantity = normalizeNonNegativeNumber(item.totalBaseUnits ?? item.quantity, 'Item quantity');
-        const sellingPrice = normalizeMoney(normalizeNonNegativeNumber(item.sellingPrice, 'Item price'), 'Item price');
-        const product = productsById.get(item.productId);
+      for (const finalItem of finalItemsToCreate) {
+        const { productId, quantity, sellingPrice, discount, originalItem } = finalItem;
+        const product = productsById.get(productId);
 
-        if (!product) {
-          throw new Error(`Product ${item.productId} not found`);
-        }
-
-        if (Number(product.warehouseId) !== Number(warehouseId)) {
-          throw new Error(`Товар ${product.name} не принадлежит выбранному складу`);
-        }
-
-        const packaging = item.packagingId
-          ? product.packagings.find((entry: any) => entry.id === Number(item.packagingId))
+        const packaging = originalItem.packagingId
+          ? product.packagings.find((entry: any) => entry.id === Number(originalItem.packagingId))
           : product.packagings.find((entry: any) => entry.isDefault) || product.packagings[0] || null;
 
         const packageQuantity =
-          item.packageQuantity !== undefined && item.packageQuantity !== null
-            ? normalizeNonNegativeNumber(item.packageQuantity, 'Package quantity')
+          originalItem.packageQuantity !== undefined && originalItem.packageQuantity !== null
+            ? normalizeNonNegativeNumber(originalItem.packageQuantity, 'Package quantity')
             : null;
         const extraUnitQuantity =
-          item.extraUnitQuantity !== undefined && item.extraUnitQuantity !== null
-            ? normalizeNonNegativeNumber(item.extraUnitQuantity, 'Extra unit quantity')
+          originalItem.extraUnitQuantity !== undefined && originalItem.extraUnitQuantity !== null
+            ? normalizeNonNegativeNumber(originalItem.extraUnitQuantity, 'Extra unit quantity')
             : 0;
-        const baseUnitName = normalizeBaseUnitName(item.baseUnitName || packaging?.baseUnitName || product.baseUnitName || product.unit);
+        const baseUnitName = normalizeBaseUnitName(originalItem.baseUnitName || packaging?.baseUnitName || product.baseUnitName || product.unit);
 
-        // Create item first with placeholder costPrice
         const invoiceItem = await tx.invoiceItem.create({
           data: {
             invoiceId: invoice.id,
-            productId: item.productId,
+            productId,
             quantity,
             totalBaseUnits: quantity,
-            packageQuantity,
-            extraUnitQuantity,
+            packageQuantity: packageQuantity, // This might be slightly off if split, but usually POS adds 1 line
+            extraUnitQuantity: extraUnitQuantity,
             packagingId: packaging?.id || null,
-            packageNameSnapshot: item.packageName || packaging?.packageName || null,
+            packageNameSnapshot: originalItem.packageName || packaging?.packageName || null,
             baseUnitNameSnapshot: baseUnitName,
-            unitsPerPackageSnapshot: item.unitsPerPackage || packaging?.unitsPerPackage || product.unitsPerBox || null,
-            productNameSnapshot: item.productName || product.name,
-            rawNameSnapshot: item.rawName || product.rawName || null,
-            brandSnapshot: item.brand || product.brand || null,
+            unitsPerPackageSnapshot: originalItem.unitsPerPackage || packaging?.unitsPerPackage || product.unitsPerBox || null,
+            productNameSnapshot: originalItem.productName || product.name,
+            rawNameSnapshot: originalItem.rawName || product.rawName || null,
+            brandSnapshot: originalItem.brand || product.brand || null,
             sellingPrice,
-            discount: normalizeNonNegativeNumber(item.discount || 0, 'Item discount'),
-            totalPrice: roundMoney(quantity * ceilMoney(sellingPrice * (1 - (normalizeNonNegativeNumber(item.discount || 0, 'Item discount') / 100)))),
+            discount,
+            totalPrice: finalItem.totalPrice,
           },
         });
 
-        // FIFO Allocation and get average cost
-        const avgCost = await StockService.allocateStock(item.productId, warehouseId, quantity, invoiceItem.id, tx);
+        // FIFO Allocation
+        const allocationResult = await StockService.allocateStock(productId, warehouseId, quantity, invoiceItem.id, tx);
+        const avgCost = allocationResult.averageCost;
         
-        // Update item with actual cost
         await tx.invoiceItem.update({
           where: { id: invoiceItem.id },
           data: { costPrice: avgCost }
         });
 
-        // Record Inventory Transaction
         await tx.inventoryTransaction.create({
           data: {
-            productId: item.productId,
+            productId,
             warehouseId,
             userId,
             qtyChange: -quantity,

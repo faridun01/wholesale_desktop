@@ -258,6 +258,7 @@ export default function POSView() {
         const defPack = getDefaultPackaging(packagings);
         const item: CartItem = {
             ...product,
+            sellingPrice: product.nextBatchPrice ?? product.sellingPrice,
             packagings,
             selectedPackagingId: defPack?.id || null,
             packageQuantity: 0,
@@ -437,7 +438,12 @@ export default function POSView() {
                     <td className="font-normal py-1.5 text-[11px]">{p.name}</td>
                     <td className="text-center text-slate-500 uppercase text-[9px]">{p.unit}</td>
                     <td className="text-right font-mono font-normal text-slate-600 italic text-[10px]">{p.stock}</td>
-                    <td className="text-right font-medium text-slate-900 text-[11px]">{formatMoney(p.sellingPrice)}</td>
+                    <td className="text-right font-medium text-slate-900 text-[11px]">
+                      {formatMoney(p.nextBatchPrice ?? p.sellingPrice)}
+                      {p.nextBatchPrice !== p.sellingPrice && (
+                        <div className="text-[7px] text-brand-orange uppercase leading-none mt-0.5">Цена партии</div>
+                      )}
+                    </td>
                     <td className="text-center">
                       <button onClick={() => addToCart(p)} className="text-brand-orange hover:text-brand-yellow p-1 transition-colors">
                         <Plus size={16} strokeWidth={3} />

@@ -519,7 +519,10 @@ export class ProductService {
         reason,
         resolvedPurchaseCost,
         resolvedExpensePercent,
-        tx
+        tx,
+        'incoming',
+        undefined,
+        resolvedSellingPrice
       );
     });
   }

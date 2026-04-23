@@ -118,7 +118,7 @@ export default function ProductsView() {
     minStock: '0',
   });
 
-  const [restockData, setRestockData] = useState({ quantity: '', costPrice: '', reason: '' });
+  const [restockData, setRestockData] = useState({ quantity: '', costPrice: '', reason: '', newSellingPrice: '' });
   const [transferData, setTransferData] = useState({ toWarehouseId: '', quantity: '' });
   const [writeOffData, setWriteOffData] = useState({ quantity: '', reason: '' });
 
@@ -275,6 +275,14 @@ export default function ProductsView() {
     e.preventDefault();
     if (!selectedProduct) return;
     try {
+      // 1. Update the selling price in catalog if provided
+      if (restockData.newSellingPrice && Number(restockData.newSellingPrice) > 0) {
+        await ProductsApi.updateProduct(selectedProduct.id, {
+          sellingPrice: Number(restockData.newSellingPrice)
+        });
+      }
+
+      // 2. Perform the restock (FIFO batch creation)
       await ProductsApi.restockProduct(selectedProduct.id, {
         ...restockData,
         warehouseId: Number(selectedWarehouseId),
@@ -464,7 +472,15 @@ export default function ProductsView() {
         <div className="w-[1px] h-6 bg-slate-200 mx-1"></div>
         
         <button 
-          onClick={() => { setRestockData({ quantity: '', costPrice: String(selectedProduct?.costPrice || ''), reason: '' }); setShowRestockModal(true); }} 
+          onClick={() => { 
+            setRestockData({ 
+              quantity: '', 
+              costPrice: String(selectedProduct?.costPrice || ''), 
+              reason: '',
+              newSellingPrice: String(selectedProduct?.sellingPrice || '')
+            }); 
+            setShowRestockModal(true); 
+          }} 
           disabled={!selectedProduct} 
           className="btn-1c flex items-center gap-1.5"
         >
@@ -789,9 +805,14 @@ export default function ProductsView() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Цена закупа (нового)</label>
-                  <input required type="number" value={restockData.costPrice} onChange={e => setRestockData({ ...restockData, costPrice: e.target.value })} className="field-1c w-full" />
+                  <input required type="number" step="0.01" value={restockData.costPrice} onChange={e => setRestockData({ ...restockData, costPrice: e.target.value })} className="field-1c w-full" />
                 </div>
-                <button type="submit" className="btn-1c btn-1c-primary w-full py-2">Выполнить приход</button>
+                <div>
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Новая цена продажи (в каталоге)</label>
+                  <input type="number" step="0.01" value={restockData.newSellingPrice} onChange={e => setRestockData({ ...restockData, newSellingPrice: e.target.value })} className="field-1c w-full border-brand-orange" />
+                  <p className="text-[9px] text-slate-400 mt-1 italic">* Оставьте без изменений, если цена не меняется</p>
+                </div>
+                <button type="submit" className="btn-1c btn-1c-primary w-full py-2">Выполнить приход и обновить цену</button>
               </form>
             </motion.div>
           </div>

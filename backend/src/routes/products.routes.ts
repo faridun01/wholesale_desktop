@@ -24,6 +24,11 @@ router.get('/', async (req: AuthRequest, res, next) => {
           category: true, 
           warehouse: true,
           packagings: { where: { active: true } },
+          batches: {
+            where: { remainingQuantity: { gt: 0 } },
+            orderBy: { createdAt: 'asc' },
+            take: 1
+          }
         },
         skip: pagination.skip,
         take: pagination.limit,
@@ -32,10 +37,15 @@ router.get('/', async (req: AuthRequest, res, next) => {
     ]);
 
     setPaginationHeaders(res, { ...pagination, total });
-    res.json(products.map(p => ({
-      ...p,
-      costPrice: access.isAdmin ? p.costPrice : null,
-    })));
+    res.json(products.map(p => {
+      const nextBatch = p.batches?.[0];
+      return {
+        ...p,
+        costPrice: access.isAdmin ? p.costPrice : null,
+        nextBatchPrice: nextBatch ? nextBatch.sellingPrice : p.sellingPrice,
+        batches: undefined // Don't leak full batch data if not needed
+      };
+    }));
   } catch (error) {
     next(error);
   }

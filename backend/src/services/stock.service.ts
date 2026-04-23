@@ -67,12 +67,17 @@ export class StockService {
       );
     }
 
+    const allocationsResults = [];
+
     for (const batch of batches) {
       if (remainingToAllocate <= 0) break;
 
       const batchRemaining = roundQty(toNumber(batch.remainingQuantity, 0));
       const takeFromBatch = Math.min(batchRemaining, remainingToAllocate);
-      totalCost += takeFromBatch * Number(batch.costPrice || 0);
+      const batchCost = Number(batch.costPrice || 0);
+      const batchSelling = Number(batch.sellingPrice || 0);
+
+      totalCost += takeFromBatch * batchCost;
 
       await client.productBatch.update({
         where: { id: batch.id },
@@ -81,7 +86,7 @@ export class StockService {
         },
       });
 
-      await client.saleAllocation.create({
+      const allocation = await client.saleAllocation.create({
         data: {
           invoiceItemId,
           batchId: batch.id,
@@ -89,12 +94,22 @@ export class StockService {
         },
       });
 
+      allocationsResults.push({
+        quantity: takeFromBatch,
+        costPrice: batchCost,
+        sellingPrice: batchSelling,
+        allocationId: allocation.id
+      });
+
       remainingToAllocate -= takeFromBatch;
     }
 
     await this.updateProductStockCache(productId, client);
 
-    return round2(totalCost / requiredQty);
+    return {
+      averageCost: round2(totalCost / requiredQty),
+      breakdown: allocationsResults
+    };
   }
 
   /**
@@ -219,6 +234,7 @@ export class StockService {
             quantity: takeFromBatch,
             remainingQuantity: takeFromBatch,
             costPrice: round2(toNumber(batch.costPrice, 0)),
+            sellingPrice: round2(toNumber(batch.sellingPrice, 0)),
           },
         });
 
@@ -269,7 +285,8 @@ export class StockService {
     expensePercent?: number,
     tx?: any,
     type: string = 'incoming',
-    referenceId?: number
+    referenceId?: number,
+    sellingPrice?: number
   ) {
     const client = tx || prisma;
     const normalizedQty = roundQty(toNumber(quantity, 0));
@@ -294,6 +311,7 @@ export class StockService {
           quantity: normalizedQty,
           remainingQuantity: normalizedQty,
           costPrice: normalizedCost,
+          sellingPrice: sellingPrice !== undefined ? round2(toNumber(sellingPrice, 0)) : 0,
           purchaseCostPrice: normalizedPurchaseCost,
           expensePercent: normalizedExpensePercent,
         },

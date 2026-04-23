@@ -137,8 +137,7 @@ const Layout = () => {
             <span>БАЗА: 3CLICK_ENTERPRISE_DB</span>
          </div>
          <div className="flex items-center gap-4 italic font-medium">
-            <span>3CLICK WHOLESALE ENGINE v4.1 (TAXI STYLE)</span>
-            <span className="text-red-600 border border-red-600/20 px-1.5 rounded-[2px] not-italic">LOCKED</span>
+            <span>3CLICK МОЙ СКЛАД v1.0.0</span>
          </div>
       </footer>
     </div>
