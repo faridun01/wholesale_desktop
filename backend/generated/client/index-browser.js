@@ -215,6 +215,7 @@ exports.Prisma.ProductBatchScalarFieldEnum = {
   purchaseCostPrice: 'purchaseCostPrice',
   expensePercent: 'expensePercent',
   costPrice: 'costPrice',
+  sellingPrice: 'sellingPrice',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

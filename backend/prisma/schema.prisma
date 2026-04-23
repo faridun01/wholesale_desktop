@@ -159,6 +159,7 @@ model ProductBatch {
   purchaseCostPrice Float?           @map("purchase_cost_price")
   expensePercent    Float            @default(0) @map("expense_percent")
   costPrice         Float            @map("cost_price")
+  sellingPrice      Float?           @map("selling_price")
   createdAt         DateTime         @default(now()) @map("created_at")
   updatedAt         DateTime         @updatedAt @map("updated_at")
   product           Product          @relation(fields: [productId], references: [id])
