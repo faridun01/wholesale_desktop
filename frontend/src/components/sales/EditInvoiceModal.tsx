@@ -235,7 +235,7 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
                           <th>Наименование товара</th>
                           <th className="w-24 text-right">Цена</th>
                           <th className="w-24 text-center">Кол-во</th>
-                          <th className="w-16 text-center">Ед.</th>
+                          <th className="w-16 text-center">Ед.</th><th className="w-32 text-center text-[9px] uppercase text-slate-400">В коробках</th>
                           <th className="w-32 text-right">Сумма</th>
                           <th className="w-12"></th>
                        </tr>
@@ -264,7 +264,7 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
                                    className="w-full h-full bg-transparent text-center font-black text-slate-900 outline-none px-2 focus:bg-white border-x border-slate-100"
                                 />
                              </td>
-                             <td className="text-center text-[9px] font-black text-slate-400 uppercase tracking-tighter">{item.unit}</td>
+                             <td className="text-center text-[9px] font-black text-slate-400 uppercase tracking-tighter">{item.unit}</td><td className="text-center">{(() => { const unitsPerBox = item.unitsPerPackageSnapshot || allProducts.find(p => p.id === item.productId)?.unitsPerBox || 1; if (unitsPerBox > 1) { const qty = Number(item.editQty || 0); return ( <div className="text-[10px] font-bold text-slate-500"> {Math.floor(qty / unitsPerBox)} <span className="text-[8px] uppercase">кор</span> {qty % unitsPerBox > 0 && ( <span className="text-slate-300 ml-1">+ {qty % unitsPerBox} шт</span> )} </div> ); } return <span className="text-slate-200">---</span>; })()}</td>
                              <td className="text-right font-black text-slate-900 pr-4">
                                 {formatMoney(Number(item.editPrice || 0) * Number(item.editQty || 0))}
                              </td>

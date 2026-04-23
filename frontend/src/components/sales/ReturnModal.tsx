@@ -139,6 +139,7 @@ export default function ReturnModal({ isOpen, onClose, invoice, onSuccess }: Ret
                                  <th className="text-right w-24">Возвращено</th>
                                  <th className="text-right w-32 bg-rose-50/50">Кол-во возврата</th>
                                  <th className="w-16">Ед.</th>
+                                 <th className="w-32 text-center text-[9px] uppercase text-slate-400">В коробках</th>
                               </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-100">
@@ -149,7 +150,7 @@ export default function ReturnModal({ isOpen, onClose, invoice, onSuccess }: Ret
                                       <td className="font-bold text-slate-800">{formatProductName(item.product_name)}</td>
                                       <td className="text-right font-black text-slate-400">{item.quantity}</td>
                                       <td className="text-right font-black text-rose-400">{item.returnedQty || 0}</td>
-                                      <td className="p-0 bg-rose-50/20">
+                                      <td className="p-0 bg-rose-50/20 relative">
                                          <input 
                                             type="number" 
                                             value={item.returnQty || ''} 
@@ -158,8 +159,21 @@ export default function ReturnModal({ isOpen, onClose, invoice, onSuccess }: Ret
                                             disabled={available <= 0}
                                             className="w-full h-10 bg-transparent text-right font-black text-rose-600 outline-none px-4 focus:bg-white focus:ring-1 focus:ring-rose-500/20"
                                          />
+                                         <div className="absolute top-0 right-1 pointer-events-none">
+                                            <span className="text-[7px] font-black text-slate-300 uppercase leading-none">Max: {available}</span>
+                                         </div>
                                       </td>
                                       <td className="text-center text-[10px] font-black text-slate-400 uppercase tracking-tighter">{item.unit || 'шт'}</td>
+                                      <td className="text-center">
+                                         {item.unitsPerPackageSnapshot > 1 ? (
+                                            <div className="text-[10px] font-bold text-slate-500">
+                                               {Math.floor((item.returnQty || 0) / item.unitsPerPackageSnapshot)} <span className="text-[8px] uppercase">кор</span>
+                                               {(item.returnQty || 0) % item.unitsPerPackageSnapshot > 0 && (
+                                                  <span className="text-slate-300 ml-1">+ {(item.returnQty || 0) % item.unitsPerPackageSnapshot} шт</span>
+                                               )}
+                                            </div>
+                                         ) : <span className="text-slate-200">---</span>}
+                                      </td>
                                    </tr>
                                  );
                               })}

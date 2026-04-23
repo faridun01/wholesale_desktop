@@ -589,19 +589,23 @@ export default function SalesView() {
          )}
       </AnimatePresence>
 
-      <ReturnModal 
-         isOpen={showReturnModal} 
-         onClose={() => setShowReturnModal(false)} 
-         invoice={selectedInvoice} 
-         onSuccess={fetchInvoices} 
-      />
+      {showReturnModal && (
+        <ReturnModal 
+           isOpen={showReturnModal} 
+           onClose={() => setShowReturnModal(false)} 
+           invoice={selectedInvoice} 
+           onSuccess={fetchInvoices} 
+        />
+      )}
 
-      <EditInvoiceModal 
-         isOpen={showEditModal} 
-         onClose={() => setShowEditModal(false)} 
-         invoice={selectedInvoice} 
-         onSuccess={fetchInvoices} 
-      />
+      {showEditModal && (
+        <EditInvoiceModal 
+           isOpen={showEditModal} 
+           onClose={() => setShowEditModal(false)} 
+           invoice={selectedInvoice} 
+           onSuccess={fetchInvoices} 
+        />
+      )}
     </div>
   );
 }
