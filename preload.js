@@ -9,4 +9,6 @@ contextBridge.exposeInMainWorld('electron', {
     maximize: () => ipcRenderer.invoke('window:maximize'),
     close: () => ipcRenderer.invoke('window:close'),
   },
+  resizeWindow: (width, height) => ipcRenderer.invoke('window:resize', width, height),
+  centerWindow: () => ipcRenderer.invoke('window:center'),
 });

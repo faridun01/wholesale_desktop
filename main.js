@@ -366,3 +366,17 @@ ipcMain.handle('window:maximize', (e) => {
 ipcMain.handle('window:close', (e) => {
   BrowserWindow.fromWebContents(e.sender)?.close();
 });
+
+ipcMain.handle('window:resize', (e, width, height) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (win) {
+    win.unmaximize();
+    win.setResizable(false);
+    win.setSize(width, height);
+  }
+});
+
+ipcMain.handle('window:center', (e) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (win) win.center();
+});

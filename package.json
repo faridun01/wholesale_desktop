@@ -53,6 +53,8 @@
     "files": [
       "main.js",
       "preload.js",
+      "splash.html",
+      "3click_logo.png",
       "backend/dist/**/*",
       "backend/.env",
       "backend/prisma/prod.db",

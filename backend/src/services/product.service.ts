@@ -120,12 +120,12 @@ export class ProductService {
     return await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
-          ...rest,
           name: finalName,
           rawName: normalized.rawName,
           brand: normalized.brand,
+          categoryId: Number(rest.categoryId),
           nameKey: buildProductNameKey(finalName),
-          sku: null,
+          sku: rest.sku || null,
           baseUnitName,
           unit: baseUnitName,
           purchaseCostPrice: purchasePrice,
@@ -134,9 +134,11 @@ export class ProductService {
           sellingPrice,
           warehouseId,
           initialStock: Number(initialStock || 0),
-          unitsPerBox: Number(data.unitsPerBox || 1),
+          unitsPerBox: Math.floor(Number(data.unitsPerBox || 1)),
           minStock: Number(data.minStock || 0),
           stock: 0,
+          photoUrl: rest.photoUrl || null,
+          active: true
         }
       });
 
@@ -223,10 +225,10 @@ export class ProductService {
       const updated = await tx.product.update({
         where: { id: productId },
         data: {
-          ...payload,
           name: newName,
           rawName: normalized.rawName,
           brand: normalized.brand,
+          categoryId,
           nameKey: buildProductNameKey(newName),
           baseUnitName,
           unit: baseUnitName,
@@ -234,10 +236,11 @@ export class ProductService {
           expensePercent,
           costPrice: effectiveCost,
           sellingPrice,
-          sku: null,
+          sku: payload.sku !== undefined ? payload.sku : old.sku,
           warehouseId,
-          unitsPerBox: payload.unitsPerBox !== undefined ? Number(payload.unitsPerBox) : old.unitsPerBox,
+          unitsPerBox: payload.unitsPerBox !== undefined ? Math.floor(Number(payload.unitsPerBox)) : old.unitsPerBox,
           minStock: payload.minStock !== undefined ? Number(payload.minStock) : old.minStock,
+          photoUrl: payload.photoUrl !== undefined ? payload.photoUrl : old.photoUrl,
         }
       });
 

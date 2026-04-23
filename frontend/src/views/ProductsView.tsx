@@ -101,6 +101,7 @@ export default function ProductsView() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showBatchesModal, setShowBatchesModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [keepOpen, setKeepOpen] = useState(false);
 
   // Modal Data
   const [productHistory, setProductHistory] = useState<any[]>([]);
@@ -158,8 +159,8 @@ export default function ProductsView() {
           categoryId: selectedProduct.categoryId,
           costPrice: selectedProduct.costPrice,
           sellingPrice: selectedProduct.sellingPrice,
-          unitsPerBox: selectedProduct.unitsPerBox,
-          minStock: selectedProduct.minStock
+          minStock: selectedProduct.minStock,
+          warehouseId: String(selectedProduct.warehouseId)
         });
         setShowEditModal(true);
       }
@@ -204,16 +205,39 @@ export default function ProductsView() {
         const nc = await createSettingsCategory(categoryInput);
         cId = nc.id;
       }
-      const defaultWarehouseId = getDefaultWarehouseId(warehouses) || warehouses[0]?.id;
+      
+      if (!cId) {
+        return toast.error('Пожалуйста, выберите или введите категорию');
+      }
+
+      const warehouseId = Number(formData.warehouseId || selectedWarehouseId);
+      if (!warehouseId) {
+        return toast.error('Пожалуйста, выберите склад для товара');
+      }
+
       await ProductsApi.createProduct({ 
         ...formData, 
         categoryId: Number(cId), 
-        warehouseId: Number(selectedWarehouseId || defaultWarehouseId) 
+        warehouseId: warehouseId
       });
       toast.success('Товар создан');
       window.dispatchEvent(new CustomEvent('refresh-data'));
-      setShowAddModal(false);
       fetchProducts(selectedWarehouseId);
+
+      if (keepOpen) {
+        // Clear form but keep category and warehouse for next product
+        setFormData({
+          ...formData,
+          name: '',
+          costPrice: '',
+          sellingPrice: '',
+          initialStock: '0',
+        });
+        // focus the name input again
+        (document.querySelector('input[autoFocus]') as HTMLInputElement)?.focus();
+      } else {
+        setShowAddModal(false);
+      }
     } catch (err) {
       toast.error('Ошибка создания');
     }
@@ -680,7 +704,11 @@ export default function ProductsView() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Категория</label>
-                    <input list="cats" value={categoryInput} onChange={e => { setCategoryInput(e.target.value); const found = categories.find(c => c.name === e.target.value); if (found) setFormData({ ...formData, categoryId: found.id }); }} className="field-1c w-full" />
+                    <input list="cats" value={categoryInput} onChange={e => { 
+                      setCategoryInput(e.target.value); 
+                      const found = categories.find(c => c.name === e.target.value); 
+                      setFormData({ ...formData, categoryId: found ? found.id : '' }); 
+                    }} className="field-1c w-full" />
                     <datalist id="cats">{categories.map(c => <option key={c.id} value={c.name} />)}</datalist>
                   </div>
                   <div>
@@ -711,10 +739,35 @@ export default function ProductsView() {
                     <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Мин. остаток</label>
                     <input type="number" min="0" value={formData.minStock} onChange={e => setFormData({ ...formData, minStock: e.target.value })} className="field-1c w-full" placeholder="Напр: 10" />
                   </div>
+                  {isAdmin && (
+                    <div className="col-span-2">
+                      <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Склад размещения</label>
+                      <select 
+                        required 
+                        value={formData.warehouseId || (selectedWarehouseId !== '' ? selectedWarehouseId : '')} 
+                        onChange={e => setFormData({ ...formData, warehouseId: e.target.value })} 
+                        className="field-1c w-full font-normal"
+                      >
+                        <option value="">-- Выберите склад --</option>
+                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
-                <div className="pt-4 flex justify-end gap-2">
-                   <button type="button" onClick={() => { setShowAddModal(false); setShowEditModal(false); }} className="btn-1c">Отмена</button>
-                   <button type="submit" className="btn-1c btn-1c-primary">Записать и закрыть</button>
+                <div className="pt-4 flex items-center justify-between">
+                   <label className="flex items-center gap-2 cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        checked={keepOpen} 
+                        onChange={e => setKeepOpen(e.target.checked)} 
+                        className="w-4 h-4 rounded border-slate-300 text-brand-orange focus:ring-brand-orange" 
+                      />
+                      <span className="text-[11px] font-medium text-slate-500 uppercase group-hover:text-slate-700 transition-colors">Добавить еще после сохранения</span>
+                   </label>
+                   <div className="flex gap-2">
+                      <button type="button" onClick={() => { setShowAddModal(false); setShowEditModal(false); }} className="btn-1c">Отмена</button>
+                      <button type="submit" className="btn-1c btn-1c-primary">Записать и закрыть</button>
+                   </div>
                 </div>
               </form>
             </motion.div>

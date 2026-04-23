@@ -57,6 +57,8 @@ export default function SettingsView() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userForm, setUserForm] = useState({ username: '', password: '', confirmPassword: '', role: 'SELLER', warehouseId: '', canCancelInvoices: false, canDeleteData: false });
   const [warehousePage, setWarehousePage] = useState(1);
+  const [profileForm, setProfileForm] = useState({ password: '', confirmPassword: '' });
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
   const currentUser = useMemo(() => getCurrentUser(), []);
   const isAdmin = currentUser.role === 'ADMIN';
@@ -85,6 +87,51 @@ export default function SettingsView() {
       setSettings((prev: any) => ({ ...prev, [key]: value }));
       toast.success('Настройка обновлена');
     } catch (err) { toast.error('Ошибка сохранения'); }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await client.post('/auth/logout');
+    } catch (err) {
+      console.error('Logout request failed', err);
+    }
+    
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear cookies
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+
+    if ((window as any).electron) {
+      (window as any).electron.resizeWindow(400, 600);
+      (window as any).electron.centerWindow();
+    }
+    window.location.href = '/login';
+  };
+
+  const handleUpdateProfilePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileForm.password) return toast.error('Введите новый пароль');
+    if (profileForm.password !== profileForm.confirmPassword) {
+      return toast.error('Пароли не совпадают');
+    }
+    
+    setIsUpdatingProfile(true);
+    try {
+      await client.put(`/auth/users/${currentUser.id}`, {
+        password: profileForm.password
+      });
+      toast.success('Пароль успешно изменен');
+      setProfileForm({ password: '', confirmPassword: '' });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Ошибка при смене пароля');
+    } finally {
+      setIsUpdatingProfile(false);
+    }
   };
 
   const handleAddWarehouse = async (e: React.FormEvent) => {
@@ -165,6 +212,7 @@ export default function SettingsView() {
     }
     try {
       const data: any = {
+        username: userForm.username,
         role: userForm.role,
         warehouseId: userForm.warehouseId ? Number(userForm.warehouseId) : null,
         canCancelInvoices: userForm.canCancelInvoices,
@@ -173,6 +221,13 @@ export default function SettingsView() {
       if (userForm.password) data.password = userForm.password;
 
       await client.put(`/auth/users/${selectedUser.id}`, data);
+      
+      // If current user is updating themselves, update local storage
+      if (selectedUser.id === currentUser.id) {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem('user', JSON.stringify({ ...storedUser, username: userForm.username, role: userForm.role }));
+      }
+
       toast.success('Данные обновлены');
       setShowEditUser(false);
       setSelectedUser(null);
@@ -243,7 +298,7 @@ export default function SettingsView() {
                   <div className="text-[8px] font-medium text-slate-400 uppercase">{currentUser.role}</div>
                </div>
             </div>
-            <button className="w-full btn-1c !bg-white !text-rose-500 hover:!bg-rose-50 !py-2 text-[10px]" onClick={() => { localStorage.clear(); window.location.href = '/login'; }}>ВЫЙТИ ИЗ СИСТЕМЫ</button>
+            <button className="w-full btn-1c !bg-white !text-rose-500 hover:!bg-rose-50 !py-2 text-[10px]" onClick={handleLogout}>ВЫЙТИ ИЗ СИСТЕМЫ</button>
          </div>
       </div>
 
@@ -464,6 +519,7 @@ export default function SettingsView() {
                                              setSelectedUser(u);
                                              setUserForm({
                                                 ...userForm,
+                                                username: u.username,
                                                 role: u.role,
                                                 warehouseId: u.warehouseId ? String(u.warehouseId) : '',
                                                 canCancelInvoices: u.canCancelInvoices,
@@ -516,25 +572,41 @@ export default function SettingsView() {
                         <h3 className="text-xs font-medium uppercase text-brand-orange border-b border-brand-orange/20 pb-2 flex items-center gap-2 italic">
                            <Lock size={14} /> Учетные данные и безопасность
                         </h3>
-                        <form className="space-y-5">
+                        <form className="space-y-5" onSubmit={handleUpdateProfilePassword}>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Текущий логин (ID)</label>
-                                <input value={currentUser.username} disabled className="field-1c w-full bg-slate-50 text-slate-400 font-medium" />
-                                <p className="text-[9px] font-normal text-slate-400 italic">Смена логина доступна только администратору системы.</p>
+                                <input value={currentUser.username} disabled className="field-1c w-full bg-slate-50 text-slate-400 font-medium uppercase" />
+                                <p className="text-[9px] font-normal text-slate-400 italic">Смена логина доступна только администратору в разделе "Пользователи".</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4 pt-4">
                                <div className="space-y-1">
                                   <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Новый пароль</label>
-                                  <input type="password" placeholder="••••••••" className="field-1c w-full" />
+                                  <input 
+                                    type="password" 
+                                    placeholder="••••••••" 
+                                    className="field-1c w-full" 
+                                    value={profileForm.password}
+                                    onChange={e => setProfileForm({...profileForm, password: e.target.value})}
+                                  />
                                </div>
                                <div className="space-y-1">
                                   <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Повтор пароля</label>
-                                  <input type="password" placeholder="••••••••" className="field-1c w-full" />
+                                  <input 
+                                    type="password" 
+                                    placeholder="••••••••" 
+                                    className="field-1c w-full" 
+                                    value={profileForm.confirmPassword}
+                                    onChange={e => setProfileForm({...profileForm, confirmPassword: e.target.value})}
+                                  />
                                </div>
                             </div>
                             <div className="pt-6">
-                               <button type="button" className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2 font-medium tracking-widest uppercase !py-3 !px-8">
-                                  ОБНОВИТЬ ПАРОЛЬ ВХОДА
+                               <button 
+                                 type="submit" 
+                                 disabled={isUpdatingProfile}
+                                 className="btn-1c !bg-brand-yellow !border-brand-orange/30 flex items-center gap-2 font-medium tracking-widest uppercase !py-3 !px-8 disabled:opacity-50"
+                                >
+                                  {isUpdatingProfile ? 'ОБНОВЛЕНИЕ...' : 'ОБНОВИТЬ ПАРОЛЬ ВХОДА'}
                                </button>
                             </div>
                         </form>
@@ -773,6 +845,10 @@ export default function SettingsView() {
                 <button onClick={() => setShowEditUser(false)} className="text-slate-300 hover:text-slate-600"><X size={18} /></button>
               </div>
               <form onSubmit={handleUpdateUser} className="p-6 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Логин (Имя пользователя)</label>
+                  <input required value={userForm.username} onChange={e => setUserForm({ ...userForm, username: e.target.value })} className="field-1c w-full font-medium uppercase" />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Роль (Доступ)</label>
@@ -798,26 +874,27 @@ export default function SettingsView() {
                          <input type="password" placeholder="Повтор" value={userForm.confirmPassword} onChange={e => setUserForm({...userForm, confirmPassword: e.target.value})} className="field-1c w-full" />
                       </div>
                    </div>
+                   <div className="space-y-3">
+                      <p className="text-[9px] font-medium uppercase text-slate-400">Привилегии</p>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" checked={userForm.canCancelInvoices} onChange={e => setUserForm({...userForm, canCancelInvoices: e.target.checked})} className="sr-only peer" />
+                        <div className="w-10 h-5 bg-slate-200 peer-checked:bg-emerald-500 rounded-full transition-all relative">
+                            <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
+                        </div>
+                        <span className="text-[10px] font-medium uppercase text-slate-600">Отмена накладных</span>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" checked={userForm.canDeleteData} onChange={e => setUserForm({...userForm, canDeleteData: e.target.checked})} className="sr-only peer" />
+                        <div className="w-10 h-5 bg-slate-200 peer-checked:bg-rose-500 rounded-full transition-all relative">
+                            <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
+                        </div>
+                        <span className="text-[10px] font-medium uppercase text-slate-600">Удаление данных</span>
+                      </label>
+                   </div>
                 </div>
-                <div className="bg-slate-50 p-4 rounded border border-slate-200 space-y-3">
-                   <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" checked={userForm.canCancelInvoices} onChange={e => setUserForm({...userForm, canCancelInvoices: e.target.checked})} className="sr-only peer" />
-                      <div className="w-10 h-5 bg-slate-200 peer-checked:bg-emerald-500 rounded-full transition-all relative">
-                         <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
-                      </div>
-                      <span className="text-[10px] font-medium uppercase text-slate-600">Разрешить отмену накладных</span>
-                   </label>
-                   <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" checked={userForm.canDeleteData} onChange={e => setUserForm({...userForm, canDeleteData: e.target.checked})} className="sr-only peer" />
-                      <div className="w-10 h-5 bg-slate-200 peer-checked:bg-rose-500 rounded-full transition-all relative">
-                         <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all peer-checked:translate-x-5" />
-                      </div>
-                      <span className="text-[10px] font-medium uppercase text-slate-600">Разрешить удаление данных</span>
-                   </label>
-                </div>
-                <div className="pt-4 flex gap-2">
-                   <button type="submit" className="flex-1 btn-1c !bg-sky-600 !text-white border-none !py-4 font-medium tracking-widest uppercase">СОХРАНИТЬ</button>
-                   <button type="button" onClick={() => setShowEditUser(false)} className="flex-1 btn-1c !bg-slate-100 !py-4 font-medium tracking-widest uppercase">ОТМЕНА</button>
+                <div className="pt-4 flex gap-3">
+                  <button type="submit" className="flex-1 btn-1c !bg-sky-600 !text-white !border-sky-700 !py-4 font-medium tracking-widest uppercase">СОХРАНИТЬ</button>
+                  <button type="button" onClick={() => setShowEditUser(false)} className="flex-1 btn-1c !bg-slate-100 !py-4 font-medium tracking-widest uppercase">ОТМЕНА</button>
                 </div>
               </form>
             </motion.div>
