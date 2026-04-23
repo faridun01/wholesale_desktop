@@ -145,6 +145,7 @@ export class InvoiceService {
       rawName?: string | null;
       brand?: string | null;
       discount?: number;
+      batchId?: number | null;
     }[];
     discount?: number;
     tax?: number;
@@ -226,7 +227,12 @@ export class InvoiceService {
 
         // Check batches for this product to see if we need to split by selling price
         const batches = await tx.productBatch.findMany({
-          where: { productId: item.productId, warehouseId, remainingQuantity: { gt: 0 } },
+          where: { 
+            id: item.batchId ?? undefined,
+            productId: item.productId, 
+            warehouseId, 
+            remainingQuantity: { gt: 0 } 
+          },
           orderBy: { createdAt: 'asc' },
         });
 
@@ -273,7 +279,8 @@ export class InvoiceService {
             sellingPrice: split.price,
             discount: itemDiscount,
             totalPrice: roundMoney(split.qty * unitPriceRounded),
-            originalItem: item // reference to original POS item for packaging info
+            batchId: item.batchId, // Store specific batchId if provided
+            originalItem: item 
           });
         }
       }
@@ -349,8 +356,8 @@ export class InvoiceService {
           },
         });
 
-        // FIFO Allocation
-        const allocationResult = await StockService.allocateStock(productId, warehouseId, quantity, invoiceItem.id, tx);
+        // Allocation
+        const allocationResult = await StockService.allocateStock(productId, warehouseId, quantity, invoiceItem.id, tx, finalItem.batchId);
         const avgCost = allocationResult.averageCost;
         
         await tx.invoiceItem.update({
@@ -472,6 +479,7 @@ export class InvoiceService {
       rawName?: string | null;
       brand?: string | null;
       discount?: number;
+      batchId?: number | null;
     }[];
     discount?: number;
   }) {
@@ -662,7 +670,7 @@ export class InvoiceService {
           },
         });
 
-        const avgCost = await StockService.allocateStock(Number(item.productId), Number(invoice.warehouseId), quantity, invoiceItem.id, tx);
+        const avgCost = await StockService.allocateStock(Number(item.productId), Number(invoice.warehouseId), quantity, invoiceItem.id, tx, (item as any).batchId);
         await tx.invoiceItem.update({
           where: { id: invoiceItem.id },
           data: { costPrice: avgCost },

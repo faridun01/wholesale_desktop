@@ -266,4 +266,21 @@ router.delete('/batches/:batchId', async (req: AuthRequest, res, next) => {
   }
 });
 
+router.put('/batches/:batchId', async (req: AuthRequest, res, next) => {
+  try {
+    const access = await getAccessContext(req);
+    ensureAdminAccess(access);
+    const batchId = Number(req.params.batchId);
+    const { sellingPrice } = req.body;
+    
+    const batch = await prisma.productBatch.update({
+      where: { id: batchId },
+      data: { sellingPrice: Number(sellingPrice) }
+    });
+    res.json(batch);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

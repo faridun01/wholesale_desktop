@@ -33,7 +33,8 @@ export class StockService {
     warehouseId: number,
     quantity: number,
     invoiceItemId: number,
-    tx?: any
+    tx?: any,
+    specificBatchId?: number
   ) {
     const client = tx || prisma;
     const requiredQty = roundQty(toNumber(quantity, 0));
@@ -47,6 +48,7 @@ export class StockService {
 
     const batches = await client.productBatch.findMany({
       where: {
+        id: specificBatchId ?? undefined,
         productId,
         warehouseId,
         remainingQuantity: { gt: 0 },

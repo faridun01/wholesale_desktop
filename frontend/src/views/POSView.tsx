@@ -25,6 +25,7 @@ import { createInvoice } from '../api/invoices.api';
 import { getCustomers } from '../api/customers.api';
 import { getWarehouses } from '../api/warehouses.api';
 import ConfirmationModal from '../components/common/ConfirmationModal';
+import BatchSelectionModal from '../components/common/BatchSelectionModal';
 import { filterWarehousesForUser, getCurrentUser, getUserWarehouseId, isAdminUser } from '../utils/userAccess';
 import { formatMoney, roundMoney, ceilMoney, toFixedNumber } from '../utils/format';
 import { formatProductName } from '../utils/productName';
@@ -86,6 +87,8 @@ type CartItem = {
   packageQuantity: number;
   extraUnitQuantity: number;
   lineDiscountPercent: number;
+  batchId?: number | null;
+  batchStock?: number;
   [key: string]: any;
 };
 
@@ -106,6 +109,10 @@ export default function POSView() {
   const [discount, setDiscount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productSearch, setProductSearch] = useState('');
+  
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [selectedProductForBatch, setSelectedProductForBatch] = useState<any>(null);
+  const [availableBatches, setAvailableBatches] = useState<any[]>([]);
 
   const deferredProductSearch = useDeferredValue(productSearch);
   const deferredCustomerSearch = useDeferredValue(customerSearch);
@@ -113,32 +120,183 @@ export default function POSView() {
   const productSearchRef = useRef<HTMLInputElement>(null);
   const customerSearchRef = useRef<HTMLInputElement>(null);
 
-  // --- Persistence ---
-  useEffect(() => {
-    const savedCart = localStorage.getItem('pos_active_cart');
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (e) {
-        console.error('Failed to load saved cart', e);
-      }
-    }
-    const savedPaid = localStorage.getItem('pos_paid_amount');
-    if (savedPaid) setPaidAmount(savedPaid);
-    
-    const savedCustId = localStorage.getItem('pos_customer_id');
-    if (savedCustId) setCustomerId(Number(savedCustId));
-    
-    const savedCustName = localStorage.getItem('pos_customer_name');
-    if (savedCustName) setCustomerSearch(savedCustName);
-  }, []);
+  // --- Logic Helpers ---
+  const getAvailableStock = (productId: number) => {
+    return products.find(p => p.id === productId)?.stock || 0;
+  };
 
-  useEffect(() => {
-    localStorage.setItem('pos_active_cart', JSON.stringify(cart));
-    localStorage.setItem('pos_paid_amount', paidAmount);
-    localStorage.setItem('pos_customer_id', String(customerId || ''));
-    localStorage.setItem('pos_customer_name', customerSearch);
-  }, [cart, paidAmount, customerId, customerSearch]);
+  const normalizeCartItem = (item: CartItem, overrides: Partial<CartItem> = {}) => {
+    const merged = { ...item, ...overrides };
+    const packaging = merged.packagings.find(p => p.id === merged.selectedPackagingId) || null;
+    const unitsPerPackage = packaging?.unitsPerPackage || 0;
+    
+    // Determine stock limit: if batch-specific, use batch stock; otherwise total product stock.
+    const stockLimit = merged.batchStock ?? getAvailableStock(merged.id);
+    
+    let pq = Math.max(0, Math.floor(Number(merged.packageQuantity || 0)));
+    let eq = Math.max(0, Number(merged.extraUnitQuantity || 0));
+    
+    let total = pq * unitsPerPackage + eq;
+    if (total > stockLimit) {
+        if (unitsPerPackage > 0) {
+            pq = Math.floor(stockLimit / unitsPerPackage);
+            eq = stockLimit - (pq * unitsPerPackage);
+        } else {
+            pq = 0;
+            eq = stockLimit;
+        }
+        total = stockLimit;
+    }
+
+    return {
+      ...merged,
+      stock: stockLimit,
+      packageQuantity: pq,
+      extraUnitQuantity: eq,
+      quantity: total,
+      lineDiscountPercent: clampDiscountPercent(merged.lineDiscountPercent || 0)
+    };
+  };
+
+  const getLineTotal = (item: CartItem) => {
+    const price = Number(item.sellingPrice || 0) * (1 - (item.lineDiscountPercent || 0) / 100);
+    return roundMoney(item.quantity * price);
+  };
+
+  // --- Business Logic ---
+  const handlePriceChange = (productId: number, batchId: number | null, newPrice: number) => {
+    setCart(prev => prev.map(item => 
+      (item.id === productId && item.batchId === batchId) ? normalizeCartItem(item, { sellingPrice: roundMoney(newPrice) }) : item
+    ));
+  };
+
+  const addItemToCart = (product: any, batchId: number | null = null, forcedPrice?: number, quantityToSet: number = 1, batchStock?: number) => {
+    const existing = cart.find(item => item.id === product.id && item.batchId === batchId);
+    
+    if (existing) {
+        const next = normalizeCartItem(existing, { extraUnitQuantity: existing.extraUnitQuantity + quantityToSet });
+        setCart(prev => prev.map(item => (item.id === product.id && item.batchId === batchId) ? next : item));
+    } else {
+        const packagings = normalizePackagings(product);
+        const defPack = getDefaultPackaging(packagings);
+        const item: CartItem = {
+            ...product,
+            sellingPrice: forcedPrice ?? (product.nextBatchPrice ?? product.sellingPrice),
+            batchId,
+            batchStock: batchStock ?? product.stock,
+            packagings,
+            selectedPackagingId: defPack?.id || null,
+            packageQuantity: 0,
+            extraUnitQuantity: quantityToSet,
+            lineDiscountPercent: 0,
+            baseUnitName: product.baseUnitName || 'шт'
+        };
+        setCart(prev => [...prev, normalizeCartItem(item)]);
+    }
+    toast.success(`${product.name} добавлен в корзину`);
+  };
+
+  const addToCart = async (product: any) => {
+    if (product.stock <= 0) {
+        toast.error('Товара нет в наличии');
+        return;
+    }
+
+    try {
+        const response = await client.get(`/products/${product.id}/batches`);
+        const batches = Array.isArray(response.data) ? response.data.filter((b: any) => b.remainingQuantity > 0) : [];
+        
+        if (batches.length > 1) {
+            setSelectedProductForBatch(product);
+            setAvailableBatches(batches);
+            setIsBatchModalOpen(true);
+        } else {
+            const b = batches[0];
+            addItemToCart(product, b?.id || null, b?.sellingPrice || product.sellingPrice, 1, b?.remainingQuantity);
+        }
+    } catch (err) {
+        console.error('Failed to fetch batches', err);
+        addItemToCart(product);
+    }
+  };
+
+  const handleBatchSelect = (selectedBatch: any, desiredQuantity: number) => {
+    if (!selectedProductForBatch) return;
+
+    let remaining = desiredQuantity;
+    
+    // 1. Take from the manually selected batch first
+    const takeFromSelected = Math.min(selectedBatch.remainingQuantity, remaining);
+    addItemToCart(selectedProductForBatch, selectedBatch.id, selectedBatch.sellingPrice, takeFromSelected, selectedBatch.remainingQuantity);
+    remaining -= takeFromSelected;
+
+    // 2. If still need more, take from other batches in FIFO order
+    if (remaining > 0) {
+        const otherBatches = availableBatches
+            .filter(b => b.id !== selectedBatch.id)
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        for (const batch of otherBatches) {
+            if (remaining <= 0) break;
+            const take = Math.min(batch.remainingQuantity, remaining);
+            if (take > 0) {
+                addItemToCart(selectedProductForBatch, batch.id, batch.sellingPrice, take, batch.remainingQuantity);
+                remaining -= take;
+            }
+        }
+    }
+
+    setIsBatchModalOpen(false);
+    setSelectedProductForBatch(null);
+  };
+
+  const refreshBatchesAfterUpdate = async () => {
+    if (!selectedProductForBatch) return;
+    try {
+      const response = await client.get(`/products/${selectedProductForBatch.id}/batches`);
+      setAvailableBatches(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error('Failed to refresh batches', err);
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (!customerId) return toast.error('Выберите клиента');
+    if (cart.length === 0) return toast.error('Корзина пуста');
+    
+    setIsSubmitting(true);
+    try {
+        await createInvoice({
+            customerId,
+            warehouseId: Number(warehouseId),
+            items: cart.map(item => ({
+                productId: item.id,
+                quantity: item.quantity,
+                packagingId: item.selectedPackagingId,
+                packageQuantity: item.packageQuantity,
+                extraUnitQuantity: item.extraUnitQuantity,
+                sellingPrice: item.sellingPrice,
+                discount: item.lineDiscountPercent,
+                batchId: item.batchId
+            })),
+            discount,
+            paidAmount: Math.min(Number(paidAmount) || 0, total),
+            paymentMethod: paymentMethod === 'debt' ? 'cash' : paymentMethod
+        });
+        toast.success('Продажа успешно завершена');
+        window.dispatchEvent(new CustomEvent('refresh-data'));
+        setCart([]);
+        setPaidAmount('');
+        setCustomerId(null);
+        setCustomerSearch('');
+        localStorage.removeItem('pos_active_cart');
+        navigate('/sales');
+    } catch (err: any) {
+        toast.error(err.response?.data?.error || 'Ошибка оформления');
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
 
   const [deferredChecks, setDeferredChecks] = useState<any[]>(() => {
     const saved = localStorage.getItem('pos_deferred_checks');
@@ -180,7 +338,48 @@ export default function POSView() {
     toast.success('Чек восстановлен');
   };
 
-  // --- Hotkeys ---
+  // --- Derived State ---
+  const subtotal = useMemo(() => cart.reduce((sum, item) => sum + getLineTotal(item), 0), [cart]);
+  const total = useMemo(() => roundMoney(subtotal * (1 - discount / 100)), [subtotal, discount]);
+  const balance = useMemo(() => (Number(paidAmount) || 0) - total, [paidAmount, total]);
+
+  const filteredProducts = useMemo(() => {
+    const s = deferredProductSearch.toLowerCase();
+    return products.filter(p => p.name.toLowerCase().includes(s) || String(p.id).includes(s));
+  }, [products, deferredProductSearch]);
+
+  const filteredCustomers = useMemo(() => {
+    const s = deferredCustomerSearch.toLowerCase();
+    return customers.filter(c => c.name.toLowerCase().includes(s));
+  }, [customers, deferredCustomerSearch]);
+
+  // --- Effects ---
+  useEffect(() => {
+    const savedCart = localStorage.getItem('pos_active_cart');
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (e) {
+        console.error('Failed to load saved cart', e);
+      }
+    }
+    const savedPaid = localStorage.getItem('pos_paid_amount');
+    if (savedPaid) setPaidAmount(savedPaid);
+    
+    const savedCustId = localStorage.getItem('pos_customer_id');
+    if (savedCustId) setCustomerId(Number(savedCustId));
+    
+    const savedCustName = localStorage.getItem('pos_customer_name');
+    if (savedCustName) setCustomerSearch(savedCustName);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('pos_active_cart', JSON.stringify(cart));
+    localStorage.setItem('pos_paid_amount', paidAmount);
+    localStorage.setItem('pos_customer_id', String(customerId || ''));
+    localStorage.setItem('pos_customer_name', customerSearch);
+  }, [cart, paidAmount, customerId, customerSearch]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F7') {
@@ -201,90 +400,18 @@ export default function POSView() {
         setPaidAmount('');
         setCustomerId(null);
         setCustomerSearch('');
+        productSearchRef.current?.focus();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cart, customerId, paidAmount, discount, paymentMethod]);
 
-  // --- Logic Helpers ---
-  const getAvailableStock = (productId: number) => {
-    return products.find(p => p.id === productId)?.stock || 0;
-  };
-
-  const normalizeCartItem = (item: CartItem, overrides: Partial<CartItem> = {}) => {
-    const merged = { ...item, ...overrides };
-    const packaging = merged.packagings.find(p => p.id === merged.selectedPackagingId) || null;
-    const unitsPerPackage = packaging?.unitsPerPackage || 0;
-    const stock = getAvailableStock(merged.id);
-    
-    let pq = Math.max(0, Math.floor(Number(merged.packageQuantity || 0)));
-    let eq = Math.max(0, Number(merged.extraUnitQuantity || 0));
-    
-    let total = pq * unitsPerPackage + eq;
-    if (total > stock) {
-        if (unitsPerPackage > 0) {
-            pq = Math.floor(stock / unitsPerPackage);
-            eq = stock - (pq * unitsPerPackage);
-        } else {
-            pq = 0;
-            eq = stock;
-        }
-        total = stock;
-    }
-
-    return {
-      ...merged,
-      stock,
-      packageQuantity: pq,
-      extraUnitQuantity: eq,
-      quantity: total,
-      lineDiscountPercent: clampDiscountPercent(merged.lineDiscountPercent || 0)
-    };
-  };
-
-  const addToCart = (product: any) => {
-    const existing = cart.find(item => item.id === product.id);
-    if (product.stock <= 0) {
-        toast.error('Товара нет в наличии');
-        return;
-    }
-
-    if (existing) {
-        const next = normalizeCartItem(existing, { extraUnitQuantity: existing.extraUnitQuantity + 1 });
-        setCart(cart.map(item => item.id === product.id ? next : item));
-    } else {
-        const packagings = normalizePackagings(product);
-        const defPack = getDefaultPackaging(packagings);
-        const item: CartItem = {
-            ...product,
-            sellingPrice: product.nextBatchPrice ?? product.sellingPrice,
-            packagings,
-            selectedPackagingId: defPack?.id || null,
-            packageQuantity: 0,
-            extraUnitQuantity: 1,
-            lineDiscountPercent: 0,
-            baseUnitName: product.baseUnitName || 'шт'
-        };
-        setCart([...cart, normalizeCartItem(item)]);
-    }
-  };
-
-  const getLineTotal = (item: CartItem) => {
-    const price = Number(item.sellingPrice || 0) * (1 - (item.lineDiscountPercent || 0) / 100);
-    return roundMoney(item.quantity * price);
-  };
-
-  const subtotal = useMemo(() => cart.reduce((sum, item) => sum + getLineTotal(item), 0), [cart]);
-  const total = useMemo(() => roundMoney(subtotal * (1 - discount / 100)), [subtotal, discount]);
-  const balance = useMemo(() => (Number(paidAmount) || 0) - total, [paidAmount, total]);
-
   useEffect(() => {
     getCustomers().then(setCustomers);
     getWarehouses().then(data => {
         const filtered = filterWarehousesForUser(Array.isArray(data) ? data : [], user);
         setWarehouses(filtered);
-        // Auto-select default warehouse if none is set
         if (!warehouseId && filtered.length > 0) {
             const defId = getDefaultWarehouseId(filtered);
             if (defId) setWarehouseId(String(defId));
@@ -297,53 +424,6 @@ export default function POSView() {
     if (!warehouseId) return;
     getProducts(Number(warehouseId)).then(setProducts);
   }, [warehouseId]);
-
-  const filteredProducts = useMemo(() => {
-    const s = deferredProductSearch.toLowerCase();
-    return products.filter(p => p.name.toLowerCase().includes(s) || String(p.id).includes(s));
-  }, [products, deferredProductSearch]);
-
-  const filteredCustomers = useMemo(() => {
-    const s = deferredCustomerSearch.toLowerCase();
-    return customers.filter(c => c.name.toLowerCase().includes(s));
-  }, [customers, deferredCustomerSearch]);
-
-  const handleCheckout = async () => {
-    if (!customerId) return toast.error('Выберите клиента');
-    if (cart.length === 0) return toast.error('Корзина пуста');
-    
-    setIsSubmitting(true);
-    try {
-        await createInvoice({
-            customerId,
-            warehouseId: Number(warehouseId),
-            items: cart.map(item => ({
-                productId: item.id,
-                quantity: item.quantity,
-                packagingId: item.selectedPackagingId,
-                packageQuantity: item.packageQuantity,
-                extraUnitQuantity: item.extraUnitQuantity,
-                sellingPrice: item.sellingPrice,
-                discount: item.lineDiscountPercent
-            })),
-            discount,
-            paidAmount: Math.min(Number(paidAmount) || 0, total),
-            paymentMethod: paymentMethod === 'debt' ? 'cash' : paymentMethod
-        });
-        toast.success('Продажа успешно завершена');
-        window.dispatchEvent(new CustomEvent('refresh-data'));
-        setCart([]);
-        setPaidAmount('');
-        setCustomerId(null);
-        setCustomerSearch('');
-        localStorage.removeItem('pos_active_cart');
-        navigate('/sales');
-    } catch (err: any) {
-        toast.error(err.response?.data?.error || 'Ошибка оформления');
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
 
   return (
     <div className="flex flex-col h-screen bg-[#e6e8eb] select-none overflow-hidden text-[#1e1e1e]">
@@ -432,7 +512,7 @@ export default function POSView() {
                   <tr 
                     key={p.id} 
                     onDoubleClick={() => addToCart(p)}
-                    className="hover:bg-brand-yellow/5"
+                    className="hover:bg-brand-yellow/5 cursor-pointer"
                   >
                     <td className="text-center font-mono text-[10px] text-slate-400">{idx + 1}</td>
                     <td className="font-normal py-1.5 text-[11px]">{p.name}</td>
@@ -457,7 +537,7 @@ export default function POSView() {
         </div>
 
         <div className="w-96 flex flex-col bg-[#f0f1f4] shrink-0">
-          <div className="p-3 bg-white border-b border-border-base relative">
+          <div className="p-3 bg-white border-b border-border-base relative border-l border-slate-200">
              <div className="flex items-center justify-between mb-1.5">
                 <label className="text-[10px] font-medium uppercase text-slate-400 flex items-center gap-1">
                    <User size={12} /> Контрагент
@@ -490,16 +570,24 @@ export default function POSView() {
              </div>
           </div>
 
-          <div className="flex-1 overflow-auto p-3 space-y-1.5">
+          <div className="flex-1 overflow-auto p-3 space-y-1.5 border-l border-slate-200">
               {cart.map((item) => (
-                <div key={item.id} className="bg-white border-l-4 border-l-brand-orange p-2 rounded shadow-sm border border-border-base relative">
+                <div key={`${item.id}-${item.batchId}`} className="bg-white border-l-4 border-l-brand-orange p-2 rounded shadow-sm border border-border-base relative animate-slide-in">
                    <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-[10px] font-medium text-slate-900 truncate leading-tight mb-1">{item.name}</p>
                         <div className="flex items-center gap-1.5 text-[9px] font-normal text-slate-400 italic">
                           <span>{item.quantity} {item.unit}</span>
                           <span className="text-slate-200">|</span>
-                          <span>{formatMoney(item.sellingPrice)}</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400">@</span>
+                            <input 
+                              type="number"
+                              value={item.sellingPrice || ''}
+                              onChange={(e) => handlePriceChange(item.id, item.batchId || null, Number(e.target.value))}
+                              className="w-16 h-5 bg-slate-50 border border-slate-100 rounded text-center text-[10px] font-semibold text-brand-orange outline-none focus:border-brand-orange"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -509,21 +597,21 @@ export default function POSView() {
                                <input 
                                  type="number" 
                                  value={item.packageQuantity || ''}
-                                 onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { packageQuantity: Number(e.target.value) }) : c))}
+                                 onChange={e => setCart(cart.map(c => (c.id === item.id && c.batchId === item.batchId) ? normalizeCartItem(c, { packageQuantity: Number(e.target.value) }) : c))}
                                  title="Упаковок"
                                  className="w-10 h-6 text-center font-medium text-[11px] bg-brand-yellow/10 border-r border-slate-200 outline-none"
                                />
                             )}
                             <input 
-                              type="number" 
-                              value={item.extraUnitQuantity || ''}
-                              onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { extraUnitQuantity: Number(e.target.value) }) : c))}
-                              title={item.selectedPackagingId ? 'Штук (доп)' : 'Количество'}
-                              className="w-12 h-6 text-center font-medium text-[11px] outline-none"
+                               type="number" 
+                               value={item.extraUnitQuantity || ''}
+                               onChange={e => setCart(cart.map(c => (c.id === item.id && c.batchId === item.batchId) ? normalizeCartItem(c, { extraUnitQuantity: Number(e.target.value) }) : c))}
+                               title={item.selectedPackagingId ? 'Штук (доп)' : 'Количество'}
+                               className="w-12 h-6 text-center font-medium text-[11px] outline-none"
                             />
                          </div>
 
-                         <button onClick={() => setCart(cart.filter(c => c.id !== item.id))} className="text-slate-300 hover:text-rose-600 transition-colors ml-1">
+                         <button onClick={() => setCart(cart.filter(c => !(c.id === item.id && c.batchId === item.batchId)))} className="text-slate-300 hover:text-rose-600 transition-colors ml-1">
                            <X size={14} />
                          </button>
                       </div>
@@ -533,7 +621,7 @@ export default function POSView() {
                       <div className="mb-1.5">
                          <select 
                            value={item.selectedPackagingId || ''}
-                           onChange={e => setCart(cart.map(c => c.id === item.id ? normalizeCartItem(c, { selectedPackagingId: Number(e.target.value) }) : c))}
+                           onChange={e => setCart(cart.map(c => (c.id === item.id && c.batchId === item.batchId) ? normalizeCartItem(c, { selectedPackagingId: Number(e.target.value) }) : c))}
                            className="w-full text-[9px] font-medium uppercase bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 outline-none hover:border-brand-orange transition-colors"
                          >
                            <option value="">Без упаковки</option>
@@ -637,6 +725,14 @@ export default function POSView() {
            </div>
         </div>
       </div>
+      <BatchSelectionModal 
+        isOpen={isBatchModalOpen}
+        onClose={() => setIsBatchModalOpen(false)}
+        onSelect={handleBatchSelect}
+        productName={selectedProductForBatch?.name || ''}
+        batches={availableBatches}
+        onBatchUpdate={refreshBatchesAfterUpdate}
+      />
     </div>
   );
 }
