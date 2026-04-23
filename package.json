@@ -46,7 +46,7 @@
   },
   "build": {
     "appId": "com.3click.sklad",
-    "productName": "3Click: Склад",
+    "productName": "3Click Склад",
     "directories": {
       "output": "release"
     },
@@ -57,17 +57,20 @@
       "backend/.env",
       "backend/prisma/prod.db",
       "backend/prisma/schema.prisma",
+      "backend/generated/**/*",
       "backend/package.json",
       "frontend/dist/**/*",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "node_modules/.prisma/**/*"
     ],
     "asar": true,
     "asarUnpack": [
       "backend/.env",
       "backend/dist/**",
       "backend/prisma/prod.db",
-      "node_modules/.prisma/**",
-      "node_modules/@prisma/client/**"
+      "backend/generated/**",
+      "node_modules/**/*",
+      "node_modules/.prisma/**/*"
     ],
     "win": {
       "target": "nsis"
@@ -78,7 +81,7 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "3Click: Склад",
+      "shortcutName": "3Click Склад",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico"

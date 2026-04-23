@@ -5,6 +5,7 @@ const isDev = !app.isPackaged;
 const { spawn, execSync } = require('child_process');
 
 let mainWindow;
+let splashWindow;
 let backendProcess;
 
 // Robust path resolution for packaged apps
@@ -156,7 +157,11 @@ function startBackend() {
     PORT: String(port),
     NODE_ENV: isDev ? 'development' : 'production',
     APP_UPLOADS_DIR: path.join(userDataPath, 'uploads'),
-    DATABASE_URL: `file:${dbPath.replace(/\\/g, '/')}`
+    DATABASE_URL: `file:${dbPath.replace(/\\/g, '/')}`,
+    // Tell node where to find modules. In production, they are now unpacked for reliability.
+    NODE_PATH: isDev 
+      ? path.join(process.cwd(), 'node_modules')
+      : path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules')
   };
 
   if (!isDev) {
@@ -180,15 +185,47 @@ function startBackend() {
   backendProcess.on('close', (code) => log(`Backend exited with code ${code}`));
 }
 
+function createSplashScreen() {
+  try {
+    splashWindow = new BrowserWindow({
+      width: 500,
+      height: 400,
+      transparent: false,
+      backgroundColor: '#0f172a',
+      frame: false,
+      alwaysOnTop: true,
+      show: true,
+      center: true, // Центрируем окно
+      skipTaskbar: true, // Не показываем в панели задач
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+
+    const splashPath = path.join(__dirname, 'splash.html');
+    log(`Loading splash from: ${splashPath}`);
+    splashWindow.loadFile(splashPath);
+    
+    splashWindow.on('closed', () => {
+      splashWindow = null;
+    });
+  } catch (err) {
+    log(`Failed to create splash screen: ${err.message}`);
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: 400,
+    height: 600,
+    resizable: false,
     frame: false,
-    show: true,
+    transparent: true,
+    show: false,
     autoHideMenuBar: true,
-    title: '3Click: Склад',
-    backgroundColor: '#111927',
+    title: '3Click Склад',
+    // backgroundColor: '#111927', // Убираем заливку, чтобы была прозрачность
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -209,12 +246,36 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   }
 
+  // When the window is ready to be shown
+  mainWindow.once('ready-to-show', () => {
+    try {
+      // If splash is still there, close it and show main window
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        setTimeout(() => {
+          if (splashWindow && !splashWindow.isDestroyed()) {
+            splashWindow.close();
+          }
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+          }
+        }, 2500); // Показываем ровно 2.5 секунды
+      } else if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+      }
+    } catch (err) {
+      log(`Error during ready-to-show transition: ${err.message}`);
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
 app.whenReady().then(async () => {
+  createSplashScreen(); // Сначала заставка
+  
   log(`App started. Version: ${app.getVersion()}`);
   log(`UserData path: ${userDataPath}`);
 
@@ -250,8 +311,9 @@ function killBackend() {
 }
 
 app.on('window-all-closed', () => {
-  // If there are still windows (like the main window being shown), don't quit
-  if (BrowserWindow.getAllWindows().length === 0) {
+  // If we're in the middle of a splash-to-main transition, don't quit
+  const allWindows = BrowserWindow.getAllWindows();
+  if (allWindows.length === 0) {
     if (process.platform !== 'darwin') {
       killBackend();
       app.quit();
@@ -276,6 +338,17 @@ ipcMain.handle('window:toggle-maximize', (e) => {
   } else {
     win.maximize();
     return true;
+  }
+});
+
+ipcMain.handle('window:maximize', (e) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (win) {
+    win.setResizable(true);
+    // При максимизации убираем прозрачность, чтобы основное окно было обычным
+    // (Большинство ОС не поддерживают прозрачность для максимизированных окон)
+    // Но так как у нас темная тема, мы просто разворачиваем его
+    win.maximize();
   }
 });
 

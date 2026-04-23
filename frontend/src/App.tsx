@@ -31,7 +31,7 @@ const TitleBar = () => {
     <div className="flex-none flex h-9 w-full items-center justify-between bg-[#ffcc00] px-4 shadow-[0_1px_4px_rgba(0,0,0,0.1)] border-b border-black/5 relative z-[1000]">
       <div className="flex items-center gap-3 select-none" style={{ WebkitAppRegion: 'drag' } as any}>
         <div className="flex h-6 w-6 items-center justify-center rounded bg-red-600 text-white font-normal text-[10px]">3C</div>
-        <span className="text-[11px] font-normal text-slate-800 uppercase tracking-widest">3Click: СКЛАД</span>
+        <span className="text-[11px] font-normal text-slate-800 uppercase tracking-widest">3Click СКЛАД</span>
       </div>
       
       <div className="flex-1 h-full" style={{ WebkitAppRegion: 'drag' } as any}></div>

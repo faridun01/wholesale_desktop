@@ -44,6 +44,7 @@ export default function LoginView() {
       }
 
       setAuthSession(result.token, result.user);
+      (window as any).electron?.windowControls?.maximize();
       navigate('/');
     } catch (err: any) {
       if (!err.response) {
@@ -64,6 +65,7 @@ export default function LoginView() {
     try {
       const result = await performSetup({ username, password });
       setAuthSession(result.token, result.user);
+      (window as any).electron?.windowControls?.maximize();
       navigate('/');
     } catch (err: any) {
       if (!err.response) {
@@ -88,6 +90,7 @@ export default function LoginView() {
       });
       const sessionUser = await getSessionUser();
       setAuthSession(result.token, sessionUser || result.user);
+      (window as any).electron?.windowControls?.maximize();
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Ошибка проверки ключа доступа');
@@ -97,11 +100,11 @@ export default function LoginView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f2f3f7] flex items-center justify-center p-4 select-none">
+    <div className="h-screen w-screen bg-transparent flex flex-col select-none">
       <motion.div 
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-[400px] bg-white border border-border-base rounded-[4px] shadow-2xl overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex-1 flex flex-col bg-white border border-border-base overflow-hidden"
       >
         {/* 1C Style Window Header */}
         <div className="bg-brand-yellow px-4 py-2 flex items-center justify-between border-b border-black/10">
