@@ -86,14 +86,14 @@ function buildPreviewHtml(title: string, html: string, type: 'a4' | 'receipt') {
       .preview-toolbar__eyebrow {
         margin-bottom: 2px;
         color: var(--preview-muted);
-        font: 700 10px/1.2 Arial, sans-serif;
+        font: 500 10px/1.2 Arial, sans-serif;
         letter-spacing: 0.18em;
         text-transform: uppercase;
       }
 
       .preview-toolbar__title {
         color: var(--preview-text);
-        font: 800 20px/1.2 Arial, sans-serif;
+        font: 600 20px/1.2 Arial, sans-serif;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -111,7 +111,7 @@ function buildPreviewHtml(title: string, html: string, type: 'a4' | 'receipt') {
         border-radius: 12px;
         border: 1px solid var(--preview-border);
         padding: 10px 16px;
-        font: 800 12px/1 Arial, sans-serif;
+        font: 600 12px/1 Arial, sans-serif;
         letter-spacing: 0.12em;
         text-transform: uppercase;
         cursor: pointer;

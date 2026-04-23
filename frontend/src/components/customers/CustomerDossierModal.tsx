@@ -93,7 +93,7 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                     <div className="bg-white/20 p-1.5 rounded-[4px]">
                        <User size={18} className="text-slate-800" />
                     </div>
-                    <h3 className="text-sm font-black uppercase tracking-tight text-slate-800">
+                    <h3 className="text-sm font-medium uppercase tracking-tight text-slate-800">
                        Досье контрагента: <span className="text-slate-900 border-b-2 border-brand-orange">{customer?.name}</span>
                     </h3>
                  </div>
@@ -112,7 +112,7 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                     <div className="p-5 border-b border-slate-100 space-y-4">
                        <div className="flex items-center gap-2 mb-3">
                           <div className="w-1 h-4 bg-brand-orange"></div>
-                          <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Контакты</span>
+                          <span className="text-[10px] font-medium uppercase text-slate-500 tracking-wider">Контакты</span>
                        </div>
                        <div className="space-y-2.5">
                           <div className="flex items-center gap-3 text-xs font-bold text-slate-700">
@@ -122,7 +122,7 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                              <MapPin size={14} className="text-slate-300 shrink-0 mt-0.5" /> {customer?.address || '—'}
                           </div>
                           {customer?.customerCategory && (
-                             <div className="inline-block px-2 py-0.5 bg-brand-yellow/20 rounded-[2px] text-[9px] font-black uppercase text-slate-600 border border-brand-yellow/30">
+                             <div className="inline-block px-2 py-0.5 bg-brand-yellow/20 rounded-[2px] text-[9px] font-medium uppercase text-slate-600 border border-brand-yellow/30">
                                 {customer.customerCategory}
                              </div>
                           )}
@@ -133,22 +133,22 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                     <div className="p-5 flex-1 bg-slate-50/50">
                        <div className="flex items-center gap-2 mb-4">
                           <div className="w-1 h-4 bg-brand-orange"></div>
-                          <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Финансовое состояние</span>
+                          <span className="text-[10px] font-medium uppercase text-slate-500 tracking-wider">Финансовое состояние</span>
                        </div>
                        
                        <div className="space-y-3">
                           <div className="bg-white p-3 border border-slate-200 rounded shadow-sm hover:border-emerald-300 transition-colors">
-                             <span className="text-[8px] font-black uppercase text-emerald-600 block mb-0.5">Всего закупок</span>
-                             <div className="text-xl font-black text-slate-800 leading-none">{formatMoney(summary.totalRevenue)}</div>
+                             <span className="text-[8px] font-medium uppercase text-emerald-600 block mb-0.5">Всего закупок</span>
+                             <div className="text-xl font-medium text-slate-800 leading-none">{formatMoney(summary.totalRevenue)}</div>
                           </div>
                           
                           <div className="bg-white p-3 border border-slate-200 rounded shadow-sm hover:border-brand-orange/30 transition-colors group">
-                             <span className="text-[8px] font-black uppercase text-slate-500 block mb-0.5">Сумма оплат</span>
-                             <div className="text-xl font-black text-slate-800 leading-none">{formatMoney(summary.totalPaid)}</div>
+                             <span className="text-[8px] font-medium uppercase text-slate-500 block mb-0.5">Сумма оплат</span>
+                             <div className="text-xl font-medium text-slate-800 leading-none">{formatMoney(summary.totalPaid)}</div>
                              {(summary.totalPaid - history.reduce((s: any, h: any) => s + (h.type === 'invoice' ? (h.paidAmount || 0) : 0), 0)) > 1 && (
                                 <div className="mt-2 pt-2 border-t border-slate-50 flex flex-col">
                                    <span className="text-[7px] font-bold text-slate-400 uppercase leading-none mb-1">В т.ч. авансы:</span>
-                                   <span className="text-[10px] font-black text-brand-orange">{formatMoney(summary.totalPaid - history.reduce((s: any, h: any) => s + (h.type === 'invoice' ? (h.paidAmount || 0) : 0), 0))}</span>
+                                   <span className="text-[10px] font-medium text-brand-orange">{formatMoney(summary.totalPaid - history.reduce((s: any, h: any) => s + (h.type === 'invoice' ? (h.paidAmount || 0) : 0), 0))}</span>
                                 </div>
                              )}
                           </div>
@@ -157,10 +157,10 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                              "p-3 rounded border shadow-sm transition-all duration-300",
                              summary.balance > 0.01 ? "bg-rose-50 border-rose-200 scale-[1.02]" : "bg-emerald-50 border-emerald-200"
                           )}>
-                             <span className={clsx("text-[8px] font-black uppercase block mb-0.5", summary.balance > 0.01 ? "text-rose-600" : "text-emerald-600")}>
+                             <span className={clsx("text-[8px] font-medium uppercase block mb-0.5", summary.balance > 0.01 ? "text-rose-600" : "text-emerald-600")}>
                                 {summary.balance > 0.01 ? 'Текущий долг' : 'Переплата/Баланс'}
                              </span>
-                             <div className={clsx("text-xl font-black leading-none", summary.balance > 0.01 ? "text-rose-700" : "text-emerald-700")}>
+                             <div className={clsx("text-xl font-medium leading-none", summary.balance > 0.01 ? "text-rose-700" : "text-emerald-700")}>
                                 {formatMoney(Math.abs(summary.balance))}
                              </div>
                           </div>
@@ -173,7 +173,7 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                     <div className="bg-[#fcfcfc] px-5 py-2.5 border-b border-border-base flex items-center justify-between shadow-sm sticky top-0 z-20">
                        <div className="flex items-center gap-3">
                           <History size={14} className="text-brand-orange" />
-                          <h4 className="text-[10px] font-black uppercase text-slate-600 tracking-wider">
+                          <h4 className="text-[10px] font-medium uppercase text-slate-600 tracking-wider">
                              История операций (только накладные)
                           </h4>
                        </div>
@@ -184,7 +184,7 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
 
                     <div className="flex-1 overflow-auto p-4 bg-slate-50/30">
                        {isLoading ? (
-                          <div className="py-20 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
+                          <div className="py-20 text-center text-[10px] font-medium text-slate-400 uppercase tracking-widest animate-pulse">
                              Загрузка данных...
                           </div>
                        ) : history.filter(h => h.type === 'invoice').length > 0 ? (
@@ -214,28 +214,28 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                                        >
                                           <td className="text-center font-mono text-[10px] text-slate-400 border-r border-slate-50">{i + 1}</td>
                                           <td className="py-2.5">
-                                             <div className="font-black text-[11px] leading-tight text-slate-800">
+                                             <div className="font-medium text-[11px] leading-tight text-slate-800">
                                                 Продажа № {h.id}
                                              </div>
-                                             <div className="text-[8px] font-black uppercase text-slate-400 tracking-tighter mt-0.5">
+                                             <div className="text-[8px] font-medium uppercase text-slate-400 tracking-tighter mt-0.5">
                                                 {new Date(h.date).toLocaleDateString('ru-RU')}
                                              </div>
                                           </td>
-                                          <td className="text-right font-black text-slate-900 pr-4">
+                                          <td className="text-right font-medium text-slate-900 pr-4">
                                              {formatMoney(netAmt)}
                                           </td>
-                                          <td className="text-right font-black text-emerald-600 pr-4 bg-emerald-50/5">
+                                          <td className="text-right font-medium text-emerald-600 pr-4 bg-emerald-50/5">
                                              {formatMoney(paidAmt)}
                                           </td>
                                           <td className={clsx(
-                                             "text-right font-black pr-4", 
+                                             "text-right font-medium pr-4", 
                                              rowBalance > 0.01 ? "text-brand-orange" : "text-slate-300"
                                           )}>
                                              {formatMoney(rowBalance)}
                                           </td>
                                           <td className="text-center px-2">
                                              <span className={clsx(
-                                                "px-2.5 py-0.5 rounded-[2px] text-[10px] font-black uppercase border whitespace-nowrap inline-block",
+                                                "px-2.5 py-0.5 rounded-[2px] text-[10px] font-medium uppercase border whitespace-nowrap inline-block",
                                                 h.status === 'Возврат' ? "text-rose-600 bg-rose-50 border-rose-200" :
                                                 h.status === 'Оплачено' ? "text-emerald-700 bg-emerald-50 border-emerald-300" :
                                                 h.status === 'Частично' ? "text-amber-600 bg-amber-50 border-amber-200" :
@@ -253,7 +253,7 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
                               </tbody>
                            </table>
                        ) : (
-                          <div className="h-full flex flex-col items-center justify-center py-20 text-slate-300 opacity-50 uppercase font-black text-[10px] tracking-widest gap-2">
+                          <div className="h-full flex flex-col items-center justify-center py-20 text-slate-300 opacity-50 uppercase font-medium text-[10px] tracking-widest gap-2">
                              <Package size={48} strokeWidth={1} />
                              Нет зафиксированных операций
                           </div>
@@ -264,10 +264,10 @@ export default function CustomerDossierModal({ isOpen, onClose, customer }: Cust
 
               {/* Footer 1C Style */}
               <div className="bg-[#fcfcfc] border-t border-border-base p-3 px-5 flex items-center justify-between shrink-0">
-                 <div className="flex items-center gap-4 text-[10px] font-black uppercase text-slate-400">
+                 <div className="flex items-center gap-4 text-[10px] font-medium uppercase text-slate-400">
                     <span>Документов: {summary.invoiceCount}</span>
                  </div>
-                 <button onClick={onClose} className="btn-1c !px-10 font-black uppercase">Закрыть</button>
+                 <button onClick={onClose} className="btn-1c !px-10 font-medium uppercase">Закрыть</button>
               </div>
             </motion.div>
             

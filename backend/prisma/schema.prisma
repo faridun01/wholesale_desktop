@@ -85,6 +85,7 @@ model Product {
   costPrice         Float                  @map("cost_price")
   sellingPrice      Float                  @map("selling_price")
   minStock          Float                  @default(0) @map("min_stock")
+  unitsPerBox       Int                    @default(1) @map("units_per_box")
   initialStock      Float                  @default(0) @map("initial_stock")
   totalIncoming     Float                  @default(0) @map("total_incoming")
   stock             Float                  @default(0)

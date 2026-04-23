@@ -109,6 +109,8 @@ export default function ProductsView() {
     costPrice: '',
     sellingPrice: '',
     warehouseId: '',
+    unitsPerBox: '1',
+    minStock: '0',
   });
 
   const [restockData, setRestockData] = useState({ quantity: '', costPrice: '', reason: '' });
@@ -151,7 +153,9 @@ export default function ProductsView() {
           unit: selectedProduct.unit, 
           categoryId: selectedProduct.categoryId,
           costPrice: selectedProduct.costPrice,
-          sellingPrice: selectedProduct.sellingPrice
+          sellingPrice: selectedProduct.sellingPrice,
+          unitsPerBox: selectedProduct.unitsPerBox,
+          minStock: selectedProduct.minStock
         });
         setShowEditModal(true);
       }
@@ -347,7 +351,7 @@ export default function ProductsView() {
       <div className="toolbar-1c">
         {isAdmin && (
           <button 
-            onClick={() => { setFormData({ name: '', unit: 'шт', categoryId: '', costPrice: '', sellingPrice: '' }); setCategoryInput(''); setShowAddModal(true); }} 
+            onClick={() => { setFormData({ name: '', unit: 'шт', categoryId: '', costPrice: '', sellingPrice: '', unitsPerBox: '1', minStock: '0' }); setCategoryInput(''); setShowAddModal(true); }} 
             className="btn-1c btn-1c-primary flex items-center gap-1.5"
           >
             <Plus size={14} className="stroke-[3]" /> Создать
@@ -361,7 +365,9 @@ export default function ProductsView() {
                 unit: selectedProduct.unit, 
                 categoryId: selectedProduct.categoryId,
                 costPrice: selectedProduct.costPrice,
-                sellingPrice: selectedProduct.sellingPrice
+                sellingPrice: selectedProduct.sellingPrice,
+                unitsPerBox: selectedProduct.unitsPerBox,
+                minStock: selectedProduct.minStock
               });
               setShowEditModal(true); 
             }
@@ -502,7 +508,8 @@ export default function ProductsView() {
               <th className="w-12 text-center">№</th>
               <th>Наименование</th>
               <th className="w-24">Артикул</th>
-              <th className="w-32 text-right">Остаток</th>
+              <th className="w-24 text-right">Остаток (шт)</th>
+              <th className="w-40 text-center">Коробки</th>
               <th className="w-20 text-center">Ед.</th>
               <th className="w-32 text-right">Цена закупа</th>
               <th className="w-32 text-right">Цена продажи</th>
@@ -511,7 +518,7 @@ export default function ProductsView() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={7} className="py-20 text-center bg-white">
+                <td colSpan={8} className="py-20 text-center bg-white">
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 size={32} className="animate-spin text-brand-orange" />
                     <span className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Загрузка...</span>
@@ -529,8 +536,24 @@ export default function ProductsView() {
                   <td className="text-center font-mono text-[11px] text-slate-400">{(currentPage-1)*pageSize + idx + 1}</td>
                   <td className="font-normal">{formatProductName(p.name)}</td>
                   <td className="text-[11px] font-mono text-slate-500 italic">#{p.id}</td>
-                  <td className={clsx("text-right font-medium", p.stock <= (p.minStock || 0) ? "text-rose-600" : "text-slate-800")}>
+                  <td className={clsx("text-right font-medium", p.stock <= (p.minStock || 0) ? "text-rose-600 animate-pulse" : "text-slate-800")}>
                     {p.stock}
+                  </td>
+                  <td className="text-center">
+                    {p.unitsPerBox > 1 ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-[11px] font-medium text-slate-700">
+                          {Math.floor(p.stock / p.unitsPerBox)} <span className="text-[9px] text-slate-400 font-normal uppercase">кор</span>
+                        </span>
+                        {p.stock % p.unitsPerBox > 0 && (
+                          <span className="text-[11px] text-slate-400 font-normal">
+                            + {p.stock % p.unitsPerBox} <span className="text-[9px] uppercase">{p.unit || 'шт'}</span>
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-slate-300">---</span>
+                    )}
                   </td>
                   <td className="text-center text-slate-500 uppercase text-[10px] font-medium">{p.unit || 'шт'}</td>
                   <td className="text-right text-slate-500 italic">{formatMoney(p.costPrice)}</td>
@@ -539,7 +562,7 @@ export default function ProductsView() {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="py-20 text-center bg-white">
+                <td colSpan={8} className="py-20 text-center bg-white">
                   <div className="flex flex-col items-center gap-2 text-slate-300">
                     <Package size={48} />
                     <span className="text-sm font-normal">Товары не найдены</span>
@@ -613,6 +636,14 @@ export default function ProductsView() {
                       </div>
                     </>
                   )}
+                  <div>
+                    <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Кол-во в коробке</label>
+                    <input type="number" min="1" value={formData.unitsPerBox} onChange={e => setFormData({ ...formData, unitsPerBox: e.target.value })} className="field-1c w-full" placeholder="Напр: 12" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Мин. остаток</label>
+                    <input type="number" min="0" value={formData.minStock} onChange={e => setFormData({ ...formData, minStock: e.target.value })} className="field-1c w-full" placeholder="Напр: 10" />
+                  </div>
                 </div>
                 <div className="pt-4 flex justify-end gap-2">
                    <button type="button" onClick={() => { setShowAddModal(false); setShowEditModal(false); }} className="btn-1c">Отмена</button>

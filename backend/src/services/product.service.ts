@@ -134,6 +134,8 @@ export class ProductService {
           sellingPrice,
           warehouseId,
           initialStock: Number(initialStock || 0),
+          unitsPerBox: Number(data.unitsPerBox || 1),
+          minStock: Number(data.minStock || 0),
           stock: 0,
         }
       });
@@ -233,7 +235,9 @@ export class ProductService {
           costPrice: effectiveCost,
           sellingPrice,
           sku: null,
-          warehouseId
+          warehouseId,
+          unitsPerBox: payload.unitsPerBox !== undefined ? Number(payload.unitsPerBox) : old.unitsPerBox,
+          minStock: payload.minStock !== undefined ? Number(payload.minStock) : old.minStock,
         }
       });
 

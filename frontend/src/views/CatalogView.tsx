@@ -55,12 +55,27 @@ const normalizePackagings = (product: any): PackagingOption[] =>
 const getDefaultPackaging = (packagings: PackagingOption[]) => packagings.find((entry) => entry.isDefault) || packagings[0] || null;
 
 const getProductStockParts = (product: any) => {
-  const packagings = normalizePackagings(product);
-  const defaultPackaging = getDefaultPackaging(packagings);
-  const baseUnitName = normalizeDisplayBaseUnit(product?.baseUnitName || product?.unit || defaultPackaging?.baseUnitName || 'шт');
   const stock = Math.max(0, Math.floor(Number(product?.stock || 0)));
   const out = stock <= 0;
+  const baseUnitName = normalizeDisplayBaseUnit(product?.baseUnitName || product?.unit || 'шт');
+  
+  if (out) return { primary: 'Нет', secondary: '', isOutOfStock: true };
 
+  // Prioritize unitsPerBox if set > 1
+  if (product.unitsPerBox > 1) {
+    const boxes = Math.floor(stock / product.unitsPerBox);
+    const extra = stock % product.unitsPerBox;
+    
+    if (boxes > 0 && extra > 0) 
+      return { primary: `${boxes} кор`, secondary: `+ ${extra} ${baseUnitName}`, isOutOfStock: false };
+    if (boxes > 0) 
+      return { primary: `${boxes} кор`, secondary: '', isOutOfStock: false };
+    return { primary: `${extra} ${baseUnitName}`, secondary: '', isOutOfStock: false };
+  }
+
+  const packagings = normalizePackagings(product);
+  const defaultPackaging = getDefaultPackaging(packagings);
+  
   if (!defaultPackaging || Number(defaultPackaging.unitsPerPackage || 0) <= 1) 
     return { primary: `${stock} ${baseUnitName}`, secondary: '', isOutOfStock: out };
 
@@ -68,7 +83,6 @@ const getProductStockParts = (product: any) => {
   const packageQuantity = Math.floor(stock / unitsPerPackage);
   const extraUnits = stock % unitsPerPackage;
 
-  if (out) return { primary: 'Нет', secondary: '', isOutOfStock: true };
   if (packageQuantity > 0 && extraUnits > 0) 
     return { primary: `${packageQuantity} ${defaultPackaging.packageName}`, secondary: `+ ${extraUnits} ${baseUnitName}`, isOutOfStock: false };
   if (packageQuantity > 0) 

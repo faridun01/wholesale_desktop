@@ -26,7 +26,7 @@
   /* 1C Style Components */
   
   .btn-1c {
-    @apply px-4 py-1.5 rounded-[4px] border border-border-base bg-white text-xs font-black uppercase tracking-wider transition-all hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-4 py-1.5 rounded-[4px] border border-border-base bg-white text-xs font-medium uppercase tracking-wider transition-all hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
 
@@ -43,7 +43,7 @@
   }
 
   .table-1c th {
-    @apply bg-[#f8f9fb] border-b border-border-base px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest text-left;
+    @apply bg-[#f8f9fb] border-b border-border-base px-3 py-2 text-[10px] font-medium text-slate-500 uppercase tracking-widest text-left;
   }
 
   .table-1c td {
