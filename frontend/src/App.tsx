@@ -155,7 +155,8 @@ export default function App() {
   React.useEffect(() => {
     let isMounted = true;
     const bootstrapSession = async () => {
-      if (!getStoredUser()) {
+      const storedUser = getStoredUser();
+      if (!storedUser) {
         if (isMounted) setIsBootstrappingSession(false);
         return;
       }
@@ -164,7 +165,7 @@ export default function App() {
         if (isMounted) {
            setAuthSession(getAuthToken(), user);
         }
-      } catch {
+      } catch (error) {
         if (isMounted) clearAuthSession();
       } finally {
         if (isMounted) setIsBootstrappingSession(false);

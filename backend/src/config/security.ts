@@ -42,7 +42,7 @@ export const securityConfig = {
   auth: {
     tokenIssuer: process.env.JWT_ISSUER || 'my-wholesale-shop',
     tokenAudience: process.env.JWT_AUDIENCE || 'my-wholesale-shop-users',
-    tokenExpiresIn: process.env.JWT_EXPIRES_IN || '8h',
+    tokenExpiresIn: process.env.JWT_EXPIRES_IN || '5m',
     minimumPasswordLength: 4,
     twoFactorIssuer: process.env.TWO_FACTOR_ISSUER || 'Wholesale CRM',
     twoFactorSetupExpiresIn: process.env.TWO_FACTOR_SETUP_EXPIRES_IN || '10m',

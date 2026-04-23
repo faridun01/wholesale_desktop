@@ -34,7 +34,7 @@ const setAuthCookie = (res: Response, token: string, req: any) => {
     httpOnly: true,
     secure: isSecureCookie(req),
     sameSite: 'lax',
-    maxAge: 8 * 60 * 60 * 1000,
+    maxAge: 5 * 60 * 1000, // 5 minutes session
     path: '/',
   });
 };
