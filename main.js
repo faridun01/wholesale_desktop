@@ -50,9 +50,20 @@ function isDatabaseValid(pathToCheck) {
     const buffer = fs.readFileSync(pathToCheck, { encoding: null, flag: 'r' });
     const content = buffer.toString('binary');
     
-    // Prisma model 'User' usually results in a table named 'User' or 'users'
+    // Heuristic: Search for critical tables like 'User' and 'Product'
     if (!content.includes('CREATE TABLE "User"') && !content.includes('CREATE TABLE "users"')) {
       log('Database integrity check failed: "User" table definition not found.');
+      return false;
+    }
+
+    if (!content.includes('CREATE TABLE "Product"')) {
+      log('Database integrity check failed: "Product" table definition not found.');
+      return false;
+    }
+
+    // Check for specific columns added in recent updates
+    if (!content.includes('units_per_box')) {
+      log('Database integrity check failed: "units_per_box" column not found in Product table.');
       return false;
     }
 
