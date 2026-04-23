@@ -109,10 +109,10 @@ export class ReportService {
       const month = inv.createdAt.toLocaleString('ru-RU', { month: 'short' });
       if (!monthlyData[month]) monthlyData[month] = { name: month, sales: 0, profit: 0 };
 
-      const netAmount = Number(inv.netAmount || 0);
+      const netAmount = Math.max(0, Number(inv.netAmount || 0) - Number(inv.returnedAmount || 0));
       const paidAmount = Number(inv.paidAmount || 0);
       totalRevenue += netAmount;
-      const invoiceDebt = Math.max(0, netAmount - paidAmount);
+      const invoiceDebt = Math.max(0, (Number(inv.netAmount || 0) - Number(inv.returnedAmount || 0)) - paidAmount);
       totalDebts += invoiceDebt;
       monthlyData[month].sales += netAmount;
 

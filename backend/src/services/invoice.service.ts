@@ -90,7 +90,7 @@ export class InvoiceService {
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({
         where,
-        include: { customer: true, user: true, items: true },
+        include: { customer: true, user: true, items: true, warehouse: true },
         skip: params.pagination.skip,
         take: params.pagination.limit,
         orderBy: { createdAt: 'desc' }
@@ -101,15 +101,21 @@ export class InvoiceService {
     const mapped = invoices.map((inv: any) => {
       let totalProfit: number | undefined = undefined;
       if (access.isAdmin) {
-        totalProfit = inv.items.reduce((sum: number, item: any) => {
-          return sum + (item.sellingPrice - (item.costPrice || 0)) * (item.quantity - (item.returnedQty || 0));
+        const totalCost = inv.items.reduce((sum: number, item: any) => {
+          const remainingQty = Math.max(0, item.quantity - (item.returnedQty || 0));
+          return sum + (item.costPrice || 0) * remainingQty;
         }, 0);
+        
+        // Profit = (NetAmount - ReturnedAmount) - TotalCost
+        // netAmount already includes item discounts and invoice discount
+        totalProfit = Math.max(-100000000, (inv.netAmount - (inv.returnedAmount || 0)) - totalCost);
       }
 
       return {
         ...inv,
         customer_name: inv.customerNameSnapshot || inv.customer?.name || '---',
         staff_name: inv.user?.username || '---',
+        warehouse_name: inv.warehouse?.name || '---',
         totalProfit
       };
     });
@@ -792,9 +798,12 @@ export class InvoiceService {
       staff_name: itemReturn.user.username
     }));
 
-    const totalProfit = invoiceItems.reduce((sum: number, item: any) => {
-      return sum + (item.sellingPrice - (item.costPrice || 0)) * (item.quantity - (item.returnedQty || 0));
+    const totalCost = invoiceItems.reduce((sum: number, item: any) => {
+      const remainingQty = Math.max(0, item.quantity - (item.returnedQty || 0));
+      return sum + (item.costPrice || 0) * remainingQty;
     }, 0);
+
+    const totalProfit = (invoice.netAmount - (invoice.returnedAmount || 0)) - totalCost;
 
     return {
       ...invoice,
