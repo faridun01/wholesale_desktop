@@ -212,7 +212,7 @@ router.get('/transactions', authorize(['ADMIN']), validateRequest({ query: trans
     const transactions = await prisma.inventoryTransaction.findMany({
       where: {
         productId: productId ? Number(productId) : undefined,
-        warehouseId: warehouseId ?? undefined,
+        warehouseId: warehouseId || undefined,
         type: type as string || undefined,
       },
       include: { product: true, warehouse: true, user: true },

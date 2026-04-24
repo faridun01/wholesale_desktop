@@ -74,12 +74,12 @@ export class ReportService {
           warehouse: { select: { name: true } },
         },
       }),
-      prisma.product.count({ where: { active: true, warehouseId: warehouseId ?? undefined } }),
+      prisma.product.count({ where: { active: true, warehouseId: warehouseId || undefined } }),
       prisma.customer.count({ where: { active: true, city: access.isAdmin ? undefined : (access.city ?? '__no_city__') } }),
       prisma.warehouse.findMany({ where: access.isAdmin ? { active: true } : { active: true, id: access.warehouseId ?? -1, city: access.city ?? undefined } }),
-      prisma.productBatch.findMany({ where: { remainingQuantity: { gt: 0 }, warehouseId: warehouseId ?? undefined } }),
+      prisma.productBatch.findMany({ where: { remainingQuantity: { gt: 0 }, warehouseId: warehouseId || undefined } }),
       prisma.inventoryTransaction.findMany({
-        where: buildInventoryWhere({ type: 'adjustment', warehouseId, start, end, additional: { qtyChange: { lt: 0 } } }),
+        where: buildInventoryWhere({ type: 'adjustment', warehouseId: warehouseId || null, start, end, additional: { qtyChange: { lt: 0 } } }),
         include: {
           user: { select: { id: true, username: true } },
           warehouse: { select: { id: true, name: true } },
@@ -87,7 +87,7 @@ export class ReportService {
         }
       }),
       prisma.expense.findMany({
-        where: { warehouseId: warehouseId ?? undefined, expenseDate: (start || end) ? buildCreatedAtRange({ start, end }) : undefined },
+        where: { warehouseId: warehouseId || undefined, expenseDate: (start || end) ? buildCreatedAtRange({ start, end }) : undefined },
         select: { amount: true, category: true }
       }),
     ]);

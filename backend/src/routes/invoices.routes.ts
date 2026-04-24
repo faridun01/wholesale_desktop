@@ -40,7 +40,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
     const pagination = parsePaginationQuery(req.query, { defaultLimit: 500, maxLimit: 1000 });
 
     const { invoices, total } = await InvoiceService.getInvoices(access, {
-      warehouseId: warehouseId ?? undefined,
+      warehouseId: warehouseId || undefined,
       pagination,
     });
 

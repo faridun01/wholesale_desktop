@@ -62,7 +62,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
 
     const expenses = await prisma.expense.findMany({
       where: {
-        warehouseId: warehouseId ?? undefined,
+        warehouseId: warehouseId || undefined,
         expenseDate: start || end
           ? {
               gte: start ? new Date(`${start}T00:00:00.000Z`) : undefined,

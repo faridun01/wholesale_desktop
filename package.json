@@ -46,7 +46,7 @@
   },
   "build": {
     "appId": "com.3click.sklad",
-    "productName": "3Click Склад",
+    "productName": "3Click",
     "directories": {
       "output": "release"
     },
@@ -83,7 +83,7 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "3Click Склад",
+      "shortcutName": "3Click",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico"

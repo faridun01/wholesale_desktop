@@ -51,7 +51,7 @@ export class DashboardService {
       }),
       prisma.productBatch.findMany({
         where: {
-          warehouseId: selectedWarehouseId ?? (isAdmin ? undefined : (access.warehouseId ?? -1)),
+          warehouseId: selectedWarehouseId || (isAdmin ? undefined : (access.warehouseId ?? -1)),
           remainingQuantity: { gt: 0 },
         },
         select: { remainingQuantity: true, costPrice: true },

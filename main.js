@@ -216,7 +216,7 @@ function createWindow() {
     transparent: true,
     show: false,
     autoHideMenuBar: true,
-    title: '3Click Склад',
+    title: '3Click',
     // backgroundColor: '#111927', // Убираем заливку, чтобы была прозрачность
     webPreferences: {
       nodeIntegration: false,

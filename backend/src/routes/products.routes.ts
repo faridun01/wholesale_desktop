@@ -16,7 +16,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
     const pagination = parsePaginationQuery(req.query, { defaultLimit: 500, maxLimit: 1000 });
     
     // Logic for listing products (can be moved to service later if gets more complex)
-    const where: any = { active: true, warehouseId: warehouseId ?? undefined };
+    const where: any = { active: true, warehouseId: warehouseId || undefined };
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,

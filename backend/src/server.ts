@@ -32,8 +32,10 @@ try {
   const { initRateLimitStorage } = await import('./middlewares/rate-limit.middleware.js');
   await initRateLimitStorage();
 
-  // We no longer auto-create admin here to allow first-time UI setup
-  console.log('Database connected. Waiting for setup if necessary.');
+  const { repairSchema } = await import('./db/repair.js');
+  await repairSchema();
+
+  console.log('Database connected and verified.');
 } catch (error) {
   console.error('Failed to initialize backend services.');
   console.error(error);
