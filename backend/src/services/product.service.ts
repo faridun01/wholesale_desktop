@@ -177,11 +177,100 @@ export class ProductService {
           'Начальный остаток',
           purchasePrice,
           expensePercent,
-          tx
+          tx,
+          'incoming',
+          undefined,
+          sellingPrice
         );
       }
 
       return product;
+    });
+  }
+
+  /**
+   * Bulk creates products in a single transaction
+   */
+  public static async bulkCreateProducts(userId: number, warehouseId: number, productsData: any[]) {
+    if (!Array.isArray(productsData) || productsData.length === 0) {
+      throw new ValidationError('Список товаров пуст');
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      const results = [];
+      for (const data of productsData) {
+        const { initialStock, packagings, ...rest } = data;
+        
+        const normalized = normalizeProductName(rest.name || rest.rawName);
+        // In bulk mode, we might want to skip canonical check or do it efficiently. 
+        // For now, let's keep it simple and consistent with createProduct logic.
+        const canonicalName = await this.findCanonicalProductName(Number(rest.categoryId), normalized.name);
+        const finalName = canonicalName || normalized.name;
+
+        // Check duplicate within the same transaction context if possible, 
+        // but prisma.product.findMany won't see pending changes in the same transaction unless we use tx.
+        // So we'll use tx for checks.
+        const existing = await tx.product.findFirst({
+          where: { warehouseId, active: true, name: finalName }
+        });
+        
+        if (existing) {
+          throw new ConflictError(`Товар "${finalName}" уже существует на этом складе`);
+        }
+
+        const baseUnitName = normalizeBaseUnitName(String(rest.baseUnitName || rest.unit || 'шт'));
+        const purchasePrice = roundMoney(Number(rest.purchaseCostPrice || rest.costPrice || 0));
+        const expensePercent = Number(rest.expensePercent || 0);
+        const effectiveCost = roundMoney(calculateEffectiveCostPrice(purchasePrice, expensePercent));
+        const sellingPrice = roundMoney(Number(rest.sellingPrice || 0));
+
+        const product = await tx.product.create({
+          data: {
+            name: finalName,
+            rawName: normalized.rawName,
+            brand: normalized.brand,
+            categoryId: Number(rest.categoryId),
+            nameKey: buildProductNameKey(finalName),
+            sku: rest.sku || null,
+            baseUnitName,
+            unit: baseUnitName,
+            purchaseCostPrice: purchasePrice,
+            expensePercent,
+            costPrice: effectiveCost,
+            sellingPrice,
+            warehouseId,
+            initialStock: Number(initialStock || 0),
+            unitsPerBox: Math.floor(Number(data.unitsPerBox || 1)),
+            minStock: Number(data.minStock || 0),
+            stock: 0,
+            photoUrl: rest.photoUrl || null,
+            active: true
+          }
+        });
+
+        await tx.priceHistory.create({
+          data: { productId: product.id, costPrice: effectiveCost, sellingPrice }
+        });
+
+        if (Number(initialStock) > 0) {
+          await (StockService as any).addStock(
+            product.id,
+            warehouseId,
+            Number(initialStock),
+            effectiveCost,
+            userId,
+            'Начальный остаток',
+            purchasePrice,
+            expensePercent,
+            tx,
+            'incoming',
+            undefined,
+            sellingPrice
+          );
+        }
+        results.push(product);
+      }
+      return results;
     });
   }
 

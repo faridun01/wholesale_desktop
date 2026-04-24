@@ -1,14 +1,15 @@
-export const roundMoney = (value: unknown, digits = 2) => {
-  const numeric = Number(value || 0);
-  if (!Number.isFinite(numeric)) return 0;
-  return Number(numeric.toFixed(digits));
-};
-
-export const ceilMoney = (value: unknown, digits = 2) => {
+export const roundMoney = (value: unknown, digits = 2): number => {
   const numeric = Number(value || 0);
   if (!Number.isFinite(numeric)) return 0;
   const factor = Math.pow(10, digits);
-  return Math.ceil(numeric * factor) / factor;
+  return Math.round((numeric + Number.EPSILON) * factor) / factor;
+};
+
+export const ceilMoney = (value: unknown, digits = 2): number => {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric)) return 0;
+  const factor = Math.pow(10, digits);
+  return Math.ceil((numeric - Number.EPSILON) * factor) / factor;
 };
 
 export const formatMoney = (value: unknown, currency = '') => {

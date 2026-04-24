@@ -154,34 +154,47 @@ export default function POSView() {
       packageQuantity: pq,
       extraUnitQuantity: eq,
       quantity: total,
+      sellingPrice: Math.max(0, Number(merged.sellingPrice || 0)),
       lineDiscountPercent: clampDiscountPercent(merged.lineDiscountPercent || 0)
     };
   };
 
   const getLineTotal = (item: CartItem) => {
-    const price = Number(item.sellingPrice || 0) * (1 - (item.lineDiscountPercent || 0) / 100);
-    return roundMoney(item.quantity * price);
+    const unitPriceAfterDiscount = Number(item.sellingPrice || 0) * (1 - (item.lineDiscountPercent || 0) / 100);
+    const unitPriceRounded = ceilMoney(unitPriceAfterDiscount);
+    return roundMoney(item.quantity * unitPriceRounded);
   };
 
   // --- Business Logic ---
   const handlePriceChange = (productId: number, batchId: number | null, newPrice: number) => {
+    const safePrice = Math.max(0, Number(newPrice || 0));
     setCart(prev => prev.map(item => 
-      (item.id === productId && item.batchId === batchId) ? normalizeCartItem(item, { sellingPrice: roundMoney(newPrice) }) : item
+      (item.id === productId && item.batchId === batchId) ? normalizeCartItem(item, { sellingPrice: roundMoney(safePrice) }) : item
     ));
   };
 
   const addItemToCart = (product: any, batchId: number | null = null, forcedPrice?: number, quantityToSet: number = 1, batchStock?: number) => {
-    const existing = cart.find(item => item.id === product.id && item.batchId === batchId);
+    const targetPrice = roundMoney(forcedPrice ?? (product.nextBatchPrice || product.sellingPrice));
+    const existing = cart.find(item => item.id === product.id && roundMoney(item.sellingPrice) === targetPrice);
     
     if (existing) {
-        const next = normalizeCartItem(existing, { extraUnitQuantity: existing.extraUnitQuantity + quantityToSet });
-        setCart(prev => prev.map(item => (item.id === product.id && item.batchId === batchId) ? next : item));
+        // If we are merging a specific batch (batchId is set), we add its stock.
+        // If we are just increasing quantity (batchId is null), we keep existing limit.
+        const newBatchStock = (batchId && batchStock) 
+          ? (existing.batchStock || 0) + batchStock 
+          : (batchStock ?? existing.batchStock);
+
+        const next = normalizeCartItem(existing, { 
+          extraUnitQuantity: existing.extraUnitQuantity + quantityToSet,
+          batchStock: newBatchStock
+        });
+        setCart(prev => prev.map(item => (item.id === product.id && roundMoney(item.sellingPrice) === targetPrice) ? next : item));
     } else {
         const packagings = normalizePackagings(product);
         const defPack = getDefaultPackaging(packagings);
         const item: CartItem = {
             ...product,
-            sellingPrice: forcedPrice ?? (product.nextBatchPrice ?? product.sellingPrice),
+            sellingPrice: targetPrice,
             batchId,
             batchStock: batchStock ?? product.stock,
             packagings,
@@ -206,13 +219,18 @@ export default function POSView() {
         const response = await client.get(`/products/${product.id}/batches`);
         const batches = Array.isArray(response.data) ? response.data.filter((b: any) => b.remainingQuantity > 0) : [];
         
-        if (batches.length > 1) {
+        const uniquePrices = [...new Set(batches.map(b => roundMoney(b.sellingPrice)))];
+
+        if (uniquePrices.length > 1) {
             setSelectedProductForBatch(product);
             setAvailableBatches(batches);
             setIsBatchModalOpen(true);
+        } else if (batches.length > 0) {
+            // All batches have the same price, or just one batch
+            const totalBatchStock = batches.reduce((sum, b) => sum + b.remainingQuantity, 0);
+            addItemToCart(product, null, uniquePrices[0], 1, totalBatchStock);
         } else {
-            const b = batches[0];
-            addItemToCart(product, b?.id || null, b?.sellingPrice || product.sellingPrice, 1, b?.remainingQuantity);
+            addItemToCart(product);
         }
     } catch (err) {
         console.error('Failed to fetch batches', err);
@@ -280,7 +298,7 @@ export default function POSView() {
                 batchId: item.batchId
             })),
             discount,
-            paidAmount: Math.min(Number(paidAmount) || 0, total),
+            paidAmount: Math.max(0, Math.min(Number(paidAmount) || 0, total)),
             paymentMethod: paymentMethod === 'debt' ? 'cash' : paymentMethod
         });
         toast.success('Продажа успешно завершена');
@@ -519,8 +537,8 @@ export default function POSView() {
                     <td className="text-center text-slate-500 uppercase text-[9px]">{p.unit}</td>
                     <td className="text-right font-mono font-normal text-slate-600 italic text-[10px]">{p.stock}</td>
                     <td className="text-right font-medium text-slate-900 text-[11px]">
-                      {formatMoney(p.nextBatchPrice ?? p.sellingPrice)}
-                      {p.nextBatchPrice !== p.sellingPrice && (
+                      {formatMoney(p.nextBatchPrice || p.sellingPrice)}
+                      {p.nextBatchPrice > 0 && p.nextBatchPrice !== p.sellingPrice && (
                         <div className="text-[7px] text-brand-orange uppercase leading-none mt-0.5">Цена партии</div>
                       )}
                     </td>

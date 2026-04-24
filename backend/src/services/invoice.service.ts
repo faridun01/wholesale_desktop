@@ -108,7 +108,7 @@ export class InvoiceService {
         
         // Profit = (NetAmount - ReturnedAmount) - TotalCost
         // netAmount already includes item discounts and invoice discount
-        totalProfit = Math.max(-100000000, (inv.netAmount - (inv.returnedAmount || 0)) - totalCost);
+        totalProfit = Math.max(-100000000, inv.netAmount - totalCost);
       }
 
       return {
@@ -855,7 +855,7 @@ export class InvoiceService {
       return sum + (item.costPrice || 0) * remainingQty;
     }, 0);
 
-    const totalProfit = (invoice.netAmount - (invoice.returnedAmount || 0)) - totalCost;
+    const totalProfit = invoice.netAmount - totalCost;
 
     return {
       ...invoice,

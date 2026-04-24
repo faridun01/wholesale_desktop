@@ -66,6 +66,21 @@ router.post('/', async (req: AuthRequest, res, next) => {
   }
 });
 
+router.post('/bulk', async (req: AuthRequest, res, next) => {
+  try {
+    const access = await getAccessContext(req);
+    ensureAdminAccess(access);
+
+    const warehouseId = req.body.warehouseId ? Number(req.body.warehouseId) : access.warehouseId;
+    if (!warehouseId) throw new ValidationError('Warehouse ID is required');
+
+    const products = await ProductService.bulkCreateProducts(req.user!.id, warehouseId, req.body.products);
+    res.status(201).json(products);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.put('/:id', async (req: AuthRequest, res, next) => {
   try {
     const access = await getAccessContext(req);

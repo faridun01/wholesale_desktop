@@ -42,6 +42,7 @@ import { downloadPriceListPdf } from '../utils/print/priceListPdf';
 // Lazy load modals to keep the bundle clean and avoid circular potential issues
 const ProductHistoryModal = lazy(() => import('../components/products/ProductHistoryModal'));
 const ProductBatchesModal = lazy(() => import('../components/products/ProductBatchesModal'));
+const BulkAddProductsModal = lazy(() => import('../components/products/BulkAddProductsModal'));
 
 // --- Helper Functions ---
 
@@ -96,12 +97,12 @@ export default function ProductsView() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRestockModal, setShowRestockModal] = useState(false);
-  const [showTransferModal, setShowTransferModal] = useState(false);
   const [showWriteOffModal, setShowWriteOffModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showBatchesModal, setShowBatchesModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [keepOpen, setKeepOpen] = useState(false);
+  const [showBulkAddModal, setShowBulkAddModal] = useState(false);
 
   // Modal Data
   const [productHistory, setProductHistory] = useState<any[]>([]);
@@ -119,7 +120,6 @@ export default function ProductsView() {
   });
 
   const [restockData, setRestockData] = useState({ quantity: '', costPrice: '', reason: '', newSellingPrice: '' });
-  const [transferData, setTransferData] = useState({ toWarehouseId: '', quantity: '' });
   const [writeOffData, setWriteOffData] = useState({ quantity: '', reason: '' });
 
   // --- Data Fetching ---
@@ -298,24 +298,6 @@ export default function ProductsView() {
     }
   };
 
-  const handleTransfer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedProduct) return;
-    try {
-      await client.post(`/products/${selectedProduct.id}/transfer`, {
-        fromWarehouseId: Number(selectedWarehouseId),
-        toWarehouseId: Number(transferData.toWarehouseId),
-        quantity: Number(transferData.quantity),
-      });
-      toast.success('Перемещено');
-      window.dispatchEvent(new CustomEvent('refresh-data'));
-      setShowTransferModal(false);
-      fetchProducts(selectedWarehouseId);
-    } catch (err) {
-      toast.error('Ошибка перемещения');
-    }
-  };
-
   const handleWriteOff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
@@ -434,12 +416,20 @@ export default function ProductsView() {
       {/* 1C Taxi Toolbar */}
       <div className="toolbar-1c">
         {isAdmin && (
-          <button 
-            onClick={() => { setFormData({ name: '', unit: 'шт', categoryId: '', costPrice: '', sellingPrice: '', unitsPerBox: '1', minStock: '0' }); setCategoryInput(''); setShowAddModal(true); }} 
-            className="btn-1c btn-1c-primary flex items-center gap-1.5"
-          >
-            <Plus size={14} className="stroke-[3]" /> Создать
-          </button>
+          <>
+            <button 
+              onClick={() => { setFormData({ name: '', unit: 'шт', categoryId: '', costPrice: '', sellingPrice: '', unitsPerBox: '1', minStock: '0' }); setCategoryInput(''); setShowAddModal(true); }} 
+              className="btn-1c btn-1c-primary flex items-center gap-1.5"
+            >
+              <Plus size={14} className="stroke-[3]" /> Создать
+            </button>
+            <button 
+              onClick={() => setShowBulkAddModal(true)} 
+              className="btn-1c flex items-center gap-1.5"
+            >
+              <Layers size={14} /> Массовое добавление
+            </button>
+          </>
         )}
         <button 
           onClick={() => { 
@@ -485,13 +475,6 @@ export default function ProductsView() {
           className="btn-1c flex items-center gap-1.5"
         >
           <Plus size={14} /> Поступление
-        </button>
-        <button 
-          onClick={() => setShowTransferModal(true)} 
-          disabled={!selectedProduct || warehouses.length < 2} 
-          className="btn-1c flex items-center gap-1.5"
-        >
-          <ArrowRightLeft size={14} /> Перемещение
         </button>
         
         <div className="w-[1px] h-6 bg-slate-200 mx-1"></div>
@@ -817,31 +800,6 @@ export default function ProductsView() {
             </motion.div>
           </div>
         )}
-
-        {showTransferModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="bg-white border rounded shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-brand-blue text-white px-4 py-2 flex items-center justify-between uppercase text-[10px] font-medium tracking-widest">
-                <span>Перемещение товара</span>
-                <button onClick={() => setShowTransferModal(false)}><X size={16}/></button>
-              </div>
-              <form onSubmit={handleTransfer} className="p-4 space-y-4">
-                <div>
-                  <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Куда (Склад)</label>
-                  <select required value={transferData.toWarehouseId} onChange={e => setTransferData({ ...transferData, toWarehouseId: e.target.value })} className="field-1c w-full font-normal">
-                    <option value="">Выберите склад...</option>
-                    {warehouses.filter(w => String(w.id) !== selectedWarehouseId).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Количество</label>
-                  <input autoFocus required type="number" value={transferData.quantity} onChange={e => setTransferData({ ...transferData, quantity: e.target.value })} className="field-1c w-full" />
-                </div>
-                <button type="submit" className="btn-1c btn-1c-primary w-full py-2">Выполнить перемещение</button>
-              </form>
-            </motion.div>
-          </div>
-        )}
       </AnimatePresence>
 
       <Suspense fallback={null}>
@@ -861,6 +819,16 @@ export default function ProductsView() {
             onClose={() => setShowBatchesModal(false)} 
             selectedProduct={selectedProduct}
             productBatches={productBatches}
+          />
+        )}
+        {showBulkAddModal && (
+          <BulkAddProductsModal
+            isOpen={showBulkAddModal}
+            onClose={() => setShowBulkAddModal(false)}
+            onSuccess={() => fetchProducts(selectedWarehouseId)}
+            categories={categories}
+            warehouses={warehouses}
+            defaultWarehouseId={selectedWarehouseId}
           />
         )}
         {showWriteOffModal && (

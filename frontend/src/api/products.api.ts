@@ -12,6 +12,11 @@ export const createProduct = async (data: any) => {
   return response.data;
 };
 
+export const bulkCreateProducts = async (data: { warehouseId: number, products: any[] }) => {
+  const response = await client.post('/products/bulk', data);
+  return response.data;
+};
+
 export const restockProduct = async (id: number, data: any) => {
   const response = await client.post(`/products/${id}/restock`, data);
   return response.data;

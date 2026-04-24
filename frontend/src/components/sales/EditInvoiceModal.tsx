@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import client from '../../api/client';
 import { getProducts } from '../../api/products.api';
-import { formatMoney, roundMoney } from '../../utils/format';
+import { ceilMoney, formatMoney, roundMoney } from '../../utils/format';
 import { formatProductName } from '../../utils/productName';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
@@ -100,14 +100,20 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
     setItems(newItems);
   };
 
+  const getLineTotal = (item: any) => {
+    const unitPriceAfterDiscount = Number(item.editPrice || 0) * (1 - (Number(item.discount || 0) / 100));
+    const unitPriceRounded = ceilMoney(unitPriceAfterDiscount);
+    return roundMoney(Number(item.editQty || 0) * unitPriceRounded);
+  };
+
   const calculateTotal = () => {
-    const subtotal = items.reduce((acc, item) => acc + (Number(item.editPrice || 0) * Number(item.editQty || 0)), 0);
+    const subtotal = items.reduce((acc, item) => acc + getLineTotal(item), 0);
     const d = Number(discount) || 0;
-    const discountAmount = (subtotal * d) / 100;
+    const discountAmount = roundMoney(subtotal * (d / 100));
     return {
        subtotal,
        discountAmount,
-       netTotal: subtotal - discountAmount
+       netTotal: roundMoney(subtotal - discountAmount)
     };
   };
 
@@ -266,7 +272,7 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
                              </td>
                              <td className="text-center text-[9px] font-black text-slate-400 uppercase tracking-tighter">{item.unit}</td><td className="text-center">{(() => { const unitsPerBox = item.unitsPerPackageSnapshot || allProducts.find(p => p.id === item.productId)?.unitsPerBox || 1; if (unitsPerBox > 1) { const qty = Number(item.editQty || 0); return ( <div className="text-[10px] font-bold text-slate-500"> {Math.floor(qty / unitsPerBox)} <span className="text-[8px] uppercase">кор</span> {qty % unitsPerBox > 0 && ( <span className="text-slate-300 ml-1">+ {qty % unitsPerBox} шт</span> )} </div> ); } return <span className="text-slate-200">---</span>; })()}</td>
                              <td className="text-right font-black text-slate-900 pr-4">
-                                {formatMoney(Number(item.editPrice || 0) * Number(item.editQty || 0))}
+                                {formatMoney(getLineTotal(item))}
                              </td>
                              <td className="text-center">
                                 <button onClick={() => removeItem(idx)} className="text-slate-300 hover:text-rose-600 transition-colors">
