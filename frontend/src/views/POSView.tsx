@@ -21,7 +21,7 @@ import {
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { getProducts } from '../api/products.api';
-import { createInvoice } from '../api/invoices.api';
+import { createInvoice, getInvoiceDetails } from '../api/invoices.api';
 import { getCustomers } from '../api/customers.api';
 import { getWarehouses } from '../api/warehouses.api';
 import ConfirmationModal from '../components/common/ConfirmationModal';
@@ -30,6 +30,7 @@ import { filterWarehousesForUser, getCurrentUser, getUserWarehouseId, isAdminUse
 import { formatMoney, roundMoney, ceilMoney, toFixedNumber } from '../utils/format';
 import { formatProductName } from '../utils/productName';
 import { getDefaultWarehouseId } from '../utils/warehouse';
+import { saveSalesInvoicePdf } from '../utils/print/salesInvoicePdf';
 import client from '../api/client';
 
 type PaymentMethod = 'cash' | 'card' | 'transfer' | 'debt';
@@ -301,6 +302,16 @@ export default function POSView() {
             paidAmount: Math.max(0, Math.min(Number(paidAmount) || 0, total)),
             paymentMethod: paymentMethod === 'debt' ? 'cash' : paymentMethod
         });
+
+        // Automatically fetch full details and save as PDF
+        try {
+            const fullInvoice = await getInvoiceDetails(invoice.id);
+            await saveSalesInvoicePdf(fullInvoice);
+        } catch (pdfErr: any) {
+            console.error('Failed to auto-save PDF', pdfErr);
+            toast.error(`Накладная создана, но не удалось сохранить PDF: ${pdfErr.message || 'Ошибка генерации'}`);
+        }
+
         toast.success('Продажа успешно завершена');
         window.dispatchEvent(new CustomEvent('refresh-data'));
         setCart([]);

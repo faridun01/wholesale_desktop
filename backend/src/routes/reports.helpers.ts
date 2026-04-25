@@ -21,14 +21,24 @@ type BuildRowsOptions = {
 };
 
 export const buildCreatedAtRange = ({ start, end }: DateRangeInput) => {
-  const parseDate = (val: any) => {
+  const parseDate = (val: any, endOfDay = false) => {
     if (!val || val === 'null' || val === 'undefined') return undefined;
-    const d = new Date(String(val));
-    return isNaN(d.getTime()) ? undefined : d;
+    const dateStr = String(val);
+    // If it's a simple YYYY-MM-DD, handle it as local start/end
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return new Date(dateStr + (endOfDay ? 'T23:59:59.999Z' : 'T00:00:00.000Z'));
+    }
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return undefined;
+    if (endOfDay) {
+        d.setHours(23, 59, 59, 999);
+    }
+    return d;
   };
+
   return {
     gte: parseDate(start),
-    lte: parseDate(end),
+    lte: parseDate(end, true),
   };
 };
 

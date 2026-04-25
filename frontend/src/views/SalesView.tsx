@@ -40,6 +40,8 @@ import { getWarehouses } from '../api/warehouses.api';
 import { getProducts } from '../api/products.api';
 import PaginationControls from '../components/common/PaginationControls';
 import { printSalesInvoice } from '../utils/print/salesInvoicePrint';
+import { saveSalesInvoicePdf } from '../utils/print/salesInvoicePdf';
+import { getInvoiceDetails } from '../api/invoices.api';
 import { printThermalReceipt } from '../utils/print/thermalReceiptPrint';
 import ReturnModal from '../components/sales/ReturnModal';
 import EditInvoiceModal from '../components/sales/EditInvoiceModal';
@@ -384,22 +386,24 @@ export default function SalesView() {
                 {/* Modal Content */}
                 <div className="flex-1 overflow-auto">
                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      <div className="space-y-4">
-                         <div className="bg-slate-50 border border-slate-200 p-4 rounded">
-                            <span className="text-[9px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">Контрагент</span>
-                            <div className="flex items-center gap-3">
-                               <div className="w-10 h-10 bg-white border border-slate-200 rounded flex items-center justify-center text-slate-400">
-                                  <UserIcon size={20} />
-                               </div>
-                               <div>
-                                  <div className="text-sm font-medium text-slate-900 leading-tight">{selectedInvoice.customer_name || '—'}</div>
-                                  <div className="text-[10px] font-normal text-brand-orange mt-0.5 uppercase tracking-tighter italic">Постоянный покупатель</div>
-                               </div>
+                      <div className="lg:col-span-3">
+                         <div className="bg-white border-2 border-slate-900 p-5 rounded-sm shadow-sm space-y-3">
+                            <div className="flex border-b border-slate-100 pb-2">
+                               <span className="w-32 text-[10px] font-bold uppercase text-slate-400">Поставщик:</span>
+                               <span className="flex-1 text-xs font-black text-slate-800">
+                                  {selectedInvoice.company_name || 'Мэй Фу Душанбе'}, {[selectedInvoice.company_country, selectedInvoice.company_region, selectedInvoice.company_city, selectedInvoice.company_address].filter(Boolean).join(', ')}
+                               </span>
+                            </div>
+                            <div className="flex">
+                               <span className="w-32 text-[10px] font-bold uppercase text-slate-400">Покупатель:</span>
+                               <span className="flex-1 text-xs font-black text-slate-800">
+                                  {selectedInvoice.customer_name || '—'}, {selectedInvoice.customer_address || '—'} {selectedInvoice.customer_phone && `(тел: ${selectedInvoice.customer_phone})`}
+                               </span>
                             </div>
                          </div>
                       </div>
 
-                      <div className="lg:col-span-2 grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="lg:col-span-3 grid grid-cols-2 lg:grid-cols-5 gap-4">
                          <div className="p-3 bg-slate-50 border border-slate-200 rounded">
                             <span className="text-[8px] font-medium uppercase text-slate-400 block mb-1">Сумма чека</span>
                             <div className="text-base font-medium text-slate-900">{formatMoney(selectedInvoice.totalAmount || 0)}</div>
@@ -418,7 +422,7 @@ export default function SalesView() {
                          </div>
                          {isAdmin && (
                              <div className="p-3 bg-indigo-50 border border-indigo-100 rounded">
-                                <span className="text-[8px] font-medium uppercase text-indigo-600 block mb-1">Чистая прибыль</span>
+                                <span className="text-[8px] font-medium uppercase text-indigo-600 block mb-1">Прибыль</span>
                                 <div className="text-base font-medium text-indigo-600">{formatMoney(selectedInvoice.totalProfit || 0)}</div>
                              </div>
                           )}
@@ -584,10 +588,20 @@ export default function SalesView() {
                                   amount,
                                   method: 'cash'
                                 });
-                                 toast.success('Оплата проведена');
-                                 window.dispatchEvent(new CustomEvent('refresh-data'));
-                                 setShowPaymentModal(false);
-                                 fetchInvoices();
+                                toast.success('Оплата проведена');
+
+                                // Automatically fetch full details and save as PDF
+                                try {
+                                  const fullInvoice = await getInvoiceDetails(selectedInvoice.id);
+                                  await saveSalesInvoicePdf(fullInvoice);
+                                } catch (pdfErr: any) {
+                                  console.error('Failed to auto-save PDF', pdfErr);
+                                  toast.error(`Оплата проведена, но не удалось сохранить PDF: ${pdfErr.message || 'Ошибка генерации'}`);
+                                }
+
+                                window.dispatchEvent(new CustomEvent('refresh-data'));
+                                setShowPaymentModal(false);
+                                fetchInvoices();
                              } catch(e) { toast.error('Ошибка оплаты'); }
                              finally { setIsPaying(false); }
                           }}

@@ -21,6 +21,8 @@ import { clsx } from 'clsx';
 import PrintPreviewModal from '../common/PrintPreviewModal';
 import { generateTorg12Html, generateReceiptHtml } from '../../utils/printTemplates';
 import { Printer, FileText, Receipt } from 'lucide-react';
+import { getInvoiceDetails } from '../../api/invoices.api';
+import { saveSalesInvoicePdf } from '../../utils/print/salesInvoicePdf';
 
 interface EditInvoiceModalProps {
   isOpen: boolean;
@@ -137,6 +139,16 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
         }))
       });
       toast.success('Накладная обновлена');
+
+      // Automatically fetch full details and save as PDF
+      try {
+        const fullInvoice = await getInvoiceDetails(invoice.id);
+        await saveSalesInvoicePdf(fullInvoice);
+      } catch (pdfErr: any) {
+        console.error('Failed to auto-save PDF', pdfErr);
+        toast.error(`Накладная обновлена, но не удалось сохранить PDF: ${pdfErr.message || 'Ошибка генерации'}`);
+      }
+
       window.dispatchEvent(new CustomEvent('refresh-data'));
       onSuccess();
       onClose();

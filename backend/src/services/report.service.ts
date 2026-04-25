@@ -160,10 +160,12 @@ export class ReportService {
     const stockValuation = batches.reduce((sum, b) => sum + (Number(b.costPrice) * Number(b.remainingQuantity)), 0);
 
     // Process Write-offs
+    let totalWriteOffValue = 0;
     const writeoffByReason: any = {};
     for (const t of writeoffTransactions) {
       const qty = Math.abs(Number(t.qtyChange || 0));
       const val = qty * Number(t.costAtTime || 0);
+      totalWriteOffValue += val;
       const reason = String(t.reason || '').replace(/^.*?:\s*/i, '').trim() || 'Списание';
       const key = reason.toLowerCase();
       if (!writeoffByReason[key]) writeoffByReason[key] = { name: reason, quantity: 0, value: 0, operations: 0 };
@@ -172,19 +174,22 @@ export class ReportService {
       writeoffByReason[key].operations++;
     }
 
+    const netProfitValue = totalProfit - totalExpenses - totalWriteOffValue;
+
     return {
       summary: {
         totalRevenue,
         totalProfit: access.isAdmin ? totalProfit : null,
         totalCost: access.isAdmin ? totalCost : null,
         totalExpenses: access.isAdmin ? totalExpenses : null,
+        totalWriteOffValue: access.isAdmin ? totalWriteOffValue : null,
         totalSalesCount: invoices.length,
         totalCustomers: customersCount,
         totalProducts: productsCount,
         totalDebts,
         stockValuation: access.isAdmin ? stockValuation : null,
-        margin: access.isAdmin ? (totalRevenue > 0 ? ((totalProfit - totalExpenses) / totalRevenue) * 100 : 0) : null,
-        netProfit: access.isAdmin ? (totalProfit - totalExpenses) : null,
+        margin: access.isAdmin ? (totalRevenue > 0 ? (netProfitValue / totalRevenue) * 100 : 0) : null,
+        netProfit: access.isAdmin ? netProfitValue : null,
       },
       chartData: Object.values(monthlyData),
       warehousePerformance: Object.values(warehousePerf),

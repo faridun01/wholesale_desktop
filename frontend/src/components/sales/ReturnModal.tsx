@@ -6,6 +6,8 @@ import { formatProductName } from '../../utils/productName';
 import client from '../../api/client';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
+import { getInvoiceDetails } from '../../api/invoices.api';
+import { saveSalesInvoicePdf } from '../../utils/print/salesInvoicePdf';
 
 interface ReturnModalProps {
   isOpen: boolean;
@@ -74,6 +76,16 @@ export default function ReturnModal({ isOpen, onClose, invoice, onSuccess }: Ret
         reason: reason || 'Возврат по просьбе клиента'
       });
       toast.success('Возврат успешно оформлен');
+
+      // Automatically fetch full details and save as PDF
+      try {
+        const fullInvoice = await getInvoiceDetails(invoice.id);
+        await saveSalesInvoicePdf(fullInvoice);
+      } catch (pdfErr: any) {
+        console.error('Failed to auto-save PDF', pdfErr);
+        toast.error(`Возврат оформлен, но не удалось сохранить PDF: ${pdfErr.message || 'Ошибка генерации'}`);
+      }
+
       window.dispatchEvent(new CustomEvent('refresh-data'));
       onSuccess();
       onClose();

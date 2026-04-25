@@ -203,11 +203,10 @@ export function printSalesInvoice({
           .doc-title { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px; }
           .doc-title-text { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.02em; }
           .doc-title-date { margin: 5px 0 0; font-size: 11px; font-weight: 600; color: #334155; }
-          .header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 15px; }
-          .party-block { flex: 1; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; }
-          .label { margin: 0 0 5px; color: #64748b; font-size: 8px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; }
-          .party-name { margin: 0 0 3px; font-size: 12px; font-weight: 700; color: #0f172a; }
-          .party-line { margin: 0; color: #475569; font-size: 9px; line-height: 1.3; }
+          .doc-header-1c { margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+          .header-row { display: flex; margin-bottom: 4px; font-size: 11px; line-height: 1.4; }
+          .header-label { width: 100px; font-weight: 400; flex-shrink: 0; }
+          .header-value { flex: 1; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; }
           th, td { border: 1px solid #0f172a; padding: 6px; font-size: 10px; text-align: left; }
           th { background: #f1f5f9; font-weight: 800; text-transform: uppercase; font-size: 8px; }
@@ -224,18 +223,14 @@ export function printSalesInvoice({
             <p class="doc-title-text">ТОВАРНАЯ НАКЛАДНАЯ №${invoice.id}</p>
             <p class="doc-title-date">от ${escapeHtml(invoiceDateLabel)} г.</p>
           </div>
-          <div class="header">
-            <div class="party-block">
-              <p class="label">Поставщик</p>
-              <p class="party-name">${escapeHtml(invoice.company_name || 'Мэй Фу Душанбе')}</p>
-              <p class="party-line">${escapeHtml(sellerRegionLine)}</p>
-              <p class="party-line">${escapeHtml(sellerCityLine)}</p>
+          <div class="doc-header-1c">
+            <div class="header-row">
+              <span class="header-label">Поставщик:</span>
+              <span class="header-value"><strong>${escapeHtml(invoice.company_name || 'Мэй Фу Душанбе')}</strong>${sellerRegionLine || sellerCityLine ? ', ' : ''}${escapeHtml([sellerRegionLine, sellerCityLine].filter(Boolean).join(', '))}</span>
             </div>
-            <div class="party-block">
-              <p class="label">Покупатель</p>
-              <p class="party-name">${escapeHtml(customerName)}</p>
-              <p class="party-line">${escapeHtml(customerAddress.primary)} ${escapeHtml(customerAddress.secondary)}</p>
-              <p class="party-line">Тел: ${escapeHtml(customerPhone)}</p>
+            <div class="header-row">
+              <span class="header-label">Покупатель:</span>
+              <span class="header-value"><strong>${escapeHtml(customerName)}</strong>${customerAddress.primary || customerAddress.secondary ? ', ' : ''}${escapeHtml([customerAddress.primary, customerAddress.secondary].filter(Boolean).join(', '))}${customerPhone ? ', тел: ' + escapeHtml(customerPhone) : ''}</span>
             </div>
           </div>
           <table>

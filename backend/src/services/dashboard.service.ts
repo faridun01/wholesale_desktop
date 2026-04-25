@@ -40,6 +40,9 @@ export class DashboardService {
       previousMonthCustomers,
       currentMonthProductsRaw,
       previousMonthProductsRaw,
+      expensesAggRaw,
+      writeoffsAggRaw,
+      writeoffsRaw,
     ] = await Promise.all([
       prisma.invoice.aggregate({
         where: { ...invoiceWhere, createdAt: { gte: windows.today } },
@@ -92,6 +95,31 @@ export class DashboardService {
       prisma.customer.count({ where: { ...customerWhere, createdAt: { gte: windows.prevMonthStart, lt: windows.monthStart } } }),
       prisma.product.findMany({ where: { ...productWhere, createdAt: { gte: windows.monthStart, lt: windows.nextMonthStart } }, select: { name: true } }),
       prisma.product.findMany({ where: { ...productWhere, createdAt: { gte: windows.prevMonthStart, lt: windows.monthStart } }, select: { name: true } }),
+      // Expenses and write-offs for profit adjustment
+      prisma.expense.aggregate({
+        where: { warehouseId: selectedWarehouseId ?? (isAdmin ? undefined : (access.warehouseId ?? -1)) },
+        _sum: { amount: true }
+      }),
+      prisma.inventoryTransaction.aggregate({
+        where: { 
+          type: 'adjustment', 
+          qtyChange: { lt: 0 },
+          warehouseId: selectedWarehouseId ?? (isAdmin ? undefined : (access.warehouseId ?? -1))
+        },
+        _sum: { costAtTime: true, qtyChange: true }
+      }),
+      // We also need the actual total writeoff value, which is SUM(costAtTime * abs(qtyChange))
+      // Since prisma aggregate can't do multiply, we'll fetch them if needed or use a raw query.
+      // But for simplicity, we can fetch all writeoff transactions or use average cost.
+      // Let's fetch the specific adjustment transactions to calculate exact loss.
+      prisma.inventoryTransaction.findMany({
+        where: { 
+          type: 'adjustment', 
+          qtyChange: { lt: 0 },
+          warehouseId: selectedWarehouseId ?? (isAdmin ? undefined : (access.warehouseId ?? -1))
+        },
+        select: { qtyChange: true, costAtTime: true }
+      })
     ]);
 
     // Data Processing Logic
@@ -113,6 +141,12 @@ export class DashboardService {
         }
         productSales[item.productId] = (productSales[item.productId] || 0) + Number(item.quantity);
       }
+    }
+
+    if (isAdmin) {
+      const expenses = Number((expensesAggRaw as any)?._sum?.amount || 0);
+      const writeoffLoss = (writeoffsRaw as any[]).reduce((sum, t) => sum + (Math.abs(t.qtyChange) * Number(t.costAtTime || 0)), 0);
+      totalProfit -= (expenses + writeoffLoss);
     }
 
     const topProductIds = Object.keys(productSales).sort((a,b) => productSales[b] - productSales[a]).slice(0, 5).map(Number);
