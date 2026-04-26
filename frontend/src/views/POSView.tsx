@@ -176,7 +176,7 @@ export default function POSView() {
 
   const addItemToCart = (product: any, batchId: number | null = null, forcedPrice?: number, quantityToSet: number = 1, batchStock?: number) => {
     const targetPrice = roundMoney(forcedPrice ?? (product.nextBatchPrice || product.sellingPrice));
-    const existing = cart.find(item => item.id === product.id && roundMoney(item.sellingPrice) === targetPrice);
+    const existing = cart.find(item => item.id === product.id && roundMoney(item.sellingPrice) === targetPrice && item.batchId === batchId);
     
     if (existing) {
         // If we are merging a specific batch (batchId is set), we add its stock.
@@ -612,7 +612,12 @@ export default function POSView() {
                 <div key={`${item.id}-${item.batchId}`} className="bg-white border-l-4 border-l-brand-orange p-2 rounded shadow-sm border border-border-base relative animate-slide-in">
                    <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-medium text-slate-900 truncate leading-tight mb-1">{item.name}</p>
+                         <div className="flex items-center gap-2 mb-1">
+                            <p className="text-[10px] font-medium text-slate-900 truncate leading-tight">{item.name}</p>
+                            {item.batchId && (
+                               <span className="text-[7px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter">Партия #{item.batchId}</span>
+                            )}
+                         </div>
                         <div className="flex items-center gap-1.5 text-[9px] font-normal text-slate-400 italic">
                           <span>{item.quantity} {item.unit}</span>
                           <span className="text-slate-200">|</span>
