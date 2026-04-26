@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const isDev = !app.isPackaged;
@@ -360,4 +360,48 @@ ipcMain.handle('window:resize', (e, width, height) => {
 ipcMain.handle('window:center', (e) => {
   const win = BrowserWindow.fromWebContents(e.sender);
   if (win) win.center();
+});
+
+ipcMain.handle('db:backup', async (e) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  const { filePath } = await dialog.showSaveDialog(win, {
+    title: 'Сохранить резервную копию',
+    defaultPath: path.join(app.getPath('desktop'), `backup_${new Date().toISOString().split('T')[0]}.sqlite`),
+    filters: [{ name: 'SQLite Database', extensions: ['sqlite', 'db'] }]
+  });
+
+  if (filePath) {
+    try {
+      fs.copyFileSync(dbPath, filePath);
+      return { success: true, path: filePath };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+  return { success: false, cancelled: true };
+});
+
+ipcMain.handle('db:restore', async (e) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  const { filePaths } = await dialog.showOpenDialog(win, {
+    title: 'Выбрать файл для восстановления',
+    filters: [{ name: 'SQLite Database', extensions: ['sqlite', 'db'] }],
+    properties: ['openFile']
+  });
+
+  if (filePaths && filePaths.length > 0) {
+    try {
+      // 1. Create a temporary backup of current DB just in case
+      const tempBackup = `${dbPath}.pre_restore_${Date.now()}`;
+      fs.copyFileSync(dbPath, tempBackup);
+      
+      // 2. Copy the chosen file over the current DB
+      fs.copyFileSync(filePaths[0], dbPath);
+      
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+  return { success: false, cancelled: true };
 });

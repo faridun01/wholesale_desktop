@@ -22,7 +22,10 @@ import {
   Globe,
   Settings,
   ShieldAlert,
-  ArrowRight
+  ArrowRight,
+  Database,
+  CloudUpload,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx } from 'clsx';
@@ -250,6 +253,45 @@ export default function SettingsView() {
     }
   };
 
+  const handleBackup = async () => {
+    if (!(window as any).electron?.database?.backup) return;
+    const toastId = toast.loading('Создание резервной копии...');
+    try {
+      const result = await (window as any).electron.database.backup();
+      if (result.success) {
+        toast.success(`Резервная копия сохранена: ${result.path}`, { id: toastId, duration: 5000 });
+      } else if (!result.cancelled) {
+        toast.error(`Ошибка: ${result.error}`, { id: toastId });
+      } else {
+        toast.dismiss(toastId);
+      }
+    } catch (err) {
+      toast.error('Сбой при вызове системы', { id: toastId });
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!(window as any).electron?.database?.restore) return;
+    
+    const confirmed = window.confirm('ВНИМАНИЕ! Восстановление данных заменит ТЕКУЩУЮ базу данных выбранным файлом. Все изменения после даты бэкапа будут потеряны. Продолжить?');
+    if (!confirmed) return;
+
+    const toastId = toast.loading('Восстановление данных...');
+    try {
+      const result = await (window as any).electron.database.restore();
+      if (result.success) {
+        toast.success('Данные успешно восстановлены! Приложение будет перезагружено.', { id: toastId, duration: 5000 });
+        setTimeout(() => window.location.reload(), 2000);
+      } else if (!result.cancelled) {
+        toast.error(`Ошибка: ${result.error}`, { id: toastId });
+      } else {
+        toast.dismiss(toastId);
+      }
+    } catch (err) {
+      toast.error('Сбой при вызове системы', { id: toastId });
+    }
+  };
+
   const currentWarehouses = warehouses.slice((warehousePage - 1) * warehousesPageSize, warehousePage * warehousesPageSize);
   const totalWPages = Math.ceil(warehouses.length / warehousesPageSize) || 1;
 
@@ -456,6 +498,28 @@ export default function SettingsView() {
                                       )}
                                     >
                                        <div className={clsx("absolute top-1 w-4 h-4 bg-white rounded-full transition-all", settings.autoPrint === 'true' ? "right-1" : "left-1")} />
+                                    </button>
+                                 </div>
+                              </div>
+
+                              {/* Backup Section */}
+                              <div className="bg-sky-50 border border-sky-200 p-4 rounded-[4px]">
+                                 <h4 className="text-[10px] font-medium uppercase text-sky-700 flex items-center gap-2 mb-2"><Database size={12} /> Резервное копирование</h4>
+                                 <p className="text-[9px] font-normal text-sky-600 italic leading-tight mb-4">Регулярно делайте бэкап на внешний диск или флешку, чтобы не потерять данные при поломке ПК.</p>
+                                 <div className="flex gap-2">
+                                    <button 
+                                      type="button" 
+                                      onClick={handleBackup}
+                                      className="flex-1 btn-1c !bg-white !text-sky-700 !border-sky-300 flex items-center justify-center gap-2 py-1.5 text-[10px]"
+                                    >
+                                       <CloudUpload size={14} /> СОЗДАТЬ БЭКАП
+                                    </button>
+                                    <button 
+                                      type="button" 
+                                      onClick={handleRestore}
+                                      className="flex-1 btn-1c !bg-white !text-amber-600 !border-amber-300 flex items-center justify-center gap-2 py-1.5 text-[10px]"
+                                    >
+                                       <RefreshCw size={14} /> ВОССТАНОВИТЬ
                                     </button>
                                  </div>
                               </div>

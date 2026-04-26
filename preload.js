@@ -11,4 +11,8 @@ contextBridge.exposeInMainWorld('electron', {
   },
   resizeWindow: (width, height) => ipcRenderer.invoke('window:resize', width, height),
   centerWindow: () => ipcRenderer.invoke('window:center'),
+  database: {
+    backup: () => ipcRenderer.invoke('db:backup'),
+    restore: () => ipcRenderer.invoke('db:restore'),
+  },
 });
