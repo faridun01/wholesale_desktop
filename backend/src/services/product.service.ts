@@ -117,6 +117,9 @@ export class ProductService {
     const effectiveCost = roundMoney(calculateEffectiveCostPrice(purchasePrice, expensePercent));
     const sellingPrice = roundMoney(Number(rest.sellingPrice || 0));
 
+    if (purchasePrice < 0) throw new ValidationError('Себестоимость не может быть отрицательной');
+    if (sellingPrice < 0) throw new ValidationError('Цена продажи не может быть отрицательной');
+
     return await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
@@ -224,6 +227,9 @@ export class ProductService {
         const effectiveCost = roundMoney(calculateEffectiveCostPrice(purchasePrice, expensePercent));
         const sellingPrice = roundMoney(Number(rest.sellingPrice || 0));
 
+        if (purchasePrice < 0) throw new ValidationError('Себестоимость не может быть отрицательной');
+        if (sellingPrice < 0) throw new ValidationError('Цена продажи не может быть отрицательной');
+
         const product = await tx.product.create({
           data: {
             name: finalName,
@@ -309,6 +315,9 @@ export class ProductService {
     const expensePercent = payload.expensePercent !== undefined ? Number(payload.expensePercent) : Number(old.expensePercent || 0);
     const effectiveCost = roundMoney(calculateEffectiveCostPrice(purchasePrice, expensePercent));
     const sellingPrice = payload.sellingPrice !== undefined ? roundMoney(payload.sellingPrice) : old.sellingPrice;
+
+    if (purchasePrice < 0) throw new ValidationError('Себестоимость не может быть отрицательной');
+    if (sellingPrice < 0) throw new ValidationError('Цена продажи не может быть отрицательной');
 
     return await prisma.$transaction(async (tx) => {
       const updated = await tx.product.update({
@@ -582,6 +591,9 @@ export class ProductService {
       const resolvedExpensePercent = Number(expensePercent ?? 0);
       const resolvedEffectiveCost = roundMoney(resolvedPurchaseCost * (1 + resolvedExpensePercent / 100));
       const resolvedSellingPrice = (sellingPrice != null && sellingPrice !== '') ? roundMoney(sellingPrice) : Number(product.sellingPrice);
+
+      if (resolvedPurchaseCost < 0) throw new ValidationError('Себестоимость не может быть отрицательной');
+      if (resolvedSellingPrice < 0) throw new ValidationError('Цена продажи не может быть отрицательной');
 
       await tx.product.update({
         where: { id: productId },

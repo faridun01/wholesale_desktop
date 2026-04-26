@@ -625,7 +625,7 @@ export default function ProductsView() {
                   className={clsx(selectedProduct?.id === p.id && "selected")}
                 >
                   <td className="text-center font-mono text-[11px] text-slate-400">{(currentPage-1)*pageSize + idx + 1}</td>
-                  <td className="font-normal">{formatProductName(p.name)}</td>
+                  <td className="font-normal" title={p.name}>{formatProductName(p.name)}</td>
                   <td className="text-[11px] font-mono text-slate-500 italic">#{p.id}</td>
                   <td className={clsx("text-right font-medium", p.stock <= (p.minStock || 0) ? "text-rose-600 animate-pulse" : "text-slate-800")}>
                     {p.stock}
@@ -700,7 +700,15 @@ export default function ProductsView() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Наименование</label>
-                    <input autoFocus type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="field-1c w-full" />
+                    <textarea 
+                      autoFocus 
+                      required 
+                      rows={2}
+                      value={formData.name} 
+                      onChange={e => setFormData({ ...formData, name: e.target.value })} 
+                      title={formData.name}
+                      className="field-1c w-full min-h-[50px] py-2 resize-none" 
+                    />
                   </div>
                   <div>
                     <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Категория</label>
@@ -723,11 +731,11 @@ export default function ProductsView() {
                     <>
                       <div>
                         <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Себестоимость</label>
-                        <input type="number" step="0.01" value={formData.costPrice} onChange={e => setFormData({ ...formData, costPrice: e.target.value })} className="field-1c w-full" />
+                        <input type="number" step="0.01" min="0" value={formData.costPrice} onChange={e => setFormData({ ...formData, costPrice: e.target.value })} className="field-1c w-full" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-medium uppercase text-slate-400 mb-1">Цена продажи</label>
-                        <input type="number" step="0.01" value={formData.sellingPrice} onChange={e => setFormData({ ...formData, sellingPrice: e.target.value })} className="field-1c w-full" />
+                        <input type="number" step="0.01" min="0" value={formData.sellingPrice} onChange={e => setFormData({ ...formData, sellingPrice: e.target.value })} className="field-1c w-full" />
                       </div>
                     </>
                   )}
@@ -785,15 +793,15 @@ export default function ProductsView() {
                 <p className="text-xs font-normal">Товар: {selectedProduct?.name}</p>
                 <div>
                   <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Количество</label>
-                  <input autoFocus required type="number" value={restockData.quantity} onChange={e => setRestockData({ ...restockData, quantity: e.target.value })} className="field-1c w-full" />
+                  <input autoFocus required type="number" step="0.01" min="0.01" value={restockData.quantity} onChange={e => setRestockData({ ...restockData, quantity: e.target.value })} className="field-1c w-full" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Цена закупа (нового)</label>
-                  <input required type="number" step="0.01" value={restockData.costPrice} onChange={e => setRestockData({ ...restockData, costPrice: e.target.value })} className="field-1c w-full" />
+                  <input required type="number" step="0.01" min="0" value={restockData.costPrice} onChange={e => setRestockData({ ...restockData, costPrice: e.target.value })} className="field-1c w-full" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-medium text-slate-400 uppercase mb-1">Новая цена продажи (в каталоге)</label>
-                  <input type="number" step="0.01" value={restockData.newSellingPrice} onChange={e => setRestockData({ ...restockData, newSellingPrice: e.target.value })} className="field-1c w-full border-brand-orange" />
+                  <input type="number" step="0.01" min="0" value={restockData.newSellingPrice} onChange={e => setRestockData({ ...restockData, newSellingPrice: e.target.value })} className="field-1c w-full border-brand-orange" />
                   <p className="text-[9px] text-slate-400 mt-1 italic">* Оставьте без изменений, если цена не меняется</p>
                 </div>
                 <button type="submit" className="btn-1c btn-1c-primary w-full py-2">Выполнить приход и обновить цену</button>
@@ -854,6 +862,8 @@ export default function ProductsView() {
                        <input 
                          required 
                          type="number" 
+                         min="0.01"
+                         step="0.01"
                          value={writeOffData.quantity} 
                          onChange={e => setWriteOffData({ ...writeOffData, quantity: e.target.value })} 
                          className="field-1c w-full text-center text-lg font-medium" 

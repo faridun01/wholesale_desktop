@@ -269,6 +269,8 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
                              <td className="p-0">
                                 <input 
                                    type="number" 
+                                   min="0"
+                                   step="0.01"
                                    value={item.editPrice} 
                                    onChange={e => updateItem(idx, 'editPrice', e.target.value)}
                                    className="w-full h-full bg-transparent text-right font-black text-slate-600 outline-none px-2 focus:bg-white"
@@ -277,6 +279,8 @@ export default function EditInvoiceModal({ isOpen, onClose, invoice, onSuccess }
                              <td className="p-0">
                                 <input 
                                    type="number" 
+                                   min="0.01"
+                                   step="0.01"
                                    value={item.editQty} 
                                    onChange={e => updateItem(idx, 'editQty', e.target.value)}
                                    className="w-full h-full bg-transparent text-center font-black text-slate-900 outline-none px-2 focus:bg-white border-x border-slate-100"

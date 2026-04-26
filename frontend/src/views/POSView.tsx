@@ -374,8 +374,16 @@ export default function POSView() {
 
   const filteredProducts = useMemo(() => {
     const s = deferredProductSearch.toLowerCase();
-    return products.filter(p => p.name.toLowerCase().includes(s) || String(p.id).includes(s));
-  }, [products, deferredProductSearch]);
+    const cartProductIds = new Set(cart.map(item => item.id));
+
+    return products.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(s) || String(p.id).includes(s);
+      const hasStock = (p.stock || 0) > 0;
+      const notInCart = !cartProductIds.has(p.id);
+      
+      return matchesSearch && hasStock && notInCart;
+    });
+  }, [products, deferredProductSearch, cart]);
 
   const filteredCustomers = useMemo(() => {
     const s = deferredCustomerSearch.toLowerCase();
@@ -625,6 +633,7 @@ export default function POSView() {
                             {item.selectedPackagingId && (
                                <input 
                                  type="number" 
+                                 min="0"
                                  value={item.packageQuantity || ''}
                                  onChange={e => setCart(cart.map(c => (c.id === item.id && c.batchId === item.batchId) ? normalizeCartItem(c, { packageQuantity: Number(e.target.value) }) : c))}
                                  title="Упаковок"
@@ -633,6 +642,7 @@ export default function POSView() {
                             )}
                             <input 
                                type="number" 
+                               min="0.01"
                                value={item.extraUnitQuantity || ''}
                                onChange={e => setCart(cart.map(c => (c.id === item.id && c.batchId === item.batchId) ? normalizeCartItem(c, { extraUnitQuantity: Number(e.target.value) }) : c))}
                                title={item.selectedPackagingId ? 'Штук (доп)' : 'Количество'}

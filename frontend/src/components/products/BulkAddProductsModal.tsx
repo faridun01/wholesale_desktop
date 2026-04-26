@@ -77,16 +77,19 @@ export default function BulkAddProductsModal({
     }));
   };
 
-  const handleApplyCategoryToAll = (index: number) => {
+  const handleFillEmptyCategoriesBelow = (index: number) => {
     const sourceRow = rows[index];
     if (!sourceRow.categoryInput) return;
     
-    setRows(rows.map(r => ({
-      ...r,
-      categoryInput: sourceRow.categoryInput,
-      categoryId: sourceRow.categoryId
-    })));
-    toast.success('Категория применена ко всем строкам');
+    const newRows = [...rows];
+    for (let i = index + 1; i < newRows.length; i++) {
+      if (!newRows[i].categoryInput) {
+        newRows[i].categoryInput = sourceRow.categoryInput;
+        newRows[i].categoryId = sourceRow.categoryId;
+      }
+    }
+    setRows(newRows);
+    toast.success('Пустые категории ниже заполнены');
   };
 
   const handleSave = async () => {
@@ -225,7 +228,8 @@ export default function BulkAddProductsModal({
                       value={row.name} 
                       onChange={e => updateRow(row.id, 'name', e.target.value)}
                       placeholder="Название товара..."
-                      className="field-1c w-full border-transparent focus:border-brand-orange bg-transparent"
+                      title={row.name}
+                      className="field-1c w-full border-transparent focus:border-brand-orange bg-transparent truncate"
                     />
                   </td>
                   <td>
@@ -241,8 +245,8 @@ export default function BulkAddProductsModal({
                         {categories.map(c => <option key={c.id} value={c.name} />)}
                       </datalist>
                       <button 
-                        onClick={() => handleApplyCategoryToAll(idx)}
-                        title="Применить эту категорию ко всем"
+                        onClick={() => handleFillEmptyCategoriesBelow(idx)}
+                        title="Скопировать эту категорию в пустые строки ниже"
                         className="p-1 text-slate-400 hover:text-brand-orange opacity-0 group-hover:opacity-100 transition-all"
                       >
                         <Copy size={14} />
