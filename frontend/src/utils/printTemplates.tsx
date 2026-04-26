@@ -29,7 +29,26 @@ export const generateTorg12Html = (invoice: any) => {
         .font-bold { font-weight: bold; }
         .header-table td { border: none; padding: 2px; }
         .title { font-size: 14px; font-weight: bold; border-bottom: 2px solid black; margin-bottom: 10px; padding-bottom: 5px; }
-        .stamp-box { height: 60px; border: 1px solid #ccc; margin-top: 10px; }
+        .stamp-box { position: relative; height: 80px; }
+        .stamp-official {
+          position: absolute;
+          top: -10px;
+          left: 20px;
+          width: 70px;
+          height: 70px;
+          border: 3px double rgba(0, 0, 255, 0.4);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(0, 0, 255, 0.4);
+          font-weight: bold;
+          font-size: 9px;
+          text-align: center;
+          transform: rotate(-15deg);
+          pointer-events: none;
+          text-transform: uppercase;
+        }
         .discount-text { color: #d32f2f; font-weight: bold; }
       </style>
     </head>
@@ -48,7 +67,7 @@ export const generateTorg12Html = (invoice: any) => {
           <td>Мэй Фу Душанбе</td>
         </tr>
         <tr>
-          <td class="font-bold">Плательщик:</td>
+          <td class="font-bold">Покупатель:</td>
           <td>${invoice.customerNameSnapshot || invoice.customer?.name}</td>
         </tr>
         <tr>
@@ -66,9 +85,9 @@ export const generateTorg12Html = (invoice: any) => {
             <th class="text-center">Наименование, характеристика, сорт, артикул товара</th>
             <th class="text-center">Единица измерения</th>
             <th class="text-center">Количество</th>
-            <th class="text-center">Цена, руб. коп.</th>
+            <th class="text-center">Цена, сом. дир.</th>
             ${hasItemDiscounts ? '<th class="text-center">Скидка</th>' : ''}
-            <th class="text-center">Сумма</th>
+            <th class="text-center">Сумма, сомони</th>
           </tr>
         </thead>
         <tbody>
@@ -102,14 +121,14 @@ export const generateTorg12Html = (invoice: any) => {
             </tr>
             <tr class="font-bold" style="background: #f9f9f9;">
               <td colspan="${hasItemDiscounts ? 6 : 5}" class="text-right">ИТОГО К ОПЛАТЕ</td>
-              <td class="text-right">${formatMoney(totalAmount)}</td>
+              <td class="text-right">${formatMoney(totalAmount, 'сомони')}</td>
             </tr>
           ` : ''}
         </tbody>
       </table>
 
       <div style="margin-top: 20px;">
-        Всего отпущено <b>${items.length}</b> наименований на сумму <b>${formatMoney(totalAmount)}</b>.
+        Всего отпущено <b>${items.length}</b> наименований на сумму <b>${formatMoney(totalAmount, 'сомони')}</b>.
       </div>
 
       <div style="margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
@@ -117,13 +136,17 @@ export const generateTorg12Html = (invoice: any) => {
           <div class="font-bold">Отпуск груза произвел:</div>
           <div style="border-bottom: 1px solid black; margin-top: 20px;"></div>
           <div class="text-center" style="font-size: 8px;">(должность, подпись, расшифровка)</div>
-          <div style="margin-top: 10px;">М.П.</div>
+          <div class="stamp-box">
+             <div class="stamp-official">Мэй Фу Душанбе<br/>ОТДЕЛ СБЫТА</div>
+          </div>
         </div>
         <div>
           <div class="font-bold">Груз получил:</div>
           <div style="border-bottom: 1px solid black; margin-top: 20px;"></div>
           <div class="text-center" style="font-size: 8px;">(должность, подпись, расшифровка)</div>
-          <div style="margin-top: 10px;">М.П.</div>
+          <div class="stamp-box">
+             <div class="stamp-official" style="color: rgba(0,0,0,0.1); border-color: rgba(0,0,0,0.1);">М.П.</div>
+          </div>
         </div>
       </div>
     </body>
@@ -201,17 +224,17 @@ export const generateReceiptHtml = (invoice: any) => {
 
       <div class="bold" style="font-size: 16px; display: flex; justify-content: space-between;">
         <span>ИТОГО:</span>
-        <span>${formatMoney(totalAmount)}</span>
+        <span>${formatMoney(totalAmount, 'сомони')}</span>
       </div>
       <div class="dashed"></div>
       
       <div style="display: flex; justify-content: space-between;">
         <span>ПРИНЯТО:</span>
-        <span>${formatMoney(paidAmount)}</span>
+        <span>${formatMoney(paidAmount, 'сомони')}</span>
       </div>
       <div style="display: flex; justify-content: space-between;">
         <span>СДАЧА:</span>
-        <span>${formatMoney(change)}</span>
+        <span>${formatMoney(change, 'сомони')}</span>
       </div>
 
       <div class="dashed"></div>
@@ -244,6 +267,26 @@ export const generateReconciliationHtml = (customer: any, events: any[]) => {
         th { background: #f2f2f2; font-weight: bold; }
         .text-right { text-align: right; }
         .font-bold { font-weight: bold; }
+        .stamp-box { position: relative; height: 80px; margin-top: 10px; }
+        .stamp-official {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%) rotate(-10deg);
+          width: 80px;
+          height: 80px;
+          border: 3px double rgba(0, 0, 255, 0.4);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(0, 0, 255, 0.4);
+          font-weight: bold;
+          font-size: 10px;
+          text-align: center;
+          pointer-events: none;
+          text-transform: uppercase;
+        }
       </style>
     </head>
     <body>
@@ -285,7 +328,7 @@ export const generateReconciliationHtml = (customer: any, events: any[]) => {
             <td colspan="3" class="text-right">ИТОГО:</td>
             <td class="text-right">${formatMoney(totalDebit)}</td>
             <td class="text-right">${formatMoney(totalCredit)}</td>
-            <td class="text-right">${formatMoney(finalBalance)}</td>
+            <td class="text-right">${formatMoney(finalBalance, 'сомони')}</td>
           </tr>
         </tfoot>
       </table>
@@ -294,12 +337,15 @@ export const generateReconciliationHtml = (customer: any, events: any[]) => {
         <div>
           <div class="font-bold">От Организации</div>
           <div style="border-bottom: 1px solid black; margin-top: 30px;"></div>
+          <div class="stamp-box">
+             <div class="stamp-official">Мэй Фу Душанбе<br/>ГЕН. ДИРЕКТОР</div>
+          </div>
           <div style="margin-top: 5px;">М.П.</div>
         </div>
         <div>
           <div class="font-bold">От Контрагента</div>
           <div style="border-bottom: 1px solid black; margin-top: 30px;"></div>
-          <div style="margin-top: 5px;">М.П.</div>
+          <div style="margin-top: 30px;">М.П.</div>
         </div>
       </div>
     </body>

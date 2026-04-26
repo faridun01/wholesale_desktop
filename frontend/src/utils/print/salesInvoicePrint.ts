@@ -239,9 +239,9 @@ export function printSalesInvoice({
                 <th style="width: 40px">№</th>
                 <th>Наименование товара</th>
                 <th style="width: 100px">Кол-во</th>
-                <th style="width: 90px">Цена</th>
-                ${hasPriceAfterDiscountColumn ? '<th style="width: 90px">Цена со ск.</th>' : ''}
-                <th style="width: 100px">Сумма</th>
+                <th style="width: 90px">Цена, сом. дир.</th>
+                ${hasPriceAfterDiscountColumn ? '<th style="width: 90px">Цена со ск. (сом)</th>' : ''}
+                <th style="width: 100px">Сумма, сомони</th>
               </tr>
             </thead>
             <tbody>${itemsRows}</tbody>

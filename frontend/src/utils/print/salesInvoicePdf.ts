@@ -140,7 +140,7 @@ export async function saveSalesInvoicePdf(invoice: any) {
   autoTable(doc, {
     startY: currentY,
     margin: { left: margin, right: margin },
-    head: [['№', 'Наименование товара', 'Кол-во', 'Цена', 'Сумма']],
+    head: [['№', 'Наименование товара', 'Кол-во', 'Цена, сом. дир.', 'Сумма, сомони']],
     body: items.map((item: any, idx: number) => {
       const qtyLabel = item.packageQuantity > 0 
         ? `${item.packageQuantity} ${item.packageNameSnapshot || 'уп'}${item.extraUnitQuantity > 0 ? ` + ${item.extraUnitQuantity} шт` : ''}`
@@ -178,7 +178,9 @@ export async function saveSalesInvoicePdf(invoice: any) {
   });
 
   // Summary
-  const finalY = (doc as any).lastAutoTable.cursor.y + 10;
+  // Use finalY (standard in jspdf-autotable) with a fallback to currentY if the table didn't render correctly
+  const lastTable = (doc as any).lastAutoTable;
+  const finalY = (lastTable && lastTable.finalY ? lastTable.finalY : currentY) + 10;
   const summaryX = pageWidth - margin - 60;
 
   doc.setFontSize(9);

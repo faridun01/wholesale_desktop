@@ -223,6 +223,7 @@ export default function ProductsView() {
       toast.success('Товар создан');
       window.dispatchEvent(new CustomEvent('refresh-data'));
       fetchProducts(selectedWarehouseId);
+      fetchReferenceData(); // Refresh categories and other reference data
 
       if (keepOpen) {
         // Clear form but keep category and warehouse for next product

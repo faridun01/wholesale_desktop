@@ -285,7 +285,7 @@ export default function POSView() {
     
     setIsSubmitting(true);
     try {
-        await createInvoice({
+        const invoice = await createInvoice({
             customerId,
             warehouseId: Number(warehouseId),
             items: cart.map(item => ({
